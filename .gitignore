@@ -1,0 +1,34 @@
+# Build artifacts
+build/
+Debug/
+
+# IDE and build system files
+!.vscode/
+!.settings/
+cmake-build-*/
+
+# STM32CubeMX generated files
+mx.scratch/
+*.ioc.bak
+
+# Object and library files
+*.o
+*.a
+*.lib
+*.so
+*.elf
+*.hex
+*.bin
+
+# Dependency and compiler files
+*.d
+CMakeFiles/
+
+# Add for published projects
+*.ioc.bak
+*.ioc~
+*.sw*
+.DS_Store
+
+# Ensure LICENSE file is always tracked (do not ignore)
+!LICENSE

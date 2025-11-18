@@ -1,3 +1,59 @@
+================================================================================
+MIRATHERM RADIATOR THERMOSTAT SOFTWARE - LICENSE INFORMATION
+================================================================================
+
+This project contains software under multiple licenses:
+
+1. MiraTherm Original Code (2025) - GNU General Public License v3.0 (GPLv3)
+   - All MiraTherm-authored code, including custom application logic,
+     is licensed under GPLv3. See the full license text below.
+
+2. STMicroelectronics HAL Drivers, CMSIS, and Support Code - "AS-IS" License
+   - STM32WBxx HAL Driver Library files
+   - STM32 CMSIS Device Support files
+   - STM32 BSP files
+   - Startup files and linker scripts
+   - Configuration headers
+   
+   These files are provided by STMicroelectronics and retain their original
+   "provided AS-IS" license terms. See Drivers/STM32WBxx_HAL_Driver/LICENSE.txt
+   and Drivers/CMSIS/LICENSE.txt for details.
+
+3. FreeRTOS - MIT License
+   - The FreeRTOS operating system is licensed under the MIT License
+   - See Middlewares/Third_Party/FreeRTOS/Source/LICENSE for details.
+
+4. ARM CMSIS - Apache License 2.0
+   - ARM's Cortex Microcontroller Software Interface Standard headers
+   - Includes CMSIS-Core, CMSIS-RTOS, and related definitions
+   - See Drivers/CMSIS/LICENSE.txt for details.
+
+COMPATIBILITY NOTE:
+The combination of GPLv3 (MiraTherm code) with MIT (FreeRTOS) is compatible
+and widely accepted. The "AS-IS" STMicroelectronics drivers are unencumbered
+by restrictive licensing and do not prevent GPLv3 use.
+
+COPYRIGHT & ATTRIBUTION:
+- MiraTherm (2025)
+- STMicroelectronics (2019-2025)
+- Amazon Web Services / FreeRTOS (2021-2025)
+- ARM Holdings
+
+DISTRIBUTION REQUIREMENTS:
+When distributing this software (source or binary), you must:
+1. Provide or make available the source code
+2. Include this LICENSE file
+3. Preserve all copyright notices in source files
+4. Component license files are included in their respective directories:
+   - Drivers/STM32WBxx_HAL_Driver/LICENSE.txt (STM AS-IS license)
+   - Drivers/CMSIS/LICENSE.txt (ARM CMSIS Apache 2.0 license)
+   - Middlewares/Third_Party/FreeRTOS/Source/LICENSE (FreeRTOS MIT license)
+
+For detailed information about individual components and licensing, see
+the component license files in their respective directories.
+
+================================================================================
+
                     GNU GENERAL PUBLIC LICENSE
                        Version 3, 29 June 2007
 
