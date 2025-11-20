@@ -2,10 +2,10 @@
 
 ## Build Instructions
 
-To build this project, you must first generate the code from the `.ioc` project file using **STM32CubeMX 6.16.0**:
+To build this project, you must first generate missing code from the `.ioc` project file using **STM32CubeMX 6.16.0**:
 
 1. Open `mt-rt.ioc` in STM32CubeMX 6.16.0
-2. Generate the code (this creates the necessary Generated and Drivers folders)
+2. Generate the code
 3. Then build the project using CMake
 
 **Note:** Some generated files contain STMicroelectronics code under AS-IS license. See [LEGAL_NOTICES](LEGAL_NOTICES) for details.
