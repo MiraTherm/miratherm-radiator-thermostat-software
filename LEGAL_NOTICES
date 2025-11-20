@@ -1,0 +1,36 @@
+================================================================================
+MIRATHERM RADIATOR THERMOSTAT SOFTWARE - LEGAL NOTICES
+================================================================================
+
+PROJECT OWNERSHIP AND LICENSING
+================================================================================
+
+MiraTherm Original Code:
+- Copyright (c) 2025 MiraTherm
+- Licensed under GNU General Public License v3.0 (GPL-3.0-or-later)
+- Includes custom application code, build configuration, and project structure
+
+See LICENSE file for full GPL-3.0 terms and conditions.
+
+GENERATED FILES FROM STM32CubeMX
+================================================================================
+
+This project generates code from mt-rt.ioc using STM32CubeMX
+
+Generated files contain STMicroelectronics code provided "AS-IS" with no 
+license restrictions beyond those of their respective components.
+
+Copyright: STMicroelectronics (2019-2025)
+
+LICENSING SUMMARY
+================================================================================
+
+- MiraTherm custom application code: GPL-3.0-or-later
+- STMicroelectronics HAL/Drivers: AS-IS (provided without warranty)
+
+User code sections marked with /* USER CODE BEGIN */ and /* USER CODE END */ 
+are under MiraTherm's GPL-3.0 license and must comply with GPL-3.0 terms.
+
+See README.md for build instructions.
+
+================================================================================

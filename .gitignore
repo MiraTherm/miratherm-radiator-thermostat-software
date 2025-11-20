@@ -30,5 +30,8 @@ CMakeFiles/
 *.sw*
 .DS_Store
 
-# Ensure LICENSE file is always tracked (do not ignore)
-!LICENSE
+# Generated files
+newlib_lock_glue.c
+stm32_lock.h
+startup_stm32wb55xx_cm4.s
+stm32wb55xx_flash_cm4.ld

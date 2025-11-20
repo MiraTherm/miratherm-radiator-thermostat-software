@@ -1,0 +1,3 @@
+FreeRTOSConfig.h
+stm32wbxx_hal_conf.h
+stm32wbxx_nucleo_conf.h
