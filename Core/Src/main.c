@@ -40,7 +40,8 @@
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
-
+#define BIT_SET(a, b)   ((a) |= (1U << (b)))
+#define BIT_CLEAR(a, b) ((a) &= ~(1U << (b)))
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
@@ -73,6 +74,83 @@ void StartDefaultTask(void *argument);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
+void display_flush(lv_disp_drv_t *disp_drv, const lv_area_t *area,
+		lv_color_t *color_p) {
+
+	uint8_t row1 = area->y1 >> 3;
+	uint8_t row2 = area->y2 >> 3;
+	uint8_t *buf = (uint8_t*) color_p;
+
+	for (uint8_t row = row1; row <= row2; row++) {
+
+		ssd1306_WriteCommand(0xB0 | row);          // Set the page start address
+		ssd1306_WriteCommand(0x00 | (area->x1 & 0xF)); // Set the lower start column address
+		ssd1306_WriteCommand(0x10 | ((area->x1 >> 4) & 0xF)); // Set the upper start column address
+
+		for (uint16_t x = area->x1; x <= area->x2; x++) {
+			ssd1306_WriteData(buf, 1);
+			buf++;
+		}
+	}
+
+	lv_disp_flush_ready(disp_drv);
+}
+
+static void set_px_cb(struct _lv_disp_drv_t *disp_drv, uint8_t *buf,
+		lv_coord_t buf_w, lv_coord_t x, lv_coord_t y, lv_color_t color,
+		lv_opa_t opa) {
+	(void) disp_drv;
+	(void) opa;
+
+	uint16_t byte_index = x + ((y >> 3) * buf_w);
+	uint8_t bit_index = y & 0x7;
+	// == 0 inverts, so we get blue on black
+	if (color.full == 0) {
+		BIT_SET(buf[byte_index], bit_index);
+	} else {
+		BIT_CLEAR(buf[byte_index], bit_index);
+	}
+}
+
+static void rounder_cb(struct _lv_disp_drv_t *disp_drv, lv_area_t *area) {
+	(void) disp_drv;
+	area->y1 = (area->y1 & (~0x7));
+	area->y2 = (area->y2 & (~0x7)) + 7;
+}
+
+static void lv_port_disp_init(void) {
+	static lv_disp_draw_buf_t draw_buf; /* Descriptor of a display buffer */
+	/* Use smaller partial buffers (1/8 of display) to save RAM */
+	#define PARTIAL_BUF_SIZE (SSD1306_WIDTH * 8)  /* 128 * 8 = 1024 bytes instead of 8192 */
+	static lv_color_t screenBuffer1[PARTIAL_BUF_SIZE]; /* Memory area used as display buffer */
+	static lv_color_t screenBuffer2[PARTIAL_BUF_SIZE]; /* Memory area used as display buffer */
+	lv_disp_draw_buf_init(&draw_buf, screenBuffer1, screenBuffer2,
+	PARTIAL_BUF_SIZE); /* Initialize the display buffer */
+
+	/*-----------------------------------
+	 * Register the display in LVGL
+	 *----------------------------------*/
+	static lv_disp_drv_t disp_drv_ssd1306; /* Descriptor of a display driver */
+	lv_disp_drv_init(&disp_drv_ssd1306); /* Basic initialization */
+
+	/*Set up the functions to access to your display*/
+	/*Set the resolution of the display*/
+	disp_drv_ssd1306.hor_res = SSD1306_WIDTH; /** < Horizontal resolution */
+	disp_drv_ssd1306.ver_res = SSD1306_HEIGHT; /** < Vertical resolution */
+	disp_drv_ssd1306.full_refresh = 1; /** < 1: Always make the whole screen redrawn */
+	disp_drv_ssd1306.rotated = LV_DISP_ROT_NONE; /** < 1: turn the display by 90 degree. Does not update coordinates for you! */
+
+	/* Used to copy the buffer's content to the display */
+	disp_drv_ssd1306.flush_cb = display_flush; /** < Write the internal buffer (draw_buf) to the display */
+	disp_drv_ssd1306.rounder_cb = rounder_cb;
+	disp_drv_ssd1306.set_px_cb = set_px_cb;
+
+	/* Set a display buffer */
+	disp_drv_ssd1306.draw_buf = &draw_buf;
+
+	/* Finally register the driver */
+	lv_disp_drv_register(&disp_drv_ssd1306);
+}
 /* USER CODE END 0 */
 
 /**
@@ -110,12 +188,24 @@ int main(void)
   MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
   ssd1306_Init();
-  ssd1306_TestFPS();
-
-  /* Initialize LVGL */
-  lv_tick_set_cb(HAL_GetTick);
-
   lv_init();
+  lv_port_disp_init();
+
+  /* Create a simple test screen with a label */
+  lv_obj_t *scr = lv_scr_act();
+  lv_obj_set_style_bg_color(scr, lv_color_black(), 0);
+
+  /* Create a label with white text */
+  lv_obj_t *label = lv_label_create(scr);
+  lv_label_set_text(label, "LVGL Test");
+  lv_obj_set_style_text_color(label, lv_color_white(), 0);
+  lv_obj_align(label, LV_ALIGN_CENTER, 0, -10);
+
+  /* Create another label for status */
+  lv_obj_t *status_label = lv_label_create(scr);
+  lv_label_set_text(status_label, "Display OK");
+  lv_obj_set_style_text_color(status_label, lv_color_white(), 0);
+  lv_obj_align(status_label, LV_ALIGN_CENTER, 0, 10);
   /* USER CODE END 2 */
 
   /* Init scheduler */
@@ -380,7 +470,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     HAL_IncTick();
   }
   /* USER CODE BEGIN Callback 1 */
-
+  lv_tick_inc(1);
   /* USER CODE END Callback 1 */
 }
 
