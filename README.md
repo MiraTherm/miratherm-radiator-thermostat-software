@@ -7,6 +7,16 @@ To build this project, you must first generate missing code from the `.ioc` proj
 1. Open `mt-rt.ioc` in STM32CubeMX 6.16.0
 2. Generate the code
 3. Then build the project using CMake
+4. Pull submodules with `git submodule update --init --recursive`
+5. Remove some submodule files, executing the following commands from the project root:
+```bash
+cd Drivers/ssd1306
+git sparse-checkout init
+git sparse-checkout set --no-cone 'ssd1306/' 'README.md' 'LICENSE'
+cd ../st7735
+git sparse-checkout init
+git sparse-checkout set --no-cone 'st7735/' 'README.md' 'LICENSE'
+```
 
 **Note:** Some generated files contain STMicroelectronics code under AS-IS license. See [LEGAL_NOTICES](LEGAL_NOTICES) for details.
 
