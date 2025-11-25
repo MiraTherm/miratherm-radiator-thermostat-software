@@ -111,6 +111,8 @@ int main(void)
   /* USER CODE BEGIN 2 */
 
   /* Initialize LVGL */
+  lv_tick_set_cb(HAL_GetTick);
+
   lv_init();
 
   /* Initialize display with LVGL */
@@ -202,6 +204,9 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+    lv_timer_handler();
+
+    HAL_Delay(2);
   }
   /* USER CODE END 3 */
 }
@@ -396,10 +401,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     HAL_IncTick();
   }
   /* USER CODE BEGIN Callback 1 */
-  if (htim->Instance == TIM17)
-  {
-    lv_tick_inc(1);
-  }
+
   /* USER CODE END Callback 1 */
 }
 
