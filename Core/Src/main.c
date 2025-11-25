@@ -24,6 +24,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "lvgl.h"
+#include "lvgl_ssd1306.h"
 
 /* USER CODE END Includes */
 
@@ -108,6 +109,31 @@ int main(void)
   MX_GPIO_Init();
   MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
+
+  /* Initialize LVGL */
+  lv_init();
+
+  /* Initialize display with LVGL */
+  lv_display_t *disp = lvgl_ssd1306_init();
+  if (disp == NULL) {
+    Error_Handler();
+  }
+
+  /* Create a simple test screen with a label */
+  lv_obj_t *scr = lv_screen_active();
+  lv_obj_set_style_bg_color(scr, lv_color_black(), 0);
+
+  /* Create a label with white text */
+  lv_obj_t *label = lv_label_create(scr);
+  lv_label_set_text(label, "LVGL Test");
+  lv_obj_set_style_text_color(label, lv_color_white(), 0);
+  lv_obj_align(label, LV_ALIGN_CENTER, 0, -10);
+
+  /* Create another label for status */
+  lv_obj_t *status_label = lv_label_create(scr);
+  lv_label_set_text(status_label, "Display OK");
+  lv_obj_set_style_text_color(status_label, lv_color_white(), 0);
+  lv_obj_align(status_label, LV_ALIGN_CENTER, 0, 10);
 
   /* USER CODE END 2 */
 
@@ -344,6 +370,12 @@ void StartDefaultTask(void *argument)
   /* Infinite loop */
   for(;;)
   {
+    /* LVGL tick increment */
+    lv_tick_inc(1);
+
+    /* LVGL rendering task */
+    lv_timer_handler();
+
     osDelay(1);
   }
   /* USER CODE END 5 */
