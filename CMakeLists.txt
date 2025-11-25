@@ -37,6 +37,22 @@ add_executable(${CMAKE_PROJECT_NAME})
 # Add STM32CubeMX generated sources
 add_subdirectory(cmake/stm32cubemx)
 
+# Add LVGL subdirectory with embedded configuration (disables demos/examples)
+set(CONFIG_LV_BUILD_DEMOS OFF CACHE BOOL "Disable LVGL demos for embedded" FORCE)
+set(CONFIG_LV_BUILD_EXAMPLES OFF CACHE BOOL "Disable LVGL examples for embedded" FORCE)
+add_subdirectory(Drivers/lvgl)
+
+# For embedded systems without pthread support, exclude OSAL implementations that require OS features
+# This is done by modifying the LVGL library after it's created
+if(TARGET lvgl)
+    get_target_property(LVGL_SOURCES lvgl SOURCES)
+    list(FILTER LVGL_SOURCES EXCLUDE REGEX "src/osal/lv_pthread\\.c$")
+    list(FILTER LVGL_SOURCES EXCLUDE REGEX "src/osal/lv_windows\\.c$")
+    list(FILTER LVGL_SOURCES EXCLUDE REGEX "src/osal/lv_sdl2\\.c$")
+    list(FILTER LVGL_SOURCES EXCLUDE REGEX "src/osal/lv_linux\\.c$")
+    set_target_properties(lvgl PROPERTIES SOURCES "${LVGL_SOURCES}")
+endif()
+
 # Link directories setup
 target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined library search paths
@@ -63,6 +79,7 @@ list(REMOVE_ITEM CMAKE_C_IMPLICIT_LINK_LIBRARIES ob)
 # Add linked libraries
 target_link_libraries(${CMAKE_PROJECT_NAME}
     stm32cubemx
-
+    lvgl
+    
     # Add user defined libraries
 )
