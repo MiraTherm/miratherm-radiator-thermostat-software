@@ -1,3 +1,6 @@
 [submodule "Drivers/lvgl"]
 	path = Drivers/lvgl
 	url = https://github.com/lvgl/lvgl.git
+[submodule "Drivers/ssd1306"]
+	path = Drivers/ssd1306
+	url = https://github.com/afiskon/stm32-ssd1306.git
