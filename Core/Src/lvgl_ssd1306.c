@@ -19,54 +19,64 @@ static lv_display_t *disp = NULL;
 
 /**
  * @brief Flush callback for LVGL to update display
- * @param disp LVGL display object
+ * @param disp_obj LVGL display object
  * @param area Area to update
- * @param px_map Pixel data in ARGB8888 format
+ * @param px_map Pixel data - with COLOR_DEPTH=1, this is packed 1-bit data (I1 format)
  */
-static void lvgl_ssd1306_flush_cb(lv_display_t * disp, const lv_area_t * area, uint8_t * px_map)
+static void lvgl_ssd1306_flush_cb(lv_display_t * disp_obj, const lv_area_t * area, uint8_t * px_map)
 {
-    /* Get buffer size for this area */
+    /* Get area dimensions */
     uint16_t w = lv_area_get_width(area);
     uint16_t h = lv_area_get_height(area);
     uint16_t x = area->x1;
     uint16_t y = area->y1;
 
-    /* Convert 32-bit color data to 1-bit monochrome and copy to SSD1306 buffer */
+    /* If this is a full screen update, clear the buffer first */
+    if (x == 0 && y == 0 && w == DISPLAY_WIDTH && h == DISPLAY_HEIGHT) {
+        memset(display_buffer, 0x00, sizeof(display_buffer));
+    }
+
+    /* With LV_COLOR_DEPTH=1 (I1 format), px_map contains packed 1-bit pixels */
+    /* Each byte contains 8 pixels, MSB-first (horizontal packing) */
+    
     for (uint16_t row = 0; row < h; row++) {
         for (uint16_t col = 0; col < w; col++) {
-            /* Get pixel from LVGL buffer (32-bit ARGB) */
-            uint32_t pixel = *((uint32_t *)px_map + row * w + col);
-
-            /* Convert to luminance (simple average of RGB) */
-            uint8_t r = (pixel >> 16) & 0xFF;
-            uint8_t g = (pixel >> 8) & 0xFF;
-            uint8_t b = pixel & 0xFF;
-            uint8_t gray = (r + g + b) / 3;
-
-            /* Determine if pixel should be on or off (threshold at 128) */
-            uint8_t pixel_on = (gray >= 128) ? 1 : 0;
-
-            /* Calculate byte and bit position in SSD1306 buffer */
+            /* Current screen coordinates */
             uint16_t px = x + col;
             uint16_t py = y + row;
-            uint16_t byte_idx = (py / 8) * DISPLAY_WIDTH + px;
-            uint8_t bit_idx = py % 8;
 
-            /* Set or clear the bit */
-            if (pixel_on) {
-                display_buffer[byte_idx] |= (1 << bit_idx);
+            /* Calculate position in LVGL's I1 packed buffer (row-major, MSB first) */
+            uint16_t lvgl_byte_idx = row * ((w + 7) / 8) + col / 8;
+            uint8_t lvgl_bit_idx = 7 - (col % 8);  /* MSB first */
+
+            /* Extract pixel bit from LVGL buffer */
+            uint8_t pixel_bit = (px_map[lvgl_byte_idx] >> lvgl_bit_idx) & 1;
+
+            /* SSD1306 buffer layout: page-based (8 pixels per byte, vertically stacked) */
+            uint16_t page = py / 8;
+            uint8_t pixel_in_page = py % 8;
+            uint16_t disp_byte_idx = page * DISPLAY_WIDTH + px;
+
+            /* Bounds check */
+            if (disp_byte_idx >= sizeof(display_buffer)) {
+                continue;
+            }
+
+            /* Update display buffer */
+            if (pixel_bit) {
+                display_buffer[disp_byte_idx] |= (1 << pixel_in_page);
             } else {
-                display_buffer[byte_idx] &= ~(1 << bit_idx);
+                display_buffer[disp_byte_idx] &= ~(1 << pixel_in_page);
             }
         }
     }
 
-    /* Update the display with the modified buffer */
+    /* Update display */
     ssd1306_FillBuffer(display_buffer, sizeof(display_buffer));
     ssd1306_UpdateScreen();
 
-    /* Tell LVGL that flushing is done */
-    lv_display_flush_ready(disp);
+    /* Notify LVGL that flushing is complete */
+    lv_display_flush_ready(disp_obj);
 }
 
 /**
@@ -76,7 +86,10 @@ lv_display_t * lvgl_ssd1306_init(void)
 {
     /* Initialize SSD1306 display */
     ssd1306_Init();
-    ssd1306_Fill(Black);
+    
+    /* Clear the display buffer completely */
+    memset(display_buffer, 0x00, sizeof(display_buffer));
+    ssd1306_FillBuffer(display_buffer, sizeof(display_buffer));
     ssd1306_UpdateScreen();
 
     /* Create LVGL display object */
@@ -85,9 +98,9 @@ lv_display_t * lvgl_ssd1306_init(void)
         return NULL;
     }
 
-    /* Allocate and set draw buffer */
-    static lv_color_t buf[DISPLAY_WIDTH * DISPLAY_HEIGHT / 10];
-    lv_display_set_buffers(disp, buf, NULL, sizeof(buf), LV_DISPLAY_RENDER_MODE_PARTIAL);
+    /* Allocate and set draw buffer - use full screen buffer for direct mode */
+    static lv_color_t buf[DISPLAY_WIDTH * DISPLAY_HEIGHT];
+    lv_display_set_buffers(disp, buf, NULL, sizeof(buf), LV_DISPLAY_RENDER_MODE_FULL);
 
     /* Set flush callback */
     lv_display_set_flush_cb(disp, lvgl_ssd1306_flush_cb);
