@@ -1,6 +1,7 @@
 /**
  * Configuration file for SSD1306 driver
  * Configured for STM32WB with I2C1
+ * Also supports SH1106 (compatible but with 2-column offset)
  */
 
 #ifndef __SSD1306_CONF_H__
@@ -19,6 +20,10 @@
 /* Display dimensions */
 #define SSD1306_WIDTH           128
 #define SSD1306_HEIGHT          64
+
+/* SH1106 column offset (2 columns) - for SSD1306, set to 0 */
+/* SH1106 RAM is 132 columns but only 128 are visible, offset by 2 columns */
+#define SSD1306_X_OFFSET        2
 
 /* Include fonts for potential use */
 #define SSD1306_INCLUDE_FONT_6x8

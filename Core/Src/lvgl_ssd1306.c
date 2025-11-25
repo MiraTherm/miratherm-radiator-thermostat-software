@@ -1,6 +1,6 @@
 /**
  * @file lvgl_ssd1306.c
- * @brief LVGL integration with SSD1306 OLED display over I2C1
+ * @brief LVGL integration with SSD1306/SH1106 OLED display over I2C1
  */
 
 #include "lvgl_ssd1306.h"
@@ -36,37 +36,41 @@ static void lvgl_ssd1306_flush_cb(lv_display_t * disp_obj, const lv_area_t * are
         memset(display_buffer, 0x00, sizeof(display_buffer));
     }
 
-    /* With LV_COLOR_DEPTH=1 (I1 format), px_map contains packed 1-bit pixels */
-    /* Each byte contains 8 pixels, MSB-first (horizontal packing) */
+    /* LVGL I1 format is already in pages when rendering full width areas
+     * The buffer stride for I1 format is always (width + 7) / 8 bytes per row
+     * Each row represents one logical row of pixels (not a page!)
+     * We need to reorganize from row-major to SSD1306 page-based format
+     */
     
-    for (uint16_t row = 0; row < h; row++) {
-        for (uint16_t col = 0; col < w; col++) {
-            /* Current screen coordinates */
-            uint16_t px = x + col;
-            uint16_t py = y + row;
-
-            /* Calculate position in LVGL's I1 packed buffer (row-major, MSB first) */
-            uint16_t lvgl_byte_idx = row * ((w + 7) / 8) + col / 8;
-            uint8_t lvgl_bit_idx = 7 - (col % 8);  /* MSB first */
-
-            /* Extract pixel bit from LVGL buffer */
-            uint8_t pixel_bit = (px_map[lvgl_byte_idx] >> lvgl_bit_idx) & 1;
-
-            /* SSD1306 buffer layout: page-based (8 pixels per byte, vertically stacked) */
-            uint16_t page = py / 8;
-            uint8_t pixel_in_page = py % 8;
-            uint16_t disp_byte_idx = page * DISPLAY_WIDTH + px;
-
-            /* Bounds check */
-            if (disp_byte_idx >= sizeof(display_buffer)) {
-                continue;
-            }
-
-            /* Update display buffer */
-            if (pixel_bit) {
-                display_buffer[disp_byte_idx] |= (1 << pixel_in_page);
-            } else {
-                display_buffer[disp_byte_idx] &= ~(1 << pixel_in_page);
+    uint16_t stride = (w + 7) / 8;  /* bytes per row in LVGL buffer */
+    
+    /* For full screen updates, just copy directly - LVGL I1 format matches SSD1306 page format */
+    if (x == 0 && y == 0 && w == DISPLAY_WIDTH && h == DISPLAY_HEIGHT) {
+        memcpy(display_buffer, px_map, sizeof(display_buffer));
+    } else {
+        /* Partial update - convert pixel by pixel */
+        for (uint16_t py = 0; py < h; py++) {
+            for (uint16_t px = 0; px < w; px++) {
+                uint16_t src_idx = py * stride + (px >> 3);      /* Byte index in LVGL buffer */
+                uint8_t src_bit = px & 7;                        /* Bit position (LSB = left) */
+                uint8_t pixel = (px_map[src_idx] >> src_bit) & 1;
+                
+                /* Calculate display position */
+                uint16_t dst_x = x + px;
+                uint16_t dst_y = y + py;
+                
+                /* Convert to SSD1306 page addressing */
+                uint16_t page = dst_y / 8;
+                uint8_t bit = dst_y % 8;
+                uint16_t dst_idx = page * DISPLAY_WIDTH + dst_x;
+                
+                if (dst_idx < sizeof(display_buffer)) {
+                    if (pixel) {
+                        display_buffer[dst_idx] |= (1 << bit);
+                    } else {
+                        display_buffer[dst_idx] &= ~(1 << bit);
+                    }
+                }
             }
         }
     }
@@ -80,7 +84,7 @@ static void lvgl_ssd1306_flush_cb(lv_display_t * disp_obj, const lv_area_t * are
 }
 
 /**
- * @brief Initialize LVGL with SSD1306 display
+ * @brief Initialize LVGL with SSD1306/SH1106 display
  */
 lv_display_t * lvgl_ssd1306_init(void)
 {
@@ -115,3 +119,5 @@ void lvgl_ssd1306_display_on(uint8_t on)
 {
     ssd1306_SetDisplayOn(on);
 }
+
+
