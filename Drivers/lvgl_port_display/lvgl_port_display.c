@@ -43,10 +43,9 @@ static inline void flush_cb(lv_disp_drv_t *disp_drv, const lv_area_t *area,
 		ssd1306_WriteCommand(lower_col);
 		ssd1306_WriteCommand(upper_col);
 
-		/* Write row data */
-		for (uint16_t x = area->x1; x <= area->x2; x++) {
-			ssd1306_WriteData(buf++, 1);
-		}
+		/* Write entire row at once */
+		ssd1306_WriteData(buf, SSD1306_WIDTH);
+		buf += SSD1306_WIDTH;
 	}
 
 	lv_disp_flush_ready(disp_drv);
