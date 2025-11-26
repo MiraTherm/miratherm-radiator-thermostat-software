@@ -28,13 +28,13 @@ HAL_StatusTypeDef RotaryEncoder_Init(void);
 
 /**
  * @brief Get the rotation delta (change in position) since last call
- * The driver accumulates raw ticks and only reports a nonzero logical step when
- * at least two raw ticks have been collected in either direction. Single ticks
- * are buffered until the next call, then they can combine with additional ticks
- * to reach the two-tick threshold.
+ * The timer counter is re-centered to 127 after each measurement, so the
+ * driver assumes the caller polls fast enough that the count stays within
+ * 0..255. The raw delta is batched in pairs (two ticks per reported step)
+ * so only odd ticks count (KY-040 issue).
  * @return Delta value (positive = clockwise, negative = counter-clockwise)
  */
-int32_t RotaryEncoder_GetDelta(void);
+int8_t RotaryEncoder_GetDelta(void);
 
 #ifdef __cplusplus
 }
