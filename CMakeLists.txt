@@ -42,6 +42,7 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     Drivers/ssd1306/ssd1306
     Drivers/
     Drivers/lvgl_port_display
+    Drivers/rotary_encoder
 )
 
 # Add driver sources
@@ -49,6 +50,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     Drivers/ssd1306/ssd1306/ssd1306.c
     Drivers/ssd1306/ssd1306/ssd1306_fonts.c
     Drivers/lvgl_port_display/lvgl_port_display.c
+    Drivers/rotary_encoder/rotary_encoder.c
 )
 
 # Add LVGL subdirectory with embedded configuration (disables demos/examples)

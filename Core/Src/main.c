@@ -24,6 +24,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "lvgl_port_display.h"
+#include "rotary_encoder.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -47,6 +48,8 @@
 COM_InitTypeDef BspCOMInit;
 I2C_HandleTypeDef hi2c1;
 
+LPTIM_HandleTypeDef hlptim1;
+
 /* Definitions for defaultTask */
 osThreadId_t defaultTaskHandle;
 const osThreadAttr_t defaultTask_attributes = {
@@ -54,7 +57,7 @@ const osThreadAttr_t defaultTask_attributes = {
   .priority = (osPriority_t) osPriorityNormal,
   .stack_size = 256 * 4
 };
-
+/* USER CODE BEGIN PV */
 /* Definitions for LVGLTask */
 osThreadId_t lvglTaskHandle;
 const osThreadAttr_t lvglTask_attributes = {
@@ -62,8 +65,9 @@ const osThreadAttr_t lvglTask_attributes = {
   .priority = (osPriority_t) osPriorityHigh,
   .stack_size = 512 * 4
 };
-/* USER CODE BEGIN PV */
 
+/* Flag to control LVGL rendering */
+volatile bool rendering = true;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -71,11 +75,11 @@ void SystemClock_Config(void);
 void PeriphCommonClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_I2C1_Init(void);
+static void MX_LPTIM1_Init(void);
 void StartDefaultTask(void *argument);
-void StartLVGLTask(void *argument);
 
 /* USER CODE BEGIN PFP */
-
+void StartLVGLTask(void *argument);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -118,8 +122,9 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_I2C1_Init();
+  MX_LPTIM1_Init();
   /* USER CODE BEGIN 2 */
-  /* Display initialization moved to StartDefaultTask to avoid issues before scheduler starts */
+  /* Initializations moved to according tasks to avoid issues before scheduler starts */
   /* USER CODE END 2 */
 
   /* Init scheduler */
@@ -145,11 +150,9 @@ int main(void)
   /* creation of defaultTask */
   defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
 
+  /* USER CODE BEGIN RTOS_THREADS */
   /* creation of lvglTask */
   lvglTaskHandle = osThreadNew(StartLVGLTask, NULL, &lvglTask_attributes);
-
-  /* USER CODE BEGIN RTOS_THREADS */
-  /* add threads, ... */
   /* USER CODE END RTOS_THREADS */
 
   /* USER CODE BEGIN RTOS_EVENTS */
@@ -319,6 +322,42 @@ static void MX_I2C1_Init(void)
 }
 
 /**
+  * @brief LPTIM1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_LPTIM1_Init(void)
+{
+
+  /* USER CODE BEGIN LPTIM1_Init 0 */
+
+  /* USER CODE END LPTIM1_Init 0 */
+
+  /* USER CODE BEGIN LPTIM1_Init 1 */
+
+  /* USER CODE END LPTIM1_Init 1 */
+  hlptim1.Instance = LPTIM1;
+  hlptim1.Init.Clock.Source = LPTIM_CLOCKSOURCE_APBCLOCK_LPOSC;
+  hlptim1.Init.Clock.Prescaler = LPTIM_PRESCALER_DIV1;
+  hlptim1.Init.UltraLowPowerClock.Polarity = LPTIM_CLOCKPOLARITY_RISING;
+  hlptim1.Init.UltraLowPowerClock.SampleTime = LPTIM_CLOCKSAMPLETIME_DIRECTTRANSITION;
+  hlptim1.Init.Trigger.Source = LPTIM_TRIGSOURCE_SOFTWARE;
+  hlptim1.Init.OutputPolarity = LPTIM_OUTPUTPOLARITY_HIGH;
+  hlptim1.Init.UpdateMode = LPTIM_UPDATE_IMMEDIATE;
+  hlptim1.Init.CounterSource = LPTIM_COUNTERSOURCE_EXTERNAL;
+  hlptim1.Init.Input1Source = LPTIM_INPUT1SOURCE_GPIO;
+  hlptim1.Init.Input2Source = LPTIM_INPUT2SOURCE_GPIO;
+  if (HAL_LPTIM_Init(&hlptim1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN LPTIM1_Init 2 */
+
+  /* USER CODE END LPTIM1_Init 2 */
+
+}
+
+/**
   * @brief GPIO Initialization Function
   * @param None
   * @retval None
@@ -355,8 +394,12 @@ void StartLVGLTask(void *argument)
   /* Infinite loop - dedicated LVGL rendering task */
   for(;;)
   {
-    /* Handle LVGL timers and rendering */
-    lv_timer_handler();
+    /* Only render if the rendering flag is set */
+    if (rendering)
+    {
+      /* Handle LVGL timers and rendering */
+      lv_timer_handler();
+    }
 
     /* Yield to other tasks - adjust delay based on display refresh rate */
     osDelay(10);
@@ -377,26 +420,49 @@ void StartDefaultTask(void *argument)
   /* USER CODE BEGIN 5 */
   /* Initialize display and LVGL after scheduler starts to avoid HardFault */
   display_system_init();
+  /* Initialize rotary encoder */
+  RotaryEncoder_Init();
 
   /* Create a simple test screen with a label */
   lv_obj_t *scr = lv_scr_act();
+  lv_obj_clean(scr);  /* Clear any default objects FIRST */
   lv_obj_set_style_bg_color(scr, lv_color_black(), 0);
+
+  /* Disable rendering while creating UI */
+  rendering = false;
+  osDelay(20);  /* Wait for LVGL task to stop rendering */
 
   /* Create a label with white text */
   lv_obj_t *label = lv_label_create(scr);
-  lv_label_set_text(label, "LVGL Test");
   lv_obj_set_style_text_color(label, lv_color_white(), 0);
-  lv_obj_align(label, LV_ALIGN_CENTER, 0, -10);
+  lv_label_set_text(label, "LVGL Test");
+  lv_obj_align(label, LV_ALIGN_CENTER, 0, -20);
 
   /* Create another label for status */
   lv_obj_t *status_label = lv_label_create(scr);
-  lv_label_set_text(status_label, "Display OK");
   lv_obj_set_style_text_color(status_label, lv_color_white(), 0);
-  lv_obj_align(status_label, LV_ALIGN_CENTER, 0, 10);
+  lv_label_set_text(status_label, "Display OK");
+  lv_obj_align(status_label, LV_ALIGN_CENTER, 0, 0);
 
-  /* Main application task - suspend when not needed */
+  /* Create encoder label */
+  lv_obj_t *encoder_label = lv_label_create(scr);
+  lv_obj_set_style_text_color(encoder_label, lv_color_white(), 0);
+  lv_label_set_text_fmt(encoder_label, "Encoder: 0");
+  lv_obj_align(encoder_label, LV_ALIGN_CENTER, 0, 20);
+
+  /* Enable rendering after UI is complete */
+  rendering = true;
+
+  /* Main application task */
+  int32_t total_encoder_value = 0;
   for(;;)
   {
+    int16_t delta = RotaryEncoder_GetDelta();
+    if (delta != 0)
+    {
+      total_encoder_value += delta;
+      lv_label_set_text_fmt(encoder_label, "Encoder: %d", (int)total_encoder_value);
+    }
     osDelay(10);
   }
   /* USER CODE END 5 */
