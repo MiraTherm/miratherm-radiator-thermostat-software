@@ -52,7 +52,15 @@ osThreadId_t defaultTaskHandle;
 const osThreadAttr_t defaultTask_attributes = {
   .name = "defaultTask",
   .priority = (osPriority_t) osPriorityNormal,
-  .stack_size = 128 * 4
+  .stack_size = 256 * 4
+};
+
+/* Definitions for LVGLTask */
+osThreadId_t lvglTaskHandle;
+const osThreadAttr_t lvglTask_attributes = {
+  .name = "lvglTask",
+  .priority = (osPriority_t) osPriorityHigh,
+  .stack_size = 512 * 4
 };
 /* USER CODE BEGIN PV */
 
@@ -64,6 +72,7 @@ void PeriphCommonClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_I2C1_Init(void);
 void StartDefaultTask(void *argument);
+void StartLVGLTask(void *argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -110,23 +119,7 @@ int main(void)
   MX_GPIO_Init();
   MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
-  display_system_init();
-
-  /* Create a simple test screen with a label */
-  lv_obj_t *scr = lv_scr_act();
-  lv_obj_set_style_bg_color(scr, lv_color_white(), 0);
-
-  /* Create a label with white text */
-  lv_obj_t *label = lv_label_create(scr);
-  lv_label_set_text(label, "LVGL Test");
-  lv_obj_set_style_text_color(label, lv_color_black(), 0);
-  lv_obj_align(label, LV_ALIGN_CENTER, 0, -10);
-
-  /* Create another label for status */
-  lv_obj_t *status_label = lv_label_create(scr);
-  lv_label_set_text(status_label, "Display OK");
-  lv_obj_set_style_text_color(status_label, lv_color_black(), 0);
-  lv_obj_align(status_label, LV_ALIGN_CENTER, 0, 10);
+  /* Display initialization moved to StartDefaultTask to avoid issues before scheduler starts */
   /* USER CODE END 2 */
 
   /* Init scheduler */
@@ -151,6 +144,9 @@ int main(void)
   /* Create the thread(s) */
   /* creation of defaultTask */
   defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
+
+  /* creation of lvglTask */
+  lvglTaskHandle = osThreadNew(StartLVGLTask, NULL, &lvglTask_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -354,6 +350,19 @@ static void MX_GPIO_Init(void)
 
 /* USER CODE BEGIN 4 */
 
+void StartLVGLTask(void *argument)
+{
+  /* Infinite loop - dedicated LVGL rendering task */
+  for(;;)
+  {
+    /* Handle LVGL timers and rendering */
+    lv_timer_handler();
+
+    /* Yield to other tasks - adjust delay based on display refresh rate */
+    osDelay(10);
+  }
+}
+
 /* USER CODE END 4 */
 
 /* USER CODE BEGIN Header_StartDefaultTask */
@@ -366,12 +375,28 @@ static void MX_GPIO_Init(void)
 void StartDefaultTask(void *argument)
 {
   /* USER CODE BEGIN 5 */
-  /* Infinite loop */
+  /* Initialize display and LVGL after scheduler starts to avoid HardFault */
+  display_system_init();
+
+  /* Create a simple test screen with a label */
+  lv_obj_t *scr = lv_scr_act();
+  lv_obj_set_style_bg_color(scr, lv_color_black(), 0);
+
+  /* Create a label with white text */
+  lv_obj_t *label = lv_label_create(scr);
+  lv_label_set_text(label, "LVGL Test");
+  lv_obj_set_style_text_color(label, lv_color_white(), 0);
+  lv_obj_align(label, LV_ALIGN_CENTER, 0, -10);
+
+  /* Create another label for status */
+  lv_obj_t *status_label = lv_label_create(scr);
+  lv_label_set_text(status_label, "Display OK");
+  lv_obj_set_style_text_color(status_label, lv_color_white(), 0);
+  lv_obj_align(status_label, LV_ALIGN_CENTER, 0, 10);
+
+  /* Main application task - suspend when not needed */
   for(;;)
   {
-    /* LVGL rendering task */
-    lv_timer_handler();
-
     osDelay(10);
   }
   /* USER CODE END 5 */
