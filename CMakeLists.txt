@@ -37,17 +37,18 @@ add_executable(${CMAKE_PROJECT_NAME})
 # Add STM32CubeMX generated sources
 add_subdirectory(cmake/stm32cubemx)
 
-# Add SSD1306 OLED driver include paths
+# Add driver include paths
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     Drivers/ssd1306/ssd1306
     Drivers/
+    Drivers/lvgl_port_display
 )
 
-# Add SSD1306 and LVGL integration sources
+# Add driver sources
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     Drivers/ssd1306/ssd1306/ssd1306.c
     Drivers/ssd1306/ssd1306/ssd1306_fonts.c
-    Drivers/ssd1306/ssd1306/ssd1306_tests.c
+    Drivers/lvgl_port_display/lvgl_port_display.c
 )
 
 # Add LVGL subdirectory with embedded configuration (disables demos/examples)
