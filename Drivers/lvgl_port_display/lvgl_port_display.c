@@ -6,6 +6,7 @@
 #include "lvgl_port_display.h"
 #include "ssd1306.h"
 #include <stdint.h>
+#include <string.h>
 
 /* Display buffer configuration */
 #define PARTIAL_BUF_SIZE (SSD1306_WIDTH * 8)  /* 128 * 8 = 1024 bytes */
@@ -40,13 +41,15 @@ static inline void flush_cb(lv_disp_drv_t *disp_drv, const lv_area_t *area,
 	uint8_t lower_col = SSD1306_LOWER_COL_ADDR | (area->x1 & SSD1306_LOWER_COL_MASK);
 	uint8_t upper_col = SSD1306_UPPER_COL_ADDR | ((area->x1 >> COL_SHIFT) & SSD1306_UPPER_COL_MASK);
 
+	/* Batch command writes to reduce I2C overhead */
 	for (uint8_t row = row_start; row <= row_end; row++) {
-		/* Set page and column addresses once per row */
+		/* Set page address */
 		ssd1306_WriteCommand(SSD1306_PAGE_START_ADDR | row);
+		/* Set column address in one operation */
 		ssd1306_WriteCommand(lower_col);
 		ssd1306_WriteCommand(upper_col);
 
-		/* Write only the portion of the row that was updated */
+		/* Write data directly with minimal overhead */
 		ssd1306_WriteData(buf, col_width);
 		buf += col_width;
 	}
@@ -60,9 +63,15 @@ static inline void set_pixel_cb(struct _lv_disp_drv_t *disp_drv, uint8_t *buf,
 	(void) disp_drv;
 	(void) opa;
 
-	uint16_t byte_index = x + ((y >> ROW_BITS) * buf_w);
-	uint8_t bit_index = y & BIT_MASK;
-	WRITE_BIT(buf, byte_index, bit_index, color.full);
+	/* Fast bit calculation without division/modulo */
+	uint16_t byte_index = x + ((y >> ROW_BITS) << 7);  /* (y >> 3) * 128 = (y >> 3) * buf_w */
+	uint8_t bit_mask = 1U << (y & BIT_MASK);
+	
+	if (color.full) {
+		buf[byte_index] |= bit_mask;
+	} else {
+		buf[byte_index] &= ~bit_mask;
+	}
 }
 
 static inline void rounder_cb(struct _lv_disp_drv_t *disp_drv, lv_area_t *area) {
@@ -77,11 +86,9 @@ static void lv_port_disp_init(void) {
 	static lv_color_t screenBuffer1[PARTIAL_BUF_SIZE];
 	static lv_color_t screenBuffer2[PARTIAL_BUF_SIZE];
 
-	/* Clear buffers to prevent rendering artifacts */
-	for (uint32_t i = 0; i < PARTIAL_BUF_SIZE; i++) {
-		screenBuffer1[i].full = 0;
-		screenBuffer2[i].full = 0;
-	}
+	/* Clear buffers using fast memset instead of loop */
+	memset(screenBuffer1, 0, sizeof(screenBuffer1));
+	memset(screenBuffer2, 0, sizeof(screenBuffer2));
 
 	/* Initialize the display buffer */
 	lv_disp_draw_buf_init(&draw_buf, screenBuffer1, screenBuffer2, PARTIAL_BUF_SIZE);
