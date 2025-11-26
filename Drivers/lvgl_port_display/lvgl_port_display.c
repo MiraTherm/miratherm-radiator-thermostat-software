@@ -20,7 +20,7 @@
 /* Bit manipulation macros - optimized for speed */
 #define BIT_SET(a, b)   ((a) |= (1U << (b)))
 #define BIT_CLEAR(a, b) ((a) &= ~(1U << (b)))
-#define WRITE_BIT(buf, idx, bit, val) do { if (val) BIT_CLEAR(buf[idx], bit); else BIT_SET(buf[idx], bit); } while(0)
+#define WRITE_BIT(buf, idx, bit, val) do { if (val) BIT_SET(buf[idx], bit); else BIT_CLEAR(buf[idx], bit); } while(0)
 
 /* Bit operations for monochrome display */
 #define BYTE_BITS 8
@@ -34,6 +34,9 @@ static inline void flush_cb(lv_disp_drv_t *disp_drv, const lv_area_t *area,
 	uint8_t row_start = area->y1 >> ROW_BITS;
 	uint8_t row_end = area->y2 >> ROW_BITS;
 	uint8_t *buf = (uint8_t*) color_p;
+	
+	/* Calculate column addresses for the area width */
+	uint16_t col_width = area->x2 - area->x1 + 1;
 	uint8_t lower_col = SSD1306_LOWER_COL_ADDR | (area->x1 & SSD1306_LOWER_COL_MASK);
 	uint8_t upper_col = SSD1306_UPPER_COL_ADDR | ((area->x1 >> COL_SHIFT) & SSD1306_UPPER_COL_MASK);
 
@@ -43,9 +46,9 @@ static inline void flush_cb(lv_disp_drv_t *disp_drv, const lv_area_t *area,
 		ssd1306_WriteCommand(lower_col);
 		ssd1306_WriteCommand(upper_col);
 
-		/* Write entire row at once */
-		ssd1306_WriteData(buf, SSD1306_WIDTH);
-		buf += SSD1306_WIDTH;
+		/* Write only the portion of the row that was updated */
+		ssd1306_WriteData(buf, col_width);
+		buf += col_width;
 	}
 
 	lv_disp_flush_ready(disp_drv);
@@ -74,6 +77,12 @@ static void lv_port_disp_init(void) {
 	static lv_color_t screenBuffer1[PARTIAL_BUF_SIZE];
 	static lv_color_t screenBuffer2[PARTIAL_BUF_SIZE];
 
+	/* Clear buffers to prevent rendering artifacts */
+	for (uint32_t i = 0; i < PARTIAL_BUF_SIZE; i++) {
+		screenBuffer1[i].full = 0;
+		screenBuffer2[i].full = 0;
+	}
+
 	/* Initialize the display buffer */
 	lv_disp_draw_buf_init(&draw_buf, screenBuffer1, screenBuffer2, PARTIAL_BUF_SIZE);
 
@@ -84,7 +93,7 @@ static void lv_port_disp_init(void) {
 	/* Configure display resolution and refresh mode */
 	disp_drv_ssd1306.hor_res = SSD1306_WIDTH;
 	disp_drv_ssd1306.ver_res = SSD1306_HEIGHT;
-	disp_drv_ssd1306.full_refresh = 1;
+	disp_drv_ssd1306.full_refresh = 0;  /* Use partial refresh to avoid artifacts */
 	disp_drv_ssd1306.rotated = LV_DISP_ROT_NONE;
 
 	/* Register display callbacks */
