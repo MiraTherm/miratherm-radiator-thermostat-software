@@ -17,40 +17,42 @@
 #define SSD1306_UPPER_COL_ADDR 0x10
 #define SSD1306_UPPER_COL_MASK 0x0F
 
-/* Bit manipulation macros */
+/* Bit manipulation macros - optimized for speed */
 #define BIT_SET(a, b)   ((a) |= (1U << (b)))
 #define BIT_CLEAR(a, b) ((a) &= ~(1U << (b)))
+#define WRITE_BIT(buf, idx, bit, val) do { if (val) BIT_CLEAR(buf[idx], bit); else BIT_SET(buf[idx], bit); } while(0)
 
 /* Bit operations for monochrome display */
 #define BYTE_BITS 8
 #define BIT_MASK 0x07
 #define ROW_BITS 3  /* log2(BYTE_BITS) */
+#define COL_SHIFT 4 /* bits to shift for upper column address */
 
-static void flush_cb(lv_disp_drv_t *disp_drv, const lv_area_t *area,
+static inline void flush_cb(lv_disp_drv_t *disp_drv, const lv_area_t *area,
 		lv_color_t *color_p) {
 
 	uint8_t row_start = area->y1 >> ROW_BITS;
 	uint8_t row_end = area->y2 >> ROW_BITS;
 	uint8_t *buf = (uint8_t*) color_p;
+	uint8_t lower_col = SSD1306_LOWER_COL_ADDR | (area->x1 & SSD1306_LOWER_COL_MASK);
+	uint8_t upper_col = SSD1306_UPPER_COL_ADDR | ((area->x1 >> COL_SHIFT) & SSD1306_UPPER_COL_MASK);
 
 	for (uint8_t row = row_start; row <= row_end; row++) {
-		/* Set the page start address */
+		/* Set page and column addresses once per row */
 		ssd1306_WriteCommand(SSD1306_PAGE_START_ADDR | row);
-		/* Set the lower column address */
-		ssd1306_WriteCommand(SSD1306_LOWER_COL_ADDR | (area->x1 & SSD1306_LOWER_COL_MASK));
-		/* Set the upper column address */
-		ssd1306_WriteCommand(SSD1306_UPPER_COL_ADDR | ((area->x1 >> 4) & SSD1306_UPPER_COL_MASK));
+		ssd1306_WriteCommand(lower_col);
+		ssd1306_WriteCommand(upper_col);
 
+		/* Write row data */
 		for (uint16_t x = area->x1; x <= area->x2; x++) {
-			ssd1306_WriteData(buf, 1);
-			buf++;
+			ssd1306_WriteData(buf++, 1);
 		}
 	}
 
 	lv_disp_flush_ready(disp_drv);
 }
 
-static void set_pixel_cb(struct _lv_disp_drv_t *disp_drv, uint8_t *buf,
+static inline void set_pixel_cb(struct _lv_disp_drv_t *disp_drv, uint8_t *buf,
 		lv_coord_t buf_w, lv_coord_t x, lv_coord_t y, lv_color_t color,
 		lv_opa_t opa) {
 	(void) disp_drv;
@@ -58,19 +60,14 @@ static void set_pixel_cb(struct _lv_disp_drv_t *disp_drv, uint8_t *buf,
 
 	uint16_t byte_index = x + ((y >> ROW_BITS) * buf_w);
 	uint8_t bit_index = y & BIT_MASK;
-	
-	if (color.full == 0) {
-		BIT_SET(buf[byte_index], bit_index);
-	} else {
-		BIT_CLEAR(buf[byte_index], bit_index);
-	}
+	WRITE_BIT(buf, byte_index, bit_index, color.full);
 }
 
-static void rounder_cb(struct _lv_disp_drv_t *disp_drv, lv_area_t *area) {
+static inline void rounder_cb(struct _lv_disp_drv_t *disp_drv, lv_area_t *area) {
 	(void) disp_drv;
 	
-	area->y1 = (area->y1 & (~BIT_MASK));
-	area->y2 = (area->y2 & (~BIT_MASK)) + (BYTE_BITS - 1);
+	area->y1 &= ~BIT_MASK;
+	area->y2 = (area->y2 & ~BIT_MASK) | BIT_MASK;
 }
 
 static void lv_port_disp_init(void) {
