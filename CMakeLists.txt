@@ -43,6 +43,7 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     Drivers/
     Drivers/lvgl_port_display
     Drivers/rotary_encoder
+    Drivers/buttons
 )
 
 # Add driver sources

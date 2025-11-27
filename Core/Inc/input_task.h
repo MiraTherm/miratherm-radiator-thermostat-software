@@ -4,7 +4,7 @@
 #ifndef CORE_INC_INPUT_TASK_H
 #define CORE_INC_INPUT_TASK_H
 
-#include "buttons/buttons.h"
+#include "buttons.h"
 
 #ifdef __cplusplus
 extern "C" {
