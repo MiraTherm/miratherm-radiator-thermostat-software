@@ -6,6 +6,7 @@ typedef struct
 {
   GPIO_TypeDef *port;
   uint16_t pin;
+  GPIO_PinState pressed_level;
 } button_pin_map_t;
 
 typedef struct
@@ -16,12 +17,17 @@ typedef struct
 } button_state_t;
 
 static const button_pin_map_t s_button_pins[BUTTON_ID_COUNT] = {
-  [BUTTON_ID_MIDDLE] = {BUTTON_MIDDLE_GPIO_Port, BUTTON_MIDDLE_Pin},
-  [BUTTON_ID_LEFT]   = {BUTTON_LEFT_GPIO_Port, BUTTON_LEFT_Pin},
-  [BUTTON_ID_RIGHT]  = {BUTTON_RIGHT_GPIO_Port, BUTTON_RIGHT_Pin},
+  [BUTTON_ID_MIDDLE] = {BUTTON_MIDDLE_GPIO_Port, BUTTON_MIDDLE_Pin, GPIO_PIN_RESET},
+  [BUTTON_ID_LEFT]   = {BUTTON_LEFT_GPIO_Port, BUTTON_LEFT_Pin, GPIO_PIN_SET},
+  [BUTTON_ID_RIGHT]  = {BUTTON_RIGHT_GPIO_Port, BUTTON_RIGHT_Pin, GPIO_PIN_SET},
 };
 
 static button_state_t s_button_states[BUTTON_ID_COUNT];
+
+static inline bool button_read_pressed(const button_pin_map_t *mapping)
+{
+  return HAL_GPIO_ReadPin(mapping->port, mapping->pin) == mapping->pressed_level;
+}
 
 void Buttons_Init(void)
 {
@@ -30,7 +36,7 @@ void Buttons_Init(void)
   for (button_id_t id = BUTTON_ID_MIDDLE; id < BUTTON_ID_COUNT; ++id)
   {
     const button_pin_map_t *mapping = &s_button_pins[id];
-    const bool pressed = (HAL_GPIO_ReadPin(mapping->port, mapping->pin) == GPIO_PIN_SET);
+    const bool pressed = button_read_pressed(mapping);
 
     s_button_states[id].stable_state = pressed;
     s_button_states[id].pending = false;
@@ -85,7 +91,7 @@ bool Buttons_Poll(button_event_t *event)
     }
 
     const button_pin_map_t *mapping = &s_button_pins[id];
-    const bool current_level = (HAL_GPIO_ReadPin(mapping->port, mapping->pin) == GPIO_PIN_SET);
+    const bool current_pressed = button_read_pressed(mapping);
 
     const uint32_t saved_mask = button_primask_save();
     __disable_irq();
@@ -96,20 +102,20 @@ bool Buttons_Poll(button_event_t *event)
       continue;
     }
 
-    const bool previous_level = state->stable_state;
+    const bool previous_pressed = state->stable_state;
     state->pending = false;
 
-    if (current_level != previous_level)
+    if (current_pressed != previous_pressed)
     {
-      state->stable_state = current_level;
+      state->stable_state = current_pressed;
     }
 
     button_primask_restore(saved_mask);
 
-    if (current_level != previous_level)
+    if (current_pressed != previous_pressed)
     {
       event->id = id;
-      event->action = current_level ? BUTTON_ACTION_PRESSED : BUTTON_ACTION_RELEASED;
+      event->action = current_pressed ? BUTTON_ACTION_PRESSED : BUTTON_ACTION_RELEASED;
       event->timestamp = now;
       return true;
     }
