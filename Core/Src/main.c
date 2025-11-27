@@ -249,7 +249,7 @@ void SystemClock_Config(void)
   RCC_ClkInitStruct.AHBCLK2Divider = RCC_SYSCLK_DIV1;
   RCC_ClkInitStruct.AHBCLK4Divider = RCC_SYSCLK_DIV1;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_1) != HAL_OK)
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK)
   {
     Error_Handler();
   }
@@ -396,8 +396,14 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
-  /*Configure GPIO pins : BUTTON_MIDDLE_Pin BUTTON_LEFT_Pin BUTTON_RIGHT_Pin */
-  GPIO_InitStruct.Pin = BUTTON_MIDDLE_Pin|BUTTON_LEFT_Pin|BUTTON_RIGHT_Pin;
+  /*Configure GPIO pin : BUTTON_MIDDLE_Pin */
+  GPIO_InitStruct.Pin = BUTTON_MIDDLE_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING_FALLING;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(BUTTON_MIDDLE_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : BUTTON_LEFT_Pin BUTTON_RIGHT_Pin */
+  GPIO_InitStruct.Pin = BUTTON_LEFT_Pin|BUTTON_RIGHT_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING_FALLING;
   GPIO_InitStruct.Pull = GPIO_PULLDOWN;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
@@ -417,8 +423,8 @@ static void MX_GPIO_Init(void)
   HAL_NVIC_SetPriority(EXTI3_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(EXTI3_IRQn);
 
-  HAL_NVIC_SetPriority(EXTI4_IRQn, 5, 0);
-  HAL_NVIC_EnableIRQ(EXTI4_IRQn);
+  HAL_NVIC_SetPriority(EXTI9_5_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(EXTI9_5_IRQn);
 
   /* USER CODE BEGIN MX_GPIO_Init_2 */
 
@@ -478,11 +484,11 @@ void StartDefaultTask(void *argument)
     bool active;
   } buttons[3];
 
-  const char *const button_texts[3] = {"MODE", "X", "MENU"};
-  const lv_coord_t button_width = 36;
+  const char *const button_texts[3] = {"Mode", "", "Menu"};
+  const lv_coord_t button_width = 37;
   const lv_coord_t button_height = 18;
-  const lv_coord_t gap = 6;
-  const lv_coord_t margin = 6;
+  const lv_coord_t gap = 3;
+  const lv_coord_t margin = 3;
 
   for (size_t i = 0; i < 3; ++i)
   {
@@ -496,12 +502,19 @@ void StartDefaultTask(void *argument)
     buttons[i].label = lv_label_create(buttons[i].btn);
     lv_label_set_text(buttons[i].label, button_texts[i]);
     lv_obj_set_style_text_color(buttons[i].label, lv_color_white(), 0);
-    lv_obj_set_style_text_font(buttons[i].label, &lv_font_montserrat_10, 0);
+    lv_obj_set_style_text_font(buttons[i].label, &lv_font_montserrat_12, 0);
     lv_obj_center(buttons[i].label);
     buttons[i].active = false;
   }
 
   rendering = true;
+
+  static const Input2VPEventTypeDef button_event_types[] = {
+    EVT_MODE_BTN,
+    EVT_CENTRAL_BTN,
+    EVT_MENU_BTN,
+  };
+  const size_t button_event_count = sizeof(button_event_types) / sizeof(button_event_types[0]);
 
   int32_t encoder_value = 0;
   Input2VPEvent_t event;
@@ -521,18 +534,19 @@ void StartDefaultTask(void *argument)
       continue;
     }
 
-    size_t idx = 0;
-    if (event.type == EVT_MODE_BTN)
+    size_t idx = button_event_count;
+    for (size_t i = 0; i < button_event_count; ++i)
     {
-      idx = 0;
+      if (event.type == button_event_types[i])
+      {
+        idx = i;
+        break;
+      }
     }
-    else if (event.type == EVT_CENTRAL_BTN)
+
+    if (idx >= button_event_count)
     {
-      idx = 1;
-    }
-    else if (event.type == EVT_MENU_BTN)
-    {
-      idx = 2;
+      continue;
     }
 
     const bool pressed = (event.button_action == BUTTON_ACTION_PRESSED);
