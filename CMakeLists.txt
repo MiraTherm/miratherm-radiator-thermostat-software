@@ -57,6 +57,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
 # Add LVGL subdirectory with embedded configuration (disables demos/examples)
 set(CONFIG_LV_BUILD_DEMOS OFF CACHE BOOL "Disable LVGL demos for embedded" FORCE)
 set(CONFIG_LV_BUILD_EXAMPLES OFF CACHE BOOL "Disable LVGL examples for embedded" FORCE)
+set(LV_CONF_PATH "${CMAKE_SOURCE_DIR}/Drivers/lv_conf.h" CACHE STRING "Path to lv_conf.h" FORCE)
 add_subdirectory(Drivers/lvgl)
 
 # For embedded systems without pthread support, exclude OSAL implementations that require OS features

@@ -496,6 +496,7 @@ void StartDefaultTask(void *argument)
     buttons[i].label = lv_label_create(buttons[i].btn);
     lv_label_set_text(buttons[i].label, button_texts[i]);
     lv_obj_set_style_text_color(buttons[i].label, lv_color_white(), 0);
+    lv_obj_set_style_text_font(buttons[i].label, &lv_font_montserrat_10, 0);
     lv_obj_center(buttons[i].label);
     buttons[i].active = false;
   }

@@ -58,15 +58,17 @@ static inline void flush_cb(lv_disp_drv_t *disp_drv, const lv_area_t *area,
 }
 
 static inline void set_pixel_cb(struct _lv_disp_drv_t *disp_drv, uint8_t *buf,
-		lv_coord_t buf_w, lv_coord_t x, lv_coord_t y, lv_color_t color,
-		lv_opa_t opa) {
+	lv_coord_t buf_w, lv_coord_t x, lv_coord_t y, lv_color_t color,
+	lv_opa_t opa) {
 	(void) disp_drv;
 	(void) opa;
 
 	/* Fast bit calculation without division/modulo */
-	uint16_t byte_index = x + ((y >> ROW_BITS) << 7);  /* (y >> 3) * 128 = (y >> 3) * buf_w */
-	uint8_t bit_mask = 1U << (y & BIT_MASK);
-	
+	const uint32_t row_offset = (uint32_t)(y >> ROW_BITS);
+	const uint32_t stride = (uint32_t) buf_w;
+	const uint32_t byte_index = (uint32_t) x + stride * row_offset;
+	const uint8_t bit_mask = 1U << (y & BIT_MASK);
+
 	if (color.full) {
 		buf[byte_index] |= bit_mask;
 	} else {
