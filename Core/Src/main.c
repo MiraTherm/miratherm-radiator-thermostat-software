@@ -24,7 +24,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "lvgl_port_display.h"
-#include "rotary_encoder.h"
+#include "input_task.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -63,6 +63,14 @@ const osThreadAttr_t lvglTask_attributes = {
   .name = "lvglTask",
   .priority = (osPriority_t) osPriorityHigh,
   .stack_size = 512 * 4
+};
+
+/* Definitions for InputTask */
+osThreadId_t inputTaskHandle;
+const osThreadAttr_t inputTask_attributes = {
+  .name = "inputTask",
+  .priority = (osPriority_t) osPriorityLow,
+  .stack_size = 256 * 4
 };
 
 /* Flag to control LVGL rendering */
@@ -124,6 +132,7 @@ int main(void)
   MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
   /* Initializations moved to according tasks to avoid issues before scheduler starts */
+  Buttons_Init();
   /* USER CODE END 2 */
 
   /* Init scheduler */
@@ -152,6 +161,7 @@ int main(void)
   /* USER CODE BEGIN RTOS_THREADS */
   /* creation of lvglTask */
   lvglTaskHandle = osThreadNew(StartLVGLTask, NULL, &lvglTask_attributes);
+  inputTaskHandle = osThreadNew(StartInputTask, NULL, &inputTask_attributes);
   /* USER CODE END RTOS_THREADS */
 
   /* USER CODE BEGIN RTOS_EVENTS */
@@ -386,6 +396,12 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
+  /*Configure GPIO pins : BUTTON_MIDDLE_Pin BUTTON_LEFT_Pin BUTTON_RIGHT_Pin */
+  GPIO_InitStruct.Pin = BUTTON_MIDDLE_Pin|BUTTON_LEFT_Pin|BUTTON_RIGHT_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING_FALLING;
+  GPIO_InitStruct.Pull = GPIO_PULLDOWN;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
   /*Configure GPIO pins : USB_DM_Pin USB_DP_Pin */
   GPIO_InitStruct.Pin = USB_DM_Pin|USB_DP_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
@@ -393,6 +409,16 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   GPIO_InitStruct.Alternate = GPIO_AF10_USB;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+  /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI2_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(EXTI2_IRQn);
+
+  HAL_NVIC_SetPriority(EXTI3_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(EXTI3_IRQn);
+
+  HAL_NVIC_SetPriority(EXTI4_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(EXTI4_IRQn);
 
   /* USER CODE BEGIN MX_GPIO_Init_2 */
 
@@ -432,50 +458,94 @@ void StartDefaultTask(void *argument)
   /* USER CODE BEGIN 5 */
   /* Initialize display and LVGL after scheduler starts to avoid HardFault */
   display_system_init();
-  /* Initialize rotary encoder */
-  RotaryEncoder_Init();
 
-  /* Create a simple test screen with a label */
   lv_obj_t *scr = lv_scr_act();
-  lv_obj_clean(scr);  /* Clear any default objects FIRST */
+  lv_obj_clean(scr);
   lv_obj_set_style_bg_color(scr, lv_color_black(), 0);
 
-  /* Disable rendering while creating UI */
   rendering = false;
-  osDelay(20);  /* Wait for LVGL task to stop rendering */
+  osDelay(20);
 
-  /* Create a label with white text */
-  lv_obj_t *label = lv_label_create(scr);
-  lv_obj_set_style_text_color(label, lv_color_white(), 0);
-  lv_label_set_text(label, "LVGL Test");
-  lv_obj_align(label, LV_ALIGN_CENTER, 0, -20);
-
-  /* Create another label for status */
-  lv_obj_t *status_label = lv_label_create(scr);
-  lv_obj_set_style_text_color(status_label, lv_color_white(), 0);
-  lv_label_set_text(status_label, "Display OK");
-  lv_obj_align(status_label, LV_ALIGN_CENTER, 0, 0);
-
-  /* Create encoder label */
   lv_obj_t *encoder_label = lv_label_create(scr);
   lv_obj_set_style_text_color(encoder_label, lv_color_white(), 0);
-  lv_label_set_text_fmt(encoder_label, "Encoder: 0");
-  lv_obj_align(encoder_label, LV_ALIGN_CENTER, 0, 20);
+  lv_label_set_text(encoder_label, "Encoder: 0");
+  lv_obj_align(encoder_label, LV_ALIGN_TOP_MID, 0, 4);
 
-  /* Enable rendering after UI is complete */
+  struct button_ui
+  {
+    lv_obj_t *btn;
+    lv_obj_t *label;
+    bool active;
+  } buttons[3];
+
+  const char *const button_texts[3] = {"MODE", "X", "MENU"};
+  const lv_coord_t button_width = 36;
+  const lv_coord_t button_height = 18;
+  const lv_coord_t gap = 6;
+  const lv_coord_t margin = 6;
+
+  for (size_t i = 0; i < 3; ++i)
+  {
+    buttons[i].btn = lv_btn_create(scr);
+    lv_obj_set_size(buttons[i].btn, button_width, button_height);
+    lv_obj_align(buttons[i].btn, LV_ALIGN_BOTTOM_LEFT, margin + i * (button_width + gap), -margin);
+    lv_obj_set_style_bg_color(buttons[i].btn, lv_color_black(), 0);
+    lv_obj_set_style_border_width(buttons[i].btn, 1, 0);
+    lv_obj_set_style_border_color(buttons[i].btn, lv_color_white(), 0);
+
+    buttons[i].label = lv_label_create(buttons[i].btn);
+    lv_label_set_text(buttons[i].label, button_texts[i]);
+    lv_obj_set_style_text_color(buttons[i].label, lv_color_white(), 0);
+    lv_obj_center(buttons[i].label);
+    buttons[i].active = false;
+  }
+
   rendering = true;
 
-  /* Main application task */
-  int32_t total_encoder_value = 0;
-  for(;;)
+  int32_t encoder_value = 0;
+  Input2VPEEvent_t event;
+
+  for (;;)
   {
-    int32_t delta = RotaryEncoder_GetDelta();
-    if (delta != 0)
+    if (!InputTask_TryGetEvent(&event, osWaitForever))
     {
-      total_encoder_value += delta;
-      lv_label_set_text_fmt(encoder_label, "Encoder: %d", (int)total_encoder_value);
+      osDelay(5);
+      continue;
     }
-    osDelay(10);
+
+    if (event.type == EVT_CTRL_WHEEL_DELTA)
+    {
+      encoder_value += event.delta;
+      lv_label_set_text_fmt(encoder_label, "Encoder:%+d", (int)encoder_value);
+      continue;
+    }
+
+    size_t idx = 0;
+    if (event.type == EVT_MODE_BTN)
+    {
+      idx = 0;
+    }
+    else if (event.type == EVT_CENTRAL_BTN)
+    {
+      idx = 1;
+    }
+    else if (event.type == EVT_MENU_BTN)
+    {
+      idx = 2;
+    }
+
+    const bool pressed = (event.button_action == BUTTON_ACTION_PRESSED);
+    if (pressed == buttons[idx].active)
+    {
+      continue;
+    }
+
+    buttons[idx].active = pressed;
+    const lv_color_t bg = pressed ? lv_color_white() : lv_color_black();
+    const lv_color_t txt = pressed ? lv_color_black() : lv_color_white();
+
+    lv_obj_set_style_bg_color(buttons[idx].btn, bg, 0);
+    lv_obj_set_style_text_color(buttons[idx].label, txt, 0);
   }
   /* USER CODE END 5 */
 }

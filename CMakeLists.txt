@@ -51,6 +51,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     Drivers/ssd1306/ssd1306/ssd1306_fonts.c
     Drivers/lvgl_port_display/lvgl_port_display.c
     Drivers/rotary_encoder/rotary_encoder.c
+    Drivers/buttons/buttons.c
 )
 
 # Add LVGL subdirectory with embedded configuration (disables demos/examples)
@@ -77,6 +78,7 @@ target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE
 # Add sources to executable
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user sources here
+    Core/Src/input_task.c
 )
 
 # Add include paths
