@@ -521,7 +521,7 @@ void StartDefaultTask(void *argument)
 
   for (;;)
   {
-    if (!InputTask_TryGetEvent(&event, osWaitForever))
+    if (!InputTask_TryGetVPEvent(&event, osWaitForever))
     {
       osDelay(5);
       continue;

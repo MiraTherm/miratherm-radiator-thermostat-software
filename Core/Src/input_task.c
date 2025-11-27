@@ -81,7 +81,7 @@ void StartInputTask(void *argument)
   }
 }
 
-bool InputTask_TryGetEvent(Input2VPEvent_t *event, uint32_t timeout_ticks)
+bool InputTask_TryGetVPEvent(Input2VPEvent_t *event, uint32_t timeout_ticks)
 {
   if ((event == NULL) || (s_event_queue == NULL))
   {

@@ -27,7 +27,7 @@ typedef struct
 
 void StartInputTask(void *argument);
 
-bool InputTask_TryGetEvent(Input2VPEvent_t *event, uint32_t timeout_ticks);
+bool InputTask_TryGetVPEvent(Input2VPEvent_t *event, uint32_t timeout_ticks);
 bool InputTask_IsButtonPressed(button_id_t id);
 
 #ifdef __cplusplus
