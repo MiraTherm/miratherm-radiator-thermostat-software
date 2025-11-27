@@ -44,6 +44,7 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     Drivers/lvgl_port_display
     Drivers/rotary_encoder
     Drivers/buttons
+    Drivers/motor
 )
 
 # Add driver sources
@@ -53,6 +54,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     Drivers/lvgl_port_display/lvgl_port_display.c
     Drivers/rotary_encoder/rotary_encoder.c
     Drivers/buttons/buttons.c
+    Drivers/motor/motor.c
 )
 
 # Add LVGL subdirectory with embedded configuration (disables demos/examples)

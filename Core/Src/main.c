@@ -25,6 +25,7 @@
 /* USER CODE BEGIN Includes */
 #include "lvgl_port_display.h"
 #include "input_task.h"
+#include "motor.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -249,7 +250,7 @@ void SystemClock_Config(void)
   RCC_ClkInitStruct.AHBCLK2Divider = RCC_SYSCLK_DIV1;
   RCC_ClkInitStruct.AHBCLK4Divider = RCC_SYSCLK_DIV1;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK)
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_1) != HAL_OK)
   {
     Error_Handler();
   }
@@ -393,8 +394,21 @@ static void MX_GPIO_Init(void)
 
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOC_CLK_ENABLE();
-  __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
+  __HAL_RCC_GPIOA_CLK_ENABLE();
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(M_B_GPIO_Port, M_B_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(M_A_GPIO_Port, M_A_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin : M_B_Pin */
+  GPIO_InitStruct.Pin = M_B_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(M_B_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pin : BUTTON_MIDDLE_Pin */
   GPIO_InitStruct.Pin = BUTTON_MIDDLE_Pin;
@@ -407,6 +421,13 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING_FALLING;
   GPIO_InitStruct.Pull = GPIO_PULLDOWN;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : M_A_Pin */
+  GPIO_InitStruct.Pin = M_A_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(M_A_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : USB_DM_Pin USB_DP_Pin */
   GPIO_InitStruct.Pin = USB_DM_Pin|USB_DP_Pin;
@@ -432,6 +453,13 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+
+static void motor_status_label_update(lv_obj_t *label, bool running, bool forward)
+{
+  const char *const state_text = running ? "On" : "Off";
+  const char *const direction_text = forward ? "FWD" : "REV";
+  lv_label_set_text_fmt(label, "Motor: %s (%s)", state_text, direction_text);
+}
 
 void StartLVGLTask(void *argument)
 {
@@ -464,6 +492,7 @@ void StartDefaultTask(void *argument)
   /* USER CODE BEGIN 5 */
   /* Initialize display and LVGL after scheduler starts to avoid HardFault */
   display_system_init();
+  Motor_Init();
 
   lv_obj_t *scr = lv_scr_act();
   lv_obj_clean(scr);
@@ -476,6 +505,12 @@ void StartDefaultTask(void *argument)
   lv_obj_set_style_text_color(encoder_label, lv_color_white(), 0);
   lv_label_set_text(encoder_label, "Encoder: 0");
   lv_obj_align(encoder_label, LV_ALIGN_TOP_MID, 0, 4);
+
+  lv_obj_t *motor_status_label = lv_label_create(scr);
+  lv_obj_set_style_text_color(motor_status_label, lv_color_white(), 0);
+  lv_obj_set_style_text_font(motor_status_label, &lv_font_montserrat_12, 0);
+  lv_label_set_text(motor_status_label, "Motor: Off (FWD)");
+  lv_obj_align(motor_status_label, LV_ALIGN_CENTER, 0, 0);
 
   struct button_ui
   {
@@ -507,6 +542,10 @@ void StartDefaultTask(void *argument)
     buttons[i].active = false;
   }
 
+  bool motor_running = false;
+  bool motor_direction_forward = true;
+  motor_status_label_update(motor_status_label, motor_running, motor_direction_forward);
+
   rendering = true;
 
   static const Input2VPEventTypeDef button_event_types[] = {
@@ -532,6 +571,36 @@ void StartDefaultTask(void *argument)
       encoder_value += event.delta;
       lv_label_set_text_fmt(encoder_label, "Encoder:%+d", (int)encoder_value);
       continue;
+    }
+
+    switch (event.type)
+    {
+      case EVT_MODE_BTN:
+        if (event.button_action == BUTTON_ACTION_PRESSED)
+        {
+          motor_direction_forward = !motor_direction_forward;
+          if (motor_running)
+          {
+            Motor_SetState(motor_direction_forward ? MOTOR_FORWARD : MOTOR_BACKWARD);
+          }
+          motor_status_label_update(motor_status_label, motor_running, motor_direction_forward);
+        }
+        break;
+      case EVT_CENTRAL_BTN:
+        if (event.button_action == BUTTON_ACTION_PRESSED)
+        {
+          motor_running = true;
+          Motor_SetState(motor_direction_forward ? MOTOR_FORWARD : MOTOR_BACKWARD);
+        }
+        else
+        {
+          motor_running = false;
+          Motor_SetState(MOTOR_COAST);
+        }
+        motor_status_label_update(motor_status_label, motor_running, motor_direction_forward);
+        break;
+      default:
+        break;
     }
 
     size_t idx = button_event_count;
