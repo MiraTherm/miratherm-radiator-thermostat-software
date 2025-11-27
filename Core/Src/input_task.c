@@ -23,7 +23,7 @@ static Input2VPEventTypeDef ButtonToVP(button_id_t id)
   }
 }
 
-static void InputTask_PostEvent(const Input2VPEEvent_t *event)
+static void InputTask_PostEvent(const Input2VPEvent_t *event)
 {
   if ((event == NULL) || (s_event_queue == NULL))
   {
@@ -37,7 +37,7 @@ void StartInputTask(void *argument)
 {
   (void)argument;
 
-  s_event_queue = osMessageQueueNew(INPUT_BUTTON_QUEUE_DEPTH, sizeof(Input2VPEEvent_t), NULL);
+  s_event_queue = osMessageQueueNew(INPUT_BUTTON_QUEUE_DEPTH, sizeof(Input2VPEvent_t), NULL);
   if (s_event_queue == NULL)
   {
     Error_Handler();
@@ -54,7 +54,7 @@ void StartInputTask(void *argument)
   {
     while (Buttons_Poll(&button_event))
     {
-      Input2VPEEvent_t event = {
+      Input2VPEvent_t event = {
         .type = ButtonToVP(button_event.id),
         .button_action = button_event.action,
         .delta = 0,
@@ -67,7 +67,7 @@ void StartInputTask(void *argument)
     const int8_t delta = RotaryEncoder_GetDelta();
     if (delta != 0)
     {
-      Input2VPEEvent_t event = {
+      Input2VPEvent_t event = {
         .type = EVT_CTRL_WHEEL_DELTA,
         .button_action = BUTTON_ACTION_RELEASED,
         .delta = delta,
@@ -81,7 +81,7 @@ void StartInputTask(void *argument)
   }
 }
 
-bool InputTask_TryGetEvent(Input2VPEEvent_t *event, uint32_t timeout_ticks)
+bool InputTask_TryGetEvent(Input2VPEvent_t *event, uint32_t timeout_ticks)
 {
   if ((event == NULL) || (s_event_queue == NULL))
   {

@@ -503,7 +503,7 @@ void StartDefaultTask(void *argument)
   rendering = true;
 
   int32_t encoder_value = 0;
-  Input2VPEEvent_t event;
+  Input2VPEvent_t event;
 
   for (;;)
   {

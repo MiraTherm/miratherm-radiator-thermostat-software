@@ -15,19 +15,19 @@ typedef enum
 	EVT_CENTRAL_BTN,
 	EVT_MENU_BTN,
 	EVT_CTRL_WHEEL_DELTA
-} Input2VPEEventTypeDef;
+} Input2VPEventTypeDef;
 
 typedef struct
 {
-	Input2VPEEventTypeDef type;
+	Input2VPEventTypeDef type;
 	button_action_t button_action;
 	int16_t delta;
 	uint32_t timestamp;
-} Input2VPEEvent_t;
+} Input2VPEvent_t;
 
 void StartInputTask(void *argument);
 
-bool InputTask_TryGetEvent(Input2VPEEvent_t *event, uint32_t timeout_ticks);
+bool InputTask_TryGetEvent(Input2VPEvent_t *event, uint32_t timeout_ticks);
 bool InputTask_IsButtonPressed(button_id_t id);
 
 #ifdef __cplusplus
