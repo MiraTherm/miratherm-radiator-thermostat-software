@@ -32,6 +32,17 @@ static TickType_t safe_ms_to_ticks(uint32_t ms)
   return pdMS_TO_TICKS(safe_ms);
 }
 
+static uint32_t enforce_min_sampling_period_ms(uint32_t period_ms)
+{
+  /* ADC channels are configured with 640.5 cycles and 256× oversampling at 64MHz/64, so each measurement takes
+   * at least 640.5 * 256 / (64MHz / 64) ≈ 163.968 ms. Don't allow faster measurement requests than that. */
+  if (period_ms < SENSOR_TASK_MIN_SAMPLING_PERIOD_MS)
+  {
+    return SENSOR_TASK_MIN_SAMPLING_PERIOD_MS;
+  }
+  return period_ms;
+}
+
 static uint32_t calculate_vref_voltage(uint16_t vref_raw)
 {
   if (vref_raw == 0U)
@@ -87,6 +98,8 @@ void SensorTask_SetMotorMeasurementPeriodMs(uint32_t period_ms)
     period_ms = 1U;
   }
 
+  period_ms = enforce_min_sampling_period_ms(period_ms);
+
   taskENTER_CRITICAL();
   s_motor_period_ms = period_ms;
   taskEXIT_CRITICAL();
@@ -98,6 +111,8 @@ void SensorTask_SetTempBatteryMeasurementPeriodMs(uint32_t period_ms)
   {
     period_ms = 1U;
   }
+
+  period_ms = enforce_min_sampling_period_ms(period_ms);
 
   taskENTER_CRITICAL();
   s_temp_period_ms = period_ms;

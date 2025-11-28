@@ -8,6 +8,7 @@
 extern "C" {
 #endif
 
+#define SENSOR_TASK_MIN_SAMPLING_PERIOD_MS 82U  /* 640.5 ADC cycles × 256 oversample / (64MHz / 32) ≈ 81.984 ms */
 #define SENSOR_TASK_DEFAULT_MOTOR_PERIOD_MS 100U
 #define SENSOR_TASK_DEFAULT_TEMP_BATTERY_PERIOD_MS 500U
 
