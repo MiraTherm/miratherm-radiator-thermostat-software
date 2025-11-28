@@ -1,6 +1,6 @@
 #include "buttons.h"
 
-#define BUTTONS_DEBOUNCE_MS 20U
+#define BUTTONS_DEBOUNCE_MS 10U
 
 typedef struct
 {
