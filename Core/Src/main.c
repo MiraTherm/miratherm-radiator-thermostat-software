@@ -26,7 +26,7 @@
 #include "lvgl_port_display.h"
 #include "input_task.h"
 #include "motor.h"
-#include "temperature_sensor.h"
+#include "sensor_task.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -76,6 +76,14 @@ const osThreadAttr_t inputTask_attributes = {
   .name = "inputTask",
   .priority = (osPriority_t) osPriorityLow,
   .stack_size = 256 * 4
+};
+
+/* Definitions for SensorTask */
+osThreadId_t sensorTaskHandle;
+const osThreadAttr_t sensorTask_attributes = {
+  .name = "sensorTask",
+  .priority = (osPriority_t) osPriorityLow,
+  .stack_size = 384 * 4
 };
 
 /* Flag to control LVGL rendering */
@@ -170,6 +178,7 @@ int main(void)
   /* USER CODE BEGIN RTOS_THREADS */
   /* creation of lvglTask */
   lvglTaskHandle = osThreadNew(StartLVGLTask, NULL, &lvglTask_attributes);
+  sensorTaskHandle = osThreadNew(StartSensorTask, NULL, &sensorTask_attributes);
   inputTaskHandle = osThreadNew(StartInputTask, NULL, &inputTask_attributes);
   /* USER CODE END RTOS_THREADS */
 
@@ -321,14 +330,14 @@ static void MX_ADC1_Init(void)
   hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
   hadc1.Init.ScanConvMode = ADC_SCAN_ENABLE;
   hadc1.Init.EOCSelection = ADC_EOC_SEQ_CONV;
-  hadc1.Init.LowPowerAutoWait = DISABLE;
+  hadc1.Init.LowPowerAutoWait = ENABLE;
   hadc1.Init.ContinuousConvMode = ENABLE;
-  hadc1.Init.NbrOfConversion = 2;
+  hadc1.Init.NbrOfConversion = 4;
   hadc1.Init.DiscontinuousConvMode = DISABLE;
   hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
   hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
   hadc1.Init.DMAContinuousRequests = ENABLE;
-  hadc1.Init.Overrun = ADC_OVR_DATA_OVERWRITTEN;
+  hadc1.Init.Overrun = ADC_OVR_DATA_PRESERVED;
   hadc1.Init.OversamplingMode = DISABLE;
   if (HAL_ADC_Init(&hadc1) != HAL_OK)
   {
@@ -337,7 +346,7 @@ static void MX_ADC1_Init(void)
 
   /** Configure Regular Channel
   */
-  sConfig.Channel = ADC_CHANNEL_TEMPSENSOR;
+  sConfig.Channel = ADC_CHANNEL_VREFINT;
   sConfig.Rank = ADC_REGULAR_RANK_1;
   sConfig.SamplingTime = ADC_SAMPLETIME_640CYCLES_5;
   sConfig.SingleDiff = ADC_SINGLE_ENDED;
@@ -350,8 +359,26 @@ static void MX_ADC1_Init(void)
 
   /** Configure Regular Channel
   */
-  sConfig.Channel = ADC_CHANNEL_VREFINT;
+  sConfig.Channel = ADC_CHANNEL_1;
   sConfig.Rank = ADC_REGULAR_RANK_2;
+  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure Regular Channel
+  */
+  sConfig.Channel = ADC_CHANNEL_TEMPSENSOR;
+  sConfig.Rank = ADC_REGULAR_RANK_3;
+  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure Regular Channel
+  */
+  sConfig.Channel = ADC_CHANNEL_VBAT;
+  sConfig.Rank = ADC_REGULAR_RANK_4;
   if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
   {
     Error_Handler();
@@ -554,25 +581,100 @@ static void MX_GPIO_Init(void)
 
 /* USER CODE BEGIN 4 */
 
-static void motor_status_label_update(lv_obj_t *label, bool running, bool forward)
+static int32_t scale_value_for_label(float value, uint8_t decimals)
 {
-  const char *const state_text = running ? "On" : "Off";
-  const char *const direction_text = forward ? "F" : "R";
-  lv_label_set_text_fmt(label, "M: %s (%s)", state_text, direction_text);
+  int32_t scale = 1;
+  for (uint8_t i = 0; i < decimals; ++i)
+  {
+    scale *= 10;
+  }
+  const float scaled = value * (float)scale + (value >= 0.0f ? 0.5f : -0.5f);
+  return (int32_t)scaled;
 }
 
-static void temperature_label_update(lv_obj_t *label, float temperature)
+static void sensor_current_label_update(lv_obj_t *label, float current)
 {
+  if (label == NULL)
+  {
+    return;
+  }
+
+  const int32_t scaled = scale_value_for_label(current, 3);
+  int32_t integral = scaled / 1000;
+  int32_t fraction = scaled % 1000;
+  if (fraction < 0)
+  {
+    fraction = -fraction;
+  }
+
   char buf[32];
-  /* Format without %f because many embedded printf implementations omit
-   * floating-point support. Use fixed-point with one decimal place. */
-  int32_t temp_x10 = (int32_t)(temperature * 10.0f + (temperature >= 0.0f ? 0.5f : -0.5f));
-  int32_t integral = temp_x10 / 10;
-  int32_t frac = temp_x10 % 10;
-  if (frac < 0) frac = -frac;
-  /* Use integer formatting which is safe in minimal libcs */
-  snprintf(buf, sizeof(buf), "T:%ld.%1ldC", (long)integral, (long)frac);
+  snprintf(buf, sizeof(buf), "I_M:%ld.%03ldA", (long)integral, (long)fraction);
   lv_label_set_text(label, buf);
+}
+
+static void sensor_battery_label_update(lv_obj_t *label, float voltage)
+{
+  if (label == NULL)
+  {
+    return;
+  }
+
+  const int32_t scaled = scale_value_for_label(voltage, 2);
+  int32_t integral = scaled / 100;
+  int32_t fraction = scaled % 100;
+  if (fraction < 0)
+  {
+    fraction = -fraction;
+  }
+
+  char buf[32];
+  snprintf(buf, sizeof(buf), "Bat:%ld.%02ldV", (long)integral, (long)fraction);
+  lv_label_set_text(label, buf);
+}
+
+static void sensor_temperature_label_update(lv_obj_t *label, float temperature)
+{
+  if (label == NULL)
+  {
+    return;
+  }
+
+  const int32_t scaled = scale_value_for_label(temperature, 1);
+  int32_t integral = scaled / 10;
+  int32_t fraction = scaled % 10;
+  if (fraction < 0)
+  {
+    fraction = -fraction;
+  }
+
+  char buf[32];
+  snprintf(buf, sizeof(buf), "T:%ld.%1ldC", (long)integral, (long)fraction);
+  lv_label_set_text(label, buf);
+}
+
+static void sensor_display_update(lv_obj_t *current_label,
+                                  lv_obj_t *battery_label,
+                                  lv_obj_t *temp_label,
+                                  const SensorValuesTypeDef *values)
+{
+  if (values == NULL)
+  {
+    return;
+  }
+
+  sensor_current_label_update(current_label, values->MotorCurrent);
+  sensor_battery_label_update(battery_label, values->BatteryVoltage);
+  sensor_temperature_label_update(temp_label, values->CurrentTemp);
+}
+
+static void update_go_button_label(lv_obj_t *label, bool forward)
+{
+  if (label == NULL)
+  {
+    return;
+  }
+
+  lv_label_set_text_fmt(label, "Go: %s", forward ? "F" : "R");
 }
 
 void StartLVGLTask(void *argument)
@@ -607,7 +709,7 @@ void StartDefaultTask(void *argument)
   /* Initialize display and LVGL after scheduler starts to avoid HardFault */
   display_system_init();
   Motor_Init();
-  TemperatureSensor_SetCalibrationOffset(5.0f);
+  SensorTask_SetTemperatureCalibrationOffset(5.0f);
 
   lv_obj_t *scr = lv_scr_act();
   lv_obj_clean(scr);
@@ -616,23 +718,32 @@ void StartDefaultTask(void *argument)
   rendering = false;
   osDelay(20);
 
-  lv_obj_t *temp_label = lv_label_create(scr);
-  lv_obj_set_style_text_color(temp_label, lv_color_white(), 0);
-  lv_label_set_text(temp_label, "T: ----C");
-  lv_obj_align(temp_label, LV_ALIGN_TOP_LEFT, 4, 4);
-  temperature_label_update(temp_label, TemperatureSensor_GetCelsius());
-
   lv_obj_t *encoder_label = lv_label_create(scr);
   lv_obj_set_style_text_color(encoder_label, lv_color_white(), 0);
   lv_label_set_text(encoder_label, "RE: 0");
-  lv_obj_align(encoder_label, LV_ALIGN_TOP_RIGHT, -4, 4);
+  lv_obj_align(encoder_label, LV_ALIGN_TOP_LEFT, 4, 4);
 
-  lv_obj_t *motor_status_label = lv_label_create(scr);
-  lv_obj_set_style_text_color(motor_status_label, lv_color_white(), 0);
-  lv_obj_set_style_text_font(motor_status_label, &lv_font_montserrat_12, 0);
-  lv_label_set_text(motor_status_label, "M: Off (F)");
-  lv_obj_align(motor_status_label, LV_ALIGN_TOP_MID, 0, 24);
+  lv_obj_t *current_label = lv_label_create(scr);
+  lv_obj_set_style_text_color(current_label, lv_color_white(), 0);
+  lv_label_set_text(current_label, "I: --mA");
+  lv_obj_align_to(current_label, encoder_label, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 2);
 
+  lv_obj_t *battery_label = lv_label_create(scr);
+  lv_obj_set_style_text_color(battery_label, lv_color_white(), 0);
+  lv_label_set_text(battery_label, "Bat: --.--V");
+  lv_obj_align(battery_label, LV_ALIGN_TOP_RIGHT, -4, 4);
+
+  lv_obj_t *temp_label = lv_label_create(scr);
+  lv_obj_set_style_text_color(temp_label, lv_color_white(), 0);
+  lv_label_set_text(temp_label, "T: --.-C");
+  lv_obj_align_to(temp_label, battery_label, LV_ALIGN_OUT_BOTTOM_RIGHT, 0, 2);
+
+  SensorValuesTypeDef initial_values = {0.0f, 0.0f, 0.0f};
+  if (SensorValues_Copy(&initial_values))
+  {
+    sensor_display_update(current_label, battery_label, temp_label, &initial_values);
+  }
+  
   struct button_ui
   {
     lv_obj_t *btn;
@@ -665,7 +776,7 @@ void StartDefaultTask(void *argument)
 
   bool motor_running = false;
   bool motor_direction_forward = true;
-  motor_status_label_update(motor_status_label, motor_running, motor_direction_forward);
+  update_go_button_label(buttons[1].label, motor_direction_forward);
 
   rendering = true;
 
@@ -677,9 +788,9 @@ void StartDefaultTask(void *argument)
   const size_t button_event_count = sizeof(button_event_types) / sizeof(button_event_types[0]);
 
   int32_t encoder_value = 0;
-  const TickType_t temperature_update_interval = pdMS_TO_TICKS(500U);
+  const TickType_t sensor_display_interval = pdMS_TO_TICKS(500U);
   const TickType_t event_wait_ticks = pdMS_TO_TICKS(50U);
-  TickType_t last_temperature_tick = osKernelGetTickCount();
+  TickType_t last_sensor_tick = osKernelGetTickCount();
 
   for (;;)
   {
@@ -691,7 +802,7 @@ void StartDefaultTask(void *argument)
       if (event.type == EVT_CTRL_WHEEL_DELTA)
       {
         encoder_value += event.delta;
-        lv_label_set_text_fmt(encoder_label, "RE:%+d", (int)encoder_value);
+        lv_label_set_text_fmt(encoder_label, "RE:%d", (int)encoder_value);
       }
       else
       {
@@ -705,7 +816,7 @@ void StartDefaultTask(void *argument)
               {
                 Motor_SetState(motor_direction_forward ? MOTOR_FORWARD : MOTOR_BACKWARD);
               }
-              motor_status_label_update(motor_status_label, motor_running, motor_direction_forward);
+              update_go_button_label(buttons[1].label, motor_direction_forward);
             }
             break;
           case EVT_CENTRAL_BTN:
@@ -719,7 +830,6 @@ void StartDefaultTask(void *argument)
               motor_running = false;
               Motor_SetState(MOTOR_COAST);
             }
-            motor_status_label_update(motor_status_label, motor_running, motor_direction_forward);
             break;
           default:
             break;
@@ -752,10 +862,14 @@ void StartDefaultTask(void *argument)
     }
 
     const TickType_t now = osKernelGetTickCount();
-    if ((now - last_temperature_tick) >= temperature_update_interval)
+    if ((now - last_sensor_tick) >= sensor_display_interval)
     {
-      temperature_label_update(temp_label, TemperatureSensor_GetCelsius());
-      last_temperature_tick = now;
+      SensorValuesTypeDef values = {0.0f, 0.0f, 0.0f};
+      if (SensorValues_Copy(&values))
+      {
+        sensor_display_update(current_label, battery_label, temp_label, &values);
+      }
+      last_sensor_tick = now;
     }
   }
   /* USER CODE END 5 */

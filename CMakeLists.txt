@@ -45,7 +45,6 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     Drivers/rotary_encoder
     Drivers/buttons
     Drivers/motor
-    Drivers/temperature_sensor
 )
 
 # Add driver sources
@@ -56,7 +55,6 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     Drivers/rotary_encoder/rotary_encoder.c
     Drivers/buttons/buttons.c
     Drivers/motor/motor.c
-    Drivers/temperature_sensor/temperature_sensor.c
 )
 
 # Add LVGL subdirectory with embedded configuration (disables demos/examples)
@@ -85,6 +83,7 @@ target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user sources here
     Core/Src/input_task.c
+    Core/Src/sensor_task.c
 )
 
 # Add include paths

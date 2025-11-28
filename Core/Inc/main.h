@@ -68,6 +68,8 @@ void Error_Handler(void);
 #define RCC_OSC32_OUT_GPIO_Port GPIOC
 #define MOTOR_IN2_Pin GPIO_PIN_8
 #define MOTOR_IN2_GPIO_Port GPIOB
+#define MOTOR_I_SHUNT_Pin GPIO_PIN_0
+#define MOTOR_I_SHUNT_GPIO_Port GPIOC
 #define RE_A_Pin GPIO_PIN_0
 #define RE_A_GPIO_Port GPIOA
 #define RE_B_Pin GPIO_PIN_1
