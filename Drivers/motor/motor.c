@@ -1,4 +1,4 @@
-#include "motor/motor.h"
+#include "motor.h"
 
 static MotorStateTypeDef s_current_state = MOTOR_COAST;
 
