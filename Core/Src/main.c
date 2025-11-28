@@ -498,17 +498,17 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOA_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(M_B_GPIO_Port, M_B_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(MOTOR_IN2_GPIO_Port, MOTOR_IN2_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(M_A_GPIO_Port, M_A_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(MOTOR_IN1_GPIO_Port, MOTOR_IN1_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pin : M_B_Pin */
-  GPIO_InitStruct.Pin = M_B_Pin;
+  /*Configure GPIO pin : MOTOR_IN2_Pin */
+  GPIO_InitStruct.Pin = MOTOR_IN2_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(M_B_GPIO_Port, &GPIO_InitStruct);
+  HAL_GPIO_Init(MOTOR_IN2_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pin : BUTTON_MIDDLE_Pin */
   GPIO_InitStruct.Pin = BUTTON_MIDDLE_Pin;
@@ -522,12 +522,12 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_PULLDOWN;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : M_A_Pin */
-  GPIO_InitStruct.Pin = M_A_Pin;
+  /*Configure GPIO pin : MOTOR_IN1_Pin */
+  GPIO_InitStruct.Pin = MOTOR_IN1_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(M_A_GPIO_Port, &GPIO_InitStruct);
+  HAL_GPIO_Init(MOTOR_IN1_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : USB_DM_Pin USB_DP_Pin */
   GPIO_InitStruct.Pin = USB_DM_Pin|USB_DP_Pin;

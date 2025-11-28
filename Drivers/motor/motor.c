@@ -4,8 +4,8 @@ static MotorStateTypeDef s_current_state = MOTOR_COAST;
 
 static void motor_apply_pins(GPIO_PinState a_state, GPIO_PinState b_state)
 {
-	HAL_GPIO_WritePin(M_A_GPIO_Port, M_A_Pin, a_state);
-	HAL_GPIO_WritePin(M_B_GPIO_Port, M_B_Pin, b_state);
+	HAL_GPIO_WritePin(MOTOR_IN1_GPIO_Port, MOTOR_IN1_Pin, a_state);
+	HAL_GPIO_WritePin(MOTOR_IN2_GPIO_Port, MOTOR_IN2_Pin, b_state);
 }
 
 void Motor_Init(void)

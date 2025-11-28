@@ -66,8 +66,8 @@ void Error_Handler(void);
 #define RCC_OSC32_IN_GPIO_Port GPIOC
 #define RCC_OSC32_OUT_Pin GPIO_PIN_15
 #define RCC_OSC32_OUT_GPIO_Port GPIOC
-#define M_B_Pin GPIO_PIN_8
-#define M_B_GPIO_Port GPIOB
+#define MOTOR_IN2_Pin GPIO_PIN_8
+#define MOTOR_IN2_GPIO_Port GPIOB
 #define RE_A_Pin GPIO_PIN_0
 #define RE_A_GPIO_Port GPIOA
 #define RE_B_Pin GPIO_PIN_1
@@ -81,8 +81,8 @@ void Error_Handler(void);
 #define BUTTON_RIGHT_Pin GPIO_PIN_5
 #define BUTTON_RIGHT_GPIO_Port GPIOA
 #define BUTTON_RIGHT_EXTI_IRQn EXTI9_5_IRQn
-#define M_A_Pin GPIO_PIN_8
-#define M_A_GPIO_Port GPIOA
+#define MOTOR_IN1_Pin GPIO_PIN_8
+#define MOTOR_IN1_GPIO_Port GPIOA
 #define USB_DM_Pin GPIO_PIN_11
 #define USB_DM_GPIO_Port GPIOA
 #define USB_DP_Pin GPIO_PIN_12
