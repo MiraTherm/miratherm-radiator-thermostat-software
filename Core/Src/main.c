@@ -26,6 +26,7 @@
 #include "lvgl_port_display.h"
 #include "input_task.h"
 #include "motor.h"
+#include "temperature_sensor.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -46,6 +47,9 @@
 /* Private variables ---------------------------------------------------------*/
 
 COM_InitTypeDef BspCOMInit;
+ADC_HandleTypeDef hadc1;
+DMA_HandleTypeDef hdma_adc1;
+
 I2C_HandleTypeDef hi2c1;
 
 TIM_HandleTypeDef htim2;
@@ -82,8 +86,10 @@ volatile bool rendering = true;
 void SystemClock_Config(void);
 void PeriphCommonClock_Config(void);
 static void MX_GPIO_Init(void);
+static void MX_DMA_Init(void);
 static void MX_I2C1_Init(void);
 static void MX_TIM2_Init(void);
+static void MX_ADC1_Init(void);
 void StartDefaultTask(void *argument);
 
 /* USER CODE BEGIN PFP */
@@ -129,8 +135,10 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_DMA_Init();
   MX_I2C1_Init();
   MX_TIM2_Init();
+  MX_ADC1_Init();
   /* USER CODE BEGIN 2 */
   /* Initializations moved to according tasks to avoid issues before scheduler starts */
   Buttons_Init();
@@ -232,7 +240,13 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
   RCC_OscInitStruct.MSICalibrationValue = RCC_MSICALIBRATION_DEFAULT;
   RCC_OscInitStruct.MSIClockRange = RCC_MSIRANGE_10;
-  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
+  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_MSI;
+  RCC_OscInitStruct.PLL.PLLM = RCC_PLLM_DIV2;
+  RCC_OscInitStruct.PLL.PLLN = 8;
+  RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
+  RCC_OscInitStruct.PLL.PLLR = RCC_PLLR_DIV2;
+  RCC_OscInitStruct.PLL.PLLQ = RCC_PLLQ_DIV2;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
     Error_Handler();
@@ -277,6 +291,75 @@ void PeriphCommonClock_Config(void)
   /* USER CODE BEGIN Smps */
 
   /* USER CODE END Smps */
+}
+
+/**
+  * @brief ADC1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_ADC1_Init(void)
+{
+
+  /* USER CODE BEGIN ADC1_Init 0 */
+
+  /* USER CODE END ADC1_Init 0 */
+
+  ADC_ChannelConfTypeDef sConfig = {0};
+
+  /* USER CODE BEGIN ADC1_Init 1 */
+  /* ADC channels need the maximum sampling time.
+   * Minimum measurement duration is 640.5/(64MHz/64) seconds with the current ADC clock.
+   */
+  /* USER CODE END ADC1_Init 1 */
+
+  /** Common config
+  */
+  hadc1.Instance = ADC1;
+  hadc1.Init.ClockPrescaler = ADC_CLOCK_ASYNC_DIV64;
+  hadc1.Init.Resolution = ADC_RESOLUTION_12B;
+  hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
+  hadc1.Init.ScanConvMode = ADC_SCAN_ENABLE;
+  hadc1.Init.EOCSelection = ADC_EOC_SEQ_CONV;
+  hadc1.Init.LowPowerAutoWait = DISABLE;
+  hadc1.Init.ContinuousConvMode = ENABLE;
+  hadc1.Init.NbrOfConversion = 2;
+  hadc1.Init.DiscontinuousConvMode = DISABLE;
+  hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
+  hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
+  hadc1.Init.DMAContinuousRequests = ENABLE;
+  hadc1.Init.Overrun = ADC_OVR_DATA_OVERWRITTEN;
+  hadc1.Init.OversamplingMode = DISABLE;
+  if (HAL_ADC_Init(&hadc1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure Regular Channel
+  */
+  sConfig.Channel = ADC_CHANNEL_TEMPSENSOR;
+  sConfig.Rank = ADC_REGULAR_RANK_1;
+  sConfig.SamplingTime = ADC_SAMPLETIME_640CYCLES_5;
+  sConfig.SingleDiff = ADC_SINGLE_ENDED;
+  sConfig.OffsetNumber = ADC_OFFSET_NONE;
+  sConfig.Offset = 0;
+  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure Regular Channel
+  */
+  sConfig.Channel = ADC_CHANNEL_VREFINT;
+  sConfig.Rank = ADC_REGULAR_RANK_2;
+  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN ADC1_Init 2 */
+
+  /* USER CODE END ADC1_Init 2 */
+
 }
 
 /**
@@ -381,6 +464,23 @@ static void MX_TIM2_Init(void)
 }
 
 /**
+  * Enable DMA controller clock
+  */
+static void MX_DMA_Init(void)
+{
+
+  /* DMA controller clock enable */
+  __HAL_RCC_DMAMUX1_CLK_ENABLE();
+  __HAL_RCC_DMA1_CLK_ENABLE();
+
+  /* DMA interrupt init */
+  /* DMA1_Channel1_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Channel1_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Channel1_IRQn);
+
+}
+
+/**
   * @brief GPIO Initialization Function
   * @param None
   * @retval None
@@ -457,8 +557,22 @@ static void MX_GPIO_Init(void)
 static void motor_status_label_update(lv_obj_t *label, bool running, bool forward)
 {
   const char *const state_text = running ? "On" : "Off";
-  const char *const direction_text = forward ? "FWD" : "REV";
-  lv_label_set_text_fmt(label, "Motor: %s (%s)", state_text, direction_text);
+  const char *const direction_text = forward ? "F" : "R";
+  lv_label_set_text_fmt(label, "M: %s (%s)", state_text, direction_text);
+}
+
+static void temperature_label_update(lv_obj_t *label, float temperature)
+{
+  char buf[32];
+  /* Format without %f because many embedded printf implementations omit
+   * floating-point support. Use fixed-point with one decimal place. */
+  int32_t temp_x10 = (int32_t)(temperature * 10.0f + (temperature >= 0.0f ? 0.5f : -0.5f));
+  int32_t integral = temp_x10 / 10;
+  int32_t frac = temp_x10 % 10;
+  if (frac < 0) frac = -frac;
+  /* Use integer formatting which is safe in minimal libcs */
+  snprintf(buf, sizeof(buf), "T:%ld.%1ldC", (long)integral, (long)frac);
+  lv_label_set_text(label, buf);
 }
 
 void StartLVGLTask(void *argument)
@@ -493,6 +607,7 @@ void StartDefaultTask(void *argument)
   /* Initialize display and LVGL after scheduler starts to avoid HardFault */
   display_system_init();
   Motor_Init();
+  TemperatureSensor_SetCalibrationOffset(5.0f);
 
   lv_obj_t *scr = lv_scr_act();
   lv_obj_clean(scr);
@@ -501,16 +616,22 @@ void StartDefaultTask(void *argument)
   rendering = false;
   osDelay(20);
 
+  lv_obj_t *temp_label = lv_label_create(scr);
+  lv_obj_set_style_text_color(temp_label, lv_color_white(), 0);
+  lv_label_set_text(temp_label, "T: ----C");
+  lv_obj_align(temp_label, LV_ALIGN_TOP_LEFT, 4, 4);
+  temperature_label_update(temp_label, TemperatureSensor_GetCelsius());
+
   lv_obj_t *encoder_label = lv_label_create(scr);
   lv_obj_set_style_text_color(encoder_label, lv_color_white(), 0);
-  lv_label_set_text(encoder_label, "Encoder: 0");
-  lv_obj_align(encoder_label, LV_ALIGN_TOP_MID, 0, 4);
+  lv_label_set_text(encoder_label, "RE: 0");
+  lv_obj_align(encoder_label, LV_ALIGN_TOP_RIGHT, -4, 4);
 
   lv_obj_t *motor_status_label = lv_label_create(scr);
   lv_obj_set_style_text_color(motor_status_label, lv_color_white(), 0);
   lv_obj_set_style_text_font(motor_status_label, &lv_font_montserrat_12, 0);
-  lv_label_set_text(motor_status_label, "Motor: Off (FWD)");
-  lv_obj_align(motor_status_label, LV_ALIGN_CENTER, 0, 0);
+  lv_label_set_text(motor_status_label, "M: Off (F)");
+  lv_obj_align(motor_status_label, LV_ALIGN_TOP_MID, 0, 24);
 
   struct button_ui
   {
@@ -556,80 +677,86 @@ void StartDefaultTask(void *argument)
   const size_t button_event_count = sizeof(button_event_types) / sizeof(button_event_types[0]);
 
   int32_t encoder_value = 0;
-  Input2VPEvent_t event;
+  const TickType_t temperature_update_interval = pdMS_TO_TICKS(500U);
+  const TickType_t event_wait_ticks = pdMS_TO_TICKS(50U);
+  TickType_t last_temperature_tick = osKernelGetTickCount();
 
   for (;;)
   {
-    if (!InputTask_TryGetVPEvent(&event, osWaitForever))
-    {
-      osDelay(5);
-      continue;
-    }
+    Input2VPEvent_t event;
+    const bool event_ready = InputTask_TryGetVPEvent(&event, event_wait_ticks);
 
-    if (event.type == EVT_CTRL_WHEEL_DELTA)
+    if (event_ready)
     {
-      encoder_value += event.delta;
-      lv_label_set_text_fmt(encoder_label, "Encoder:%+d", (int)encoder_value);
-      continue;
-    }
-
-    switch (event.type)
-    {
-      case EVT_MODE_BTN:
-        if (event.button_action == BUTTON_ACTION_PRESSED)
-        {
-          motor_direction_forward = !motor_direction_forward;
-          if (motor_running)
-          {
-            Motor_SetState(motor_direction_forward ? MOTOR_FORWARD : MOTOR_BACKWARD);
-          }
-          motor_status_label_update(motor_status_label, motor_running, motor_direction_forward);
-        }
-        break;
-      case EVT_CENTRAL_BTN:
-        if (event.button_action == BUTTON_ACTION_PRESSED)
-        {
-          motor_running = true;
-          Motor_SetState(motor_direction_forward ? MOTOR_FORWARD : MOTOR_BACKWARD);
-        }
-        else
-        {
-          motor_running = false;
-          Motor_SetState(MOTOR_COAST);
-        }
-        motor_status_label_update(motor_status_label, motor_running, motor_direction_forward);
-        break;
-      default:
-        break;
-    }
-
-    size_t idx = button_event_count;
-    for (size_t i = 0; i < button_event_count; ++i)
-    {
-      if (event.type == button_event_types[i])
+      if (event.type == EVT_CTRL_WHEEL_DELTA)
       {
-        idx = i;
-        break;
+        encoder_value += event.delta;
+        lv_label_set_text_fmt(encoder_label, "RE:%+d", (int)encoder_value);
+      }
+      else
+      {
+        switch (event.type)
+        {
+          case EVT_MODE_BTN:
+            if (event.button_action == BUTTON_ACTION_PRESSED)
+            {
+              motor_direction_forward = !motor_direction_forward;
+              if (motor_running)
+              {
+                Motor_SetState(motor_direction_forward ? MOTOR_FORWARD : MOTOR_BACKWARD);
+              }
+              motor_status_label_update(motor_status_label, motor_running, motor_direction_forward);
+            }
+            break;
+          case EVT_CENTRAL_BTN:
+            if (event.button_action == BUTTON_ACTION_PRESSED)
+            {
+              motor_running = true;
+              Motor_SetState(motor_direction_forward ? MOTOR_FORWARD : MOTOR_BACKWARD);
+            }
+            else
+            {
+              motor_running = false;
+              Motor_SetState(MOTOR_COAST);
+            }
+            motor_status_label_update(motor_status_label, motor_running, motor_direction_forward);
+            break;
+          default:
+            break;
+        }
+
+        size_t idx = button_event_count;
+        for (size_t i = 0; i < button_event_count; ++i)
+        {
+          if (event.type == button_event_types[i])
+          {
+            idx = i;
+            break;
+          }
+        }
+
+        if (idx < button_event_count)
+        {
+          const bool pressed = (event.button_action == BUTTON_ACTION_PRESSED);
+          if (pressed != buttons[idx].active)
+          {
+            buttons[idx].active = pressed;
+            const lv_color_t bg = pressed ? lv_color_white() : lv_color_black();
+            const lv_color_t txt = pressed ? lv_color_black() : lv_color_white();
+
+            lv_obj_set_style_bg_color(buttons[idx].btn, bg, 0);
+            lv_obj_set_style_text_color(buttons[idx].label, txt, 0);
+          }
+        }
       }
     }
 
-    if (idx >= button_event_count)
+    const TickType_t now = osKernelGetTickCount();
+    if ((now - last_temperature_tick) >= temperature_update_interval)
     {
-      continue;
+      temperature_label_update(temp_label, TemperatureSensor_GetCelsius());
+      last_temperature_tick = now;
     }
-
-    const bool pressed = (event.button_action == BUTTON_ACTION_PRESSED);
-    if (pressed == buttons[idx].active)
-    {
-      continue;
-    }
-
-    buttons[idx].active = pressed;
-    const lv_color_t bg = pressed ? lv_color_white() : lv_color_black();
-    const lv_color_t txt = pressed ? lv_color_black() : lv_color_white();
-
-    lv_obj_set_style_bg_color(buttons[idx].btn, bg, 0);
-    lv_obj_set_style_text_color(buttons[idx].label, txt, 0);
   }
   /* USER CODE END 5 */
 }
