@@ -37,6 +37,8 @@ void StartInputTask(void *argument)
 {
   (void)argument;
 
+  Buttons_Init();
+
   s_event_queue = osMessageQueueNew(INPUT_BUTTON_QUEUE_DEPTH, sizeof(Input2VPEvent_t), NULL);
   if (s_event_queue == NULL)
   {

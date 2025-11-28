@@ -149,7 +149,6 @@ int main(void)
   MX_ADC1_Init();
   /* USER CODE BEGIN 2 */
   /* Initializations moved to according tasks to avoid issues before scheduler starts */
-  Buttons_Init();
   /* USER CODE END 2 */
 
   /* Init scheduler */
