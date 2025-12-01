@@ -607,7 +607,7 @@ static void sensor_current_label_update(lv_obj_t *label, float current)
   }
 
   char buf[32];
-  snprintf(buf, sizeof(buf), "I_M:%ld.%03ldA", (long)integral, (long)fraction);
+  snprintf(buf, sizeof(buf), "I:%ld.%03ldA", (long)integral, (long)fraction);
   lv_label_set_text(label, buf);
 }
 
@@ -724,24 +724,18 @@ void StartDefaultTask(void *argument)
 
   lv_obj_t *current_label = lv_label_create(scr);
   lv_obj_set_style_text_color(current_label, lv_color_white(), 0);
-  lv_label_set_text(current_label, "I: --mA");
+  lv_label_set_text(current_label, "I: -.---A");
   lv_obj_align_to(current_label, encoder_label, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 2);
 
   lv_obj_t *battery_label = lv_label_create(scr);
   lv_obj_set_style_text_color(battery_label, lv_color_white(), 0);
-  lv_label_set_text(battery_label, "Bat: --.--V");
+  lv_label_set_text(battery_label, "Bat: -.--V");
   lv_obj_align(battery_label, LV_ALIGN_TOP_RIGHT, -4, 4);
 
   lv_obj_t *temp_label = lv_label_create(scr);
   lv_obj_set_style_text_color(temp_label, lv_color_white(), 0);
   lv_label_set_text(temp_label, "T: --.-C");
   lv_obj_align_to(temp_label, battery_label, LV_ALIGN_OUT_BOTTOM_RIGHT, 0, 2);
-
-  SensorValuesTypeDef initial_values = {0.0f, 0.0f, 0.0f};
-  if (SensorValues_Copy(&initial_values))
-  {
-    sensor_display_update(current_label, battery_label, temp_label, &initial_values);
-  }
   
   struct button_ui
   {
