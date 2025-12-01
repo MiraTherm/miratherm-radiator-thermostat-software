@@ -82,7 +82,7 @@ const osThreadAttr_t inputTask_attributes = {
 osThreadId_t sensorTaskHandle;
 const osThreadAttr_t sensorTask_attributes = {
   .name = "sensorTask",
-  .priority = (osPriority_t) osPriorityLow,
+  .priority = (osPriority_t) osPriorityNormal1,
   .stack_size = 384 * 4
 };
 
