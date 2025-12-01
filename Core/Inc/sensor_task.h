@@ -21,7 +21,7 @@ typedef struct
 
 void StartSensorTask(void *argument);
 
-bool SensorValues_Copy(SensorValuesTypeDef *dest);
+bool SensorTask_CopySensorValues(SensorValuesTypeDef *dest);
 
 uint32_t SensorTask_GetMotorMeasurementPeriodMs(void);
 uint32_t SensorTask_GetTempBatteryMeasurementPeriodMs(void);

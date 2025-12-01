@@ -51,7 +51,7 @@ static float calculate_temperature(uint16_t temperature_raw, uint32_t vref_mv)
   return (float)temperature + s_temperature_offset_c;
 }
 
-bool SensorValues_Copy(SensorValuesTypeDef *dest)
+bool SensorTask_CopySensorValues(SensorValuesTypeDef *dest)
 {
   if (dest == NULL || s_sensor_values_mutex == NULL)
   {

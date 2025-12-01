@@ -858,7 +858,7 @@ void StartDefaultTask(void *argument)
     if ((now - last_sensor_tick) >= sensor_display_interval)
     {
       SensorValuesTypeDef values = {0.0f, 0.0f, 0.0f};
-      if (SensorValues_Copy(&values))
+      if (SensorTask_CopySensorValues(&values))
       {
         sensor_display_update(current_label, battery_label, temp_label, &values);
       }
