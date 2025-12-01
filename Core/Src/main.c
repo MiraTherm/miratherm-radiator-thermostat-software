@@ -719,7 +719,7 @@ void StartDefaultTask(void *argument)
 
   lv_obj_t *encoder_label = lv_label_create(scr);
   lv_obj_set_style_text_color(encoder_label, lv_color_white(), 0);
-  lv_label_set_text(encoder_label, "RE: 0");
+  lv_label_set_text(encoder_label, "RE: -");
   lv_obj_align(encoder_label, LV_ALIGN_TOP_LEFT, 4, 4);
 
   lv_obj_t *current_label = lv_label_create(scr);
