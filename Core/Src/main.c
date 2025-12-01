@@ -213,15 +213,11 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  while (1)
+  while (0)
   {
-
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-    lv_timer_handler();
-
-    HAL_Delay(2);
   }
   /* USER CODE END 3 */
 }
