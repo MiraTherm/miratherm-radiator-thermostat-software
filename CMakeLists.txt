@@ -84,6 +84,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user sources here
     Core/Src/input_task.c
     Core/Src/sensor_task.c
+    Core/Src/tests.c
 )
 
 # Add include paths

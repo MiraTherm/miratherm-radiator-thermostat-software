@@ -97,7 +97,14 @@ void Error_Handler(void);
 #define JTDO_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
+// Tests settings
+#define TESTS         1
+#define DRIVER_TEST   1
 
+
+#if TESTS
+#include "tests.h"
+#endif
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus
