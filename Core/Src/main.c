@@ -66,7 +66,7 @@ osThreadId_t lvglTaskHandle;
 const osThreadAttr_t lvglTask_attributes = {
   .name = "lvglTask",
   .priority = (osPriority_t) osPriorityHigh,
-  .stack_size = 512 * 4
+  .stack_size = LVGL_TASK_STACK_SIZE
 };
 
 /* Definitions for InputTask */
@@ -84,9 +84,6 @@ const osThreadAttr_t sensorTask_attributes = {
   .priority = (osPriority_t) osPriorityNormal1,
   .stack_size = 384 * 4
 };
-
-/* Flag to control LVGL rendering */
-volatile bool rendering = true;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -578,22 +575,7 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-void StartLVGLTask(void *argument)
-{
-  /* Infinite loop - dedicated LVGL rendering task */
-  for(;;)
-  {
-    /* Only render if the rendering flag is set */
-    if (rendering)
-    {
-      /* Handle LVGL timers and rendering */
-      lv_timer_handler();
-    }
 
-    /* Yield to other tasks - adjust delay based on display refresh rate */
-    osDelay(10);
-  }
-}
 /* USER CODE END 4 */
 
 /* USER CODE BEGIN Header_StartDefaultTask */

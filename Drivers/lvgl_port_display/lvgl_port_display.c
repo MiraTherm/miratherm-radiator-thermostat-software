@@ -5,6 +5,10 @@
 
 #include "lvgl_port_display.h"
 #include "ssd1306.h"
+
+#include "cmsis_os2.h"
+#include "FreeRTOS.h"
+
 #include <stdint.h>
 #include <string.h>
 
@@ -28,6 +32,26 @@
 #define BIT_MASK 0x07
 #define ROW_BITS 3  /* log2(BYTE_BITS) */
 #define COL_SHIFT 4 /* bits to shift for upper column address */
+
+/* Flag to control LVGL rendering */
+volatile bool rendering = true;
+
+void StartLVGLTask(void *argument)
+{
+  /* Infinite loop - dedicated LVGL rendering task */
+  for(;;)
+  {
+    /* Only render if the rendering flag is set */
+    if (rendering)
+    {
+      /* Handle LVGL timers and rendering */
+      lv_timer_handler();
+    }
+
+    /* Yield to other tasks - adjust delay based on display refresh rate */
+    osDelay(10);
+  }
+}
 
 static inline void flush_cb(lv_disp_drv_t *disp_drv, const lv_area_t *area,
 		lv_color_t *color_p) {
