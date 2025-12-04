@@ -591,6 +591,8 @@ void StartDefaultTask(void *argument)
 #if TESTS
 #if DRIVER_TEST
   Driver_Test();
+#elif ADAPTATION_TEST
+  Adaptation_Test();
 #endif
 #endif
   /* USER CODE END 5 */

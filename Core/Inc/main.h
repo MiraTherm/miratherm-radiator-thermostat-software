@@ -98,8 +98,9 @@ void Error_Handler(void);
 
 /* USER CODE BEGIN Private defines */
 // Tests settings
-#define TESTS         1
-#define DRIVER_TEST   1
+#define TESTS           1
+#define DRIVER_TEST     1
+#define ADAPTATION_TEST 0
 
 
 #if TESTS

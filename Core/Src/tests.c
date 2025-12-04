@@ -270,4 +270,10 @@ void Driver_Test(void)
     }
   }
 }
-#endif /* DRIVER_TEST */
+#elif ADAPTATION_TEST
+void Adaptation_Test(void)
+{
+    /* Adaptation test not implemented yet */
+}
+
+#endif

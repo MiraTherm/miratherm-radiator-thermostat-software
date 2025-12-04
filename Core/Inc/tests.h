@@ -7,6 +7,8 @@ extern "C" {
 
 #if DRIVER_TEST
 void Driver_Test(void);
+#elif ADAPTATION_TEST
+void Adaptation_Test(void);
 #endif
 
 #ifdef __cplusplus
