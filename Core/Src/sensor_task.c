@@ -5,9 +5,11 @@
 #include "task.h"
 #include "main.h"
 #include "stm32wbxx_hal.h"
+#include "stm32wbxx_hal_adc_ex.h"
 #include "stm32wbxx_ll_adc.h"
 
 #include <stddef.h>
+#include <string.h>
 
 #define SENSOR_TASK_ADC_CHANNEL_COUNT 4U
 #define SENSOR_TASK_VREF_CHANNEL_INDEX 0U
@@ -17,10 +19,10 @@
 #define SENSOR_TASK_MOTOR_SHUNT_OHMS 0.22f
 #define SENSOR_TASK_VBAT_DIVIDER 3.0f
 
-static volatile uint16_t s_adc_dma_buffer[SENSOR_TASK_ADC_CHANNEL_COUNT];
+static uint16_t s_adc_dma_buffer[SENSOR_TASK_ADC_CHANNEL_COUNT];
 static SensorValuesTypeDef s_sensor_values = {0.0f, 0.0f, 0.0f};
 static osMutexId_t s_sensor_values_mutex;
-static volatile float s_temperature_offset_c = 0.0f;
+static float s_temperature_offset_c = 0.0f;
 
 extern ADC_HandleTypeDef hadc1;
 
@@ -97,6 +99,12 @@ void StartSensorTask(void *argument)
     Error_Handler();
   }
 
+  if (HAL_ADCEx_Calibration_Start(&hadc1, ADC_SINGLE_ENDED) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  memset(s_adc_dma_buffer, 0, sizeof(s_adc_dma_buffer));
   if (HAL_ADC_Start_DMA(&hadc1, (uint32_t *)s_adc_dma_buffer, SENSOR_TASK_ADC_CHANNEL_COUNT) != HAL_OK)
   {
     Error_Handler();
