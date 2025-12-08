@@ -109,9 +109,7 @@ static void update_go_button_label(lv_obj_t *label, bool forward)
 
 void Driver_Test(void)
 {
-    /* Initialize display and LVGL after scheduler starts to avoid HardFault */
-  display_system_init();
-  Motor_Init();
+  /* Initialize display and LVGL after scheduler starts to avoid HardFault */
   SensorTask_SetTemperatureCalibrationOffset(5.0f);
 
   lv_obj_t *scr = lv_scr_act();

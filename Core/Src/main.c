@@ -23,6 +23,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "motor.h"
 #include "lvgl_port_display.h"
 #include "input_task.h"
 #include "sensor_task.h"
@@ -144,6 +145,8 @@ int main(void)
   MX_TIM2_Init();
   MX_ADC1_Init();
   /* USER CODE BEGIN 2 */
+  display_system_init();
+  Motor_Init();
   /* Initializations moved to according tasks to avoid issues before scheduler starts */
   /* USER CODE END 2 */
 
