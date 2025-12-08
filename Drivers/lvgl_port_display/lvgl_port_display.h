@@ -14,4 +14,7 @@
  */
 void display_system_init(void);
 
+void start_rendering(void);
+void stop_rendering(void);
+
 #endif /* LVGL_PORT_DISPLAY_H */

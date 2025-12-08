@@ -118,7 +118,7 @@ void Driver_Test(void)
   lv_obj_clean(scr);
   lv_obj_set_style_bg_color(scr, lv_color_black(), 0);
 
-  rendering = false;
+  stop_rendering();
   osDelay(20);
 
   lv_obj_t *encoder_label = lv_label_create(scr);
@@ -175,7 +175,7 @@ void Driver_Test(void)
   bool motor_direction_forward = true;
   update_go_button_label(buttons[1].label, motor_direction_forward);
 
-  rendering = true;
+  start_rendering();
 
   static const Input2VPEventTypeDef button_event_types[] = {
     EVT_MODE_BTN,

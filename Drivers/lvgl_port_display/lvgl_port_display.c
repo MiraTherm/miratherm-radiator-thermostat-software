@@ -8,6 +8,7 @@
 
 #include "cmsis_os2.h"
 #include "FreeRTOS.h"
+#include "task.h"
 
 #include <stdint.h>
 #include <string.h>
@@ -34,7 +35,19 @@
 #define COL_SHIFT 4 /* bits to shift for upper column address */
 
 /* Flag to control LVGL rendering */
-volatile bool rendering = true;
+static bool rendering = true;
+
+void start_rendering(void) {
+	taskENTER_CRITICAL();
+	rendering = true;
+	taskEXIT_CRITICAL();
+}
+
+void stop_rendering(void) {
+	taskENTER_CRITICAL();
+	rendering = false;
+	taskEXIT_CRITICAL();
+}
 
 void StartLVGLTask(void *argument)
 {
@@ -42,7 +55,11 @@ void StartLVGLTask(void *argument)
   for(;;)
   {
     /* Only render if the rendering flag is set */
-    if (rendering)
+	bool local_rendering;
+	taskENTER_CRITICAL();
+	local_rendering = rendering;
+	taskEXIT_CRITICAL();
+    if (local_rendering)
     {
       /* Handle LVGL timers and rendering */
       lv_timer_handler();
