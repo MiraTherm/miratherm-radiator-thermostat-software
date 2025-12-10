@@ -77,19 +77,30 @@ endif()
 # Link directories setup
 target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined library search paths
+    Core/Inc/Presenters
+    Core/Inc/Views
 )
 
 # Add sources to executable
+file(GLOB PRESENTER_SOURCES Core/Src/Presenters/*.c)
+file(GLOB VIEW_SOURCES Core/Src/Views/*.c)
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user sources here
     Core/Src/input_task.c
     Core/Src/sensor_task.c
     Core/Src/tests.c
+    Core/Src/view_presenter_task.c
+    Core/Src/view_presenter_router.c
+    ${PRESENTER_SOURCES}
+    ${VIEW_SOURCES}
 )
 
 # Add include paths
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
-    # Add user defined include paths
+    Core/Inc
+    Core/Inc/Presenters
+    Core/Inc/Views
+    Core/Inc/ViewModels
 )
 
 # Add project symbols (macros)

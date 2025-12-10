@@ -27,6 +27,7 @@
 #include "lvgl_port_display.h"
 #include "input_task.h"
 #include "sensor_task.h"
+#include "view_presenter_task.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -59,7 +60,7 @@ osThreadId_t defaultTaskHandle;
 const osThreadAttr_t defaultTask_attributes = {
   .name = "defaultTask",
   .priority = (osPriority_t) osPriorityNormal,
-  .stack_size = 256 * 4
+  .stack_size = 512 * 4
 };
 /* USER CODE BEGIN PV */
 /* Definitions for LVGLTask */
@@ -82,9 +83,19 @@ const osThreadAttr_t inputTask_attributes = {
 osThreadId_t sensorTaskHandle;
 const osThreadAttr_t sensorTask_attributes = {
   .name = "sensorTask",
-  .priority = (osPriority_t) osPriorityNormal1,
+  .priority = (osPriority_t) osPriorityNormal2,
   .stack_size = 384 * 4
 };
+
+#if !TESTS
+/*Definitions for ViewPresenterTask*/
+osThreadId_t viewPresenterTaskHandle;
+const osThreadAttr_t viewPresenterTask_attributes = {
+  .name = "viewPresenterTask",
+  .priority = (osPriority_t) osPriorityNormal1,
+  .stack_size = 512 * 4
+};
+#endif
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -178,6 +189,9 @@ int main(void)
   lvglTaskHandle = osThreadNew(StartLVGLTask, NULL, &lvglTask_attributes);
   sensorTaskHandle = osThreadNew(StartSensorTask, NULL, &sensorTask_attributes);
   inputTaskHandle = osThreadNew(StartInputTask, NULL, &inputTask_attributes);
+#if !TESTS
+  viewPresenterTaskHandle = osThreadNew(StartViewPresenterTask, NULL, &viewPresenterTask_attributes);
+#endif
   /* USER CODE END RTOS_THREADS */
 
   /* USER CODE BEGIN RTOS_EVENTS */
@@ -204,6 +218,9 @@ int main(void)
   {
     Error_Handler();
   }
+  BSP_COM_SelectLogPort(COM1);
+
+  printf("Starting main()\n");
 
   /* Start scheduler */
   osKernelStart();
@@ -596,7 +613,11 @@ void StartDefaultTask(void *argument)
   Driver_Test();
 #elif ADAPTATION_TEST
   Adaptation_Test();
+#elif VIEW_PRESENTER_TEST
+  StartViewPresenterTask(NULL);
 #endif
+#else
+  StartViewPresenterTask(NULL);
 #endif
   /* USER CODE END 5 */
 }

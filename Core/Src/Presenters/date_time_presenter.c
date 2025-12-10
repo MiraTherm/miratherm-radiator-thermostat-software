@@ -1,0 +1,250 @@
+#include "date_time_presenter.h"
+#include <stdlib.h>
+#include <stdint.h>
+#include <stdbool.h>
+#include "input_task.h"
+
+/**
+ * @brief Internal presenter structure
+ */
+typedef struct DateTimePresenter
+{
+    DateTime_ViewModelData_t data;
+    uint8_t current_page;        /* 0: date, 1: time, 2: summer time */
+    bool is_complete;
+    
+    /* Current roller selection indices for each page */
+    uint8_t date_day_index;      /* Index in day values (0-30 for 1-31) */
+    uint8_t date_month_index;    /* Index in month values (0-11 for 1-12) */
+    uint8_t date_year_index;     /* Index in year values */
+    
+    uint8_t time_hour_index;     /* Index in hour values (0-23) */
+    uint8_t time_minute_index;   /* Index in minute values (0-59) */
+} DateTimePresenter_t;
+
+/* Helper functions for roller value management */
+static const uint8_t DAYS_COUNT = 31;
+static const uint8_t MONTHS_COUNT = 12;
+static const uint8_t YEARS_COUNT = 30; /* e.g., 2020-2049 */
+static const uint8_t HOURS_COUNT = 24;
+static const uint8_t MINUTES_COUNT = 60;
+
+static const uint16_t BASE_YEAR = 2020;
+static const uint8_t DEFAULT_DAY = 1;
+static const uint8_t DEFAULT_MONTH = 1;
+static const uint16_t DEFAULT_YEAR = 2025;
+static const uint8_t DEFAULT_HOUR = 12;
+static const uint8_t DEFAULT_MINUTE = 0;
+
+/**
+ * @brief Initialize the date/time presenter
+ */
+DateTimePresenter_t* DateTimePresenter_Init(void)
+{
+    DateTimePresenter_t *presenter = (DateTimePresenter_t *)malloc(sizeof(DateTimePresenter_t));
+    if (!presenter)
+        return NULL;
+
+    /* Initialize with defaults */
+    presenter->data.day = DEFAULT_DAY;
+    presenter->data.month = DEFAULT_MONTH;
+    presenter->data.year = DEFAULT_YEAR;
+    presenter->data.hour = DEFAULT_HOUR;
+    presenter->data.minute = DEFAULT_MINUTE;
+    presenter->data.is_summer_time = 0;
+    
+    presenter->current_page = 0;
+    presenter->is_complete = 0;
+    
+    presenter->date_day_index = DEFAULT_DAY - 1;
+    presenter->date_month_index = DEFAULT_MONTH - 1;
+    presenter->date_year_index = DEFAULT_YEAR - BASE_YEAR;
+    
+    presenter->time_hour_index = DEFAULT_HOUR;
+    presenter->time_minute_index = DEFAULT_MINUTE;
+
+    return presenter;
+}
+
+/**
+ * @brief Deinitialize the date/time presenter
+ */
+void DateTimePresenter_Deinit(DateTimePresenter_t *presenter)
+{
+    if (presenter)
+        free(presenter);
+}
+
+/**
+ * @brief Handle input event for the current wizard page
+ */
+void DateTimePresenter_HandleEvent(DateTimePresenter_t *presenter, const Input2VPEvent_t *event)
+{
+    if (!presenter || !event)
+        return;
+
+    if (presenter->current_page == 0)
+    {
+        /* Date selection page - 3 rollers: day, month, year */
+        if (event->type == EVT_CTRL_WHEEL_DELTA)
+        {
+            /* Determine which field is active based on button state or cycle through them */
+            /* For simplicity, rotate through fields on wheel clicks */
+            static uint8_t active_field = 0; /* 0: day, 1: month, 2: year */
+            
+            int16_t delta = event->delta;
+            
+            if (active_field == 0)
+            {
+                /* Day adjustment */
+                int16_t new_day = (int16_t)presenter->date_day_index + delta;
+                if (new_day < 0)
+                    new_day = DAYS_COUNT - 1;
+                else if (new_day >= DAYS_COUNT)
+                    new_day = 0;
+                presenter->date_day_index = (uint8_t)new_day;
+                presenter->data.day = presenter->date_day_index + 1;
+            }
+            else if (active_field == 1)
+            {
+                /* Month adjustment */
+                int16_t new_month = (int16_t)presenter->date_month_index + delta;
+                if (new_month < 0)
+                    new_month = MONTHS_COUNT - 1;
+                else if (new_month >= MONTHS_COUNT)
+                    new_month = 0;
+                presenter->date_month_index = (uint8_t)new_month;
+                presenter->data.month = presenter->date_month_index + 1;
+            }
+            else if (active_field == 2)
+            {
+                /* Year adjustment */
+                int16_t new_year = (int16_t)presenter->date_year_index + delta;
+                if (new_year < 0)
+                    new_year = YEARS_COUNT - 1;
+                else if (new_year >= YEARS_COUNT)
+                    new_year = 0;
+                presenter->date_year_index = (uint8_t)new_year;
+                presenter->data.year = BASE_YEAR + presenter->date_year_index;
+            }
+        }
+        else if (event->type == EVT_MENU_BTN && event->button_action == BUTTON_ACTION_PRESSED)
+        {
+            /* Menu button cycles through fields */
+            static uint8_t active_field = 0;
+            active_field = (active_field + 1) % 3;
+        }
+        else if (event->type == EVT_CENTRAL_BTN && event->button_action == BUTTON_ACTION_PRESSED)
+        {
+            /* Central button confirms date and moves to next page */
+            presenter->current_page = 1;
+        }
+    }
+    else if (presenter->current_page == 1)
+    {
+        /* Time selection page - 2 rollers: hour, minute */
+        if (event->type == EVT_CTRL_WHEEL_DELTA)
+        {
+            static uint8_t active_field = 0; /* 0: hour, 1: minute */
+            
+            int16_t delta = event->delta;
+            
+            if (active_field == 0)
+            {
+                /* Hour adjustment */
+                int16_t new_hour = (int16_t)presenter->time_hour_index + delta;
+                if (new_hour < 0)
+                    new_hour = HOURS_COUNT - 1;
+                else if (new_hour >= HOURS_COUNT)
+                    new_hour = 0;
+                presenter->time_hour_index = (uint8_t)new_hour;
+                presenter->data.hour = presenter->time_hour_index;
+            }
+            else if (active_field == 1)
+            {
+                /* Minute adjustment */
+                int16_t new_minute = (int16_t)presenter->time_minute_index + delta;
+                if (new_minute < 0)
+                    new_minute = MINUTES_COUNT - 1;
+                else if (new_minute >= MINUTES_COUNT)
+                    new_minute = 0;
+                presenter->time_minute_index = (uint8_t)new_minute;
+                presenter->data.minute = presenter->time_minute_index;
+            }
+        }
+        else if (event->type == EVT_MENU_BTN && event->button_action == BUTTON_ACTION_PRESSED)
+        {
+            /* Menu button cycles through fields */
+            static uint8_t active_field = 0;
+            active_field = (active_field + 1) % 2;
+        }
+        else if (event->type == EVT_CENTRAL_BTN && event->button_action == BUTTON_ACTION_PRESSED)
+        {
+            /* Central button confirms time and moves to next page */
+            presenter->current_page = 2;
+        }
+        else if (event->type == EVT_MODE_BTN && event->button_action == BUTTON_ACTION_PRESSED)
+        {
+            /* Mode button goes back to previous page */
+            presenter->current_page = 0;
+        }
+    }
+    else if (presenter->current_page == 2)
+    {
+        /* Summer time toggle page */
+        if (event->type == EVT_CTRL_WHEEL_DELTA || event->type == EVT_CENTRAL_BTN)
+        {
+            /* Toggle summer time */
+            presenter->data.is_summer_time = presenter->data.is_summer_time ? 0 : 1;
+        }
+        else if (event->type == EVT_MENU_BTN && event->button_action == BUTTON_ACTION_PRESSED)
+        {
+            /* Confirm and complete - wizard done */
+            presenter->is_complete = 1;
+        }
+        else if (event->type == EVT_MODE_BTN && event->button_action == BUTTON_ACTION_PRESSED)
+        {
+            /* Mode button goes back to previous page */
+            presenter->current_page = 1;
+        }
+    }
+}
+
+/**
+ * @brief Get current wizard page (0, 1, or 2)
+ */
+uint8_t DateTimePresenter_GetCurrentPage(DateTimePresenter_t *presenter)
+{
+    if (!presenter)
+        return 0;
+    return presenter->current_page;
+}
+
+/**
+ * @brief Check if configuration is complete (all 3 pages done)
+ */
+bool DateTimePresenter_IsComplete(DateTimePresenter_t *presenter)
+{
+    if (!presenter)
+        return false;
+    return presenter->is_complete;
+}
+
+/**
+ * @brief Get the current data
+ */
+const DateTime_ViewModelData_t* DateTimePresenter_GetData(DateTimePresenter_t *presenter)
+{
+    if (!presenter)
+        return NULL;
+    return &presenter->data;
+}
+
+/**
+ * @brief Update view - called when state changes
+ */
+void DateTimePresenter_OnViewUpdateNeeded(DateTimePresenter_t *presenter)
+{
+    /* This would trigger a view render in a full implementation */
+    (void)presenter;
+}
