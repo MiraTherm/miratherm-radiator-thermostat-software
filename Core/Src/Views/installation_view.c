@@ -34,6 +34,8 @@ InstallationView_t* InstallationView_Init(InstallationPresenter_t *presenter)
     view->presenter = presenter;
     view->dot_count = 0;
 
+    stop_rendering();
+
     /* Create main screen */
     view->screen = lv_obj_create(NULL);
     if (!view->screen)
@@ -80,6 +82,8 @@ void InstallationView_Render(InstallationView_t *view)
     if (!view)
         return;
 
+    stop_rendering();
+
     /* Create animated dots with rotation pattern */
     view->dot_count = (view->dot_count + 1) % 4;
 
@@ -91,4 +95,6 @@ void InstallationView_Render(InstallationView_t *view)
     };
 
     lv_label_set_text(view->label_dots, dots[view->dot_count]);
+
+    start_rendering();
 }

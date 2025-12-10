@@ -15,9 +15,7 @@ void StartViewPresenterTask(void *argument)
     printf("StartViewPresenterTask running (heap=%lu)\n", (unsigned long)xPortGetFreeHeapSize());
 #endif
     
-    stop_rendering();
     Router_Init();
-    start_rendering();
 
     Input2VPEvent_t event;
 
@@ -27,19 +25,12 @@ void StartViewPresenterTask(void *argument)
     {
         // Wait for event with timeout to allow periodic updates
         if (InputTask_TryGetVPEvent(&event, pdMS_TO_TICKS(10U))) {
-            stop_rendering();
             Router_HandleEvent(&event);
-            start_rendering();
         }
 
-        uint32_t current_tick = osKernelGetTickCount();
-        // Handle tick wrap-around if necessary, though osKernelGetTickCount usually handles it well enough for simple deltas
-        // Assuming 1 tick = 1 ms for simplicity, or convert. 
-        // FreeRTOS config usually has 1000Hz tick.
-        
-        stop_rendering();
-        Router_OnTick(current_tick);
-        start_rendering();
+        // Always call OnTick without stopping rendering
+        // This ensures continuous animation and updates
+        Router_OnTick(osKernelGetTickCount());
 
         // Give other tasks (LVGL rendering, sensor, etc.) a chance to run.
         osDelay(50);

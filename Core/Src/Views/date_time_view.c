@@ -236,8 +236,6 @@ DateTimeView_t* DateTimeView_Init(DateTimePresenter_t *presenter)
     lv_obj_set_size(view->label_hint_center, 20, 13);
     lv_obj_set_style_text_color(view->label_hint_center, lv_color_white(), 0);
 
-    start_rendering();
-
     /* Initially show page 0 */
     DateTimeView_Render(view);
 

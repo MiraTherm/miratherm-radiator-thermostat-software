@@ -140,14 +140,13 @@ void Router_HandleEvent(const Input2VPEvent_t *event)
             if (DateTimePresenter_IsComplete(g_router_state.dt_presenter))
             {
                 Router_GoToRoute(ROUTE_INSTALLATION);
+                return;
             }
-            else
+            
+            /* Update view for current page */
+            if (g_router_state.dt_view)
             {
-                /* Update view for current page */
-                if (g_router_state.dt_view)
-                {
-                    DateTimeView_Render(g_router_state.dt_view);
-                }
+                DateTimeView_Render(g_router_state.dt_view);
             }
         }
     }
@@ -196,13 +195,52 @@ void Router_GoToRoute(RouteTypeDef route)
     if (g_router_state.current_route == route)
         return;
 
-    /* Cleanup current route views */
+    /* Initialize new route first (to ensure smooth transition and valid screen) */
+    if (route == ROUTE_DATE_TIME)
+    {
+        if (!g_router_state.dt_presenter)
+        {
+            g_router_state.dt_presenter = DateTimePresenter_Init();
+        }
+        if (g_router_state.dt_presenter && !g_router_state.dt_view)
+        {
+            g_router_state.dt_view = DateTimeView_Init(g_router_state.dt_presenter);
+            /* Render immediately after initializing to ensure screen is displayed */
+            if (g_router_state.dt_view)
+            {
+                DateTimeView_Render(g_router_state.dt_view);
+            }
+        }
+    }
+    else if (route == ROUTE_INSTALLATION)
+    {
+        if (!g_router_state.inst_presenter)
+        {
+            g_router_state.inst_presenter = InstallationPresenter_Init();
+        }
+        if (g_router_state.inst_presenter && !g_router_state.inst_view)
+        {
+            g_router_state.inst_view = InstallationView_Init(g_router_state.inst_presenter);
+            /* Render immediately after initializing to ensure screen is displayed */
+            if (g_router_state.inst_view)
+            {
+                InstallationView_Render(g_router_state.inst_view);
+            }
+        }
+    }
+
+    /* Cleanup old route */
     if (g_router_state.current_route == ROUTE_DATE_TIME)
     {
         if (g_router_state.dt_view)
         {
             DateTimeView_Deinit(g_router_state.dt_view);
             g_router_state.dt_view = NULL;
+        }
+        if (g_router_state.dt_presenter)
+        {
+            DateTimePresenter_Deinit(g_router_state.dt_presenter);
+            g_router_state.dt_presenter = NULL;
         }
     }
     else if (g_router_state.current_route == ROUTE_INSTALLATION)
@@ -216,21 +254,6 @@ void Router_GoToRoute(RouteTypeDef route)
 
     /* Switch to new route */
     g_router_state.current_route = route;
-
-    if (route == ROUTE_DATE_TIME)
-    {
-        if (g_router_state.dt_presenter && !g_router_state.dt_view)
-        {
-            g_router_state.dt_view = DateTimeView_Init(g_router_state.dt_presenter);
-        }
-    }
-    else if (route == ROUTE_INSTALLATION)
-    {
-        if (g_router_state.inst_presenter && !g_router_state.inst_view)
-        {
-            g_router_state.inst_view = InstallationView_Init(g_router_state.inst_presenter);
-        }
-    }
 }
 
 /**
