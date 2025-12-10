@@ -117,6 +117,23 @@ void StartLVGLTask(void *argument);
 /* Display functions moved to `Drivers/lvgl_port_display`.
  * Use `display_system_init()` to initialize the display and LVGL.
  */
+#if OS_TASKS_DEBUG
+static void DebugReportTaskCreation(const char *name, osThreadId_t handle)
+{
+  printf("%s creation %s handle=%p\n",
+         name,
+         handle ? "succeeded" : "FAILED",
+         (void *)handle);
+
+#if ERROR_HANDLER_ON_FAILURE
+  if (handle == NULL)
+  {
+    Error_Handler();
+  }
+#endif
+
+}
+#endif
 /* USER CODE END 0 */
 
 /**
@@ -183,14 +200,29 @@ int main(void)
   /* Create the thread(s) */
   /* creation of defaultTask */
   defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
+#if OS_TASKS_DEBUG
+  DebugReportTaskCreation("defaultTask", defaultTaskHandle);
+#endif
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* creation of lvglTask */
   lvglTaskHandle = osThreadNew(StartLVGLTask, NULL, &lvglTask_attributes);
+#if OS_TASKS_DEBUG
+  DebugReportTaskCreation("lvglTask", lvglTaskHandle);
+#endif
   sensorTaskHandle = osThreadNew(StartSensorTask, NULL, &sensorTask_attributes);
+#if OS_TASKS_DEBUG
+  DebugReportTaskCreation("sensorTask", sensorTaskHandle);
+#endif
   inputTaskHandle = osThreadNew(StartInputTask, NULL, &inputTask_attributes);
+#if OS_TASKS_DEBUG
+  DebugReportTaskCreation("inputTask", inputTaskHandle);
+#endif
 #if !TESTS
   viewPresenterTaskHandle = osThreadNew(StartViewPresenterTask, NULL, &viewPresenterTask_attributes);
+#if OS_TASKS_DEBUG
+  DebugReportTaskCreation("viewPresenterTask", viewPresenterTaskHandle);
+#endif
 #endif
   /* USER CODE END RTOS_THREADS */
 
@@ -607,7 +639,9 @@ static void MX_GPIO_Init(void)
 /* USER CODE END Header_StartDefaultTask */
 void StartDefaultTask(void *argument)
 {
-  printf("Starting default task...\n");
+#if OS_TASKS_DEBUG
+  printf("DefaultTask running (heap=%lu)\n", (unsigned long)xPortGetFreeHeapSize());
+#endif
   /* USER CODE BEGIN 5 */
 #if TESTS
 #if DRIVER_TEST

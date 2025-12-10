@@ -5,12 +5,14 @@
 
 #include "lvgl_port_display.h"
 #include "ssd1306.h"
+#include "task_debug.h"
 
 #include "cmsis_os2.h"
 #include "FreeRTOS.h"
 #include "task.h"
 
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 
 /* Display buffer configuration */
@@ -51,8 +53,13 @@ void stop_rendering(void) {
 
 void StartLVGLTask(void *argument)
 {
-  /* Infinite loop - dedicated LVGL rendering task */
-  for(;;)
+	/* Infinite loop - dedicated LVGL rendering task */
+	(void)argument;
+#if OS_TASKS_DEBUG
+	printf("LVGLTask running (heap=%lu)\n", (unsigned long)xPortGetFreeHeapSize());
+	osDelay(5);
+#endif
+	for(;;)
   {
     /* Only render if the rendering flag is set */
 	bool local_rendering;

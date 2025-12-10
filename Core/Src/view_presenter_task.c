@@ -2,6 +2,7 @@
 #include "input_task.h"
 #include "lvgl_port_display.h"
 #include "view_presenter_router.h"
+#include "main.h"
 #include "cmsis_os2.h"
 #include "FreeRTOS.h"
 #include "task.h"
@@ -10,7 +11,9 @@ void StartViewPresenterTask(void *argument)
 {
     (void)argument;
 
-    printf("Initializing view presenter task...\n");
+#if OS_TASKS_DEBUG
+    printf("StartViewPresenterTask running (heap=%lu)\n", (unsigned long)xPortGetFreeHeapSize());
+#endif
     
     stop_rendering();
     Router_Init();

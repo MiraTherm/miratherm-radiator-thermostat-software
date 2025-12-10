@@ -90,7 +90,9 @@ void StartSensorTask(void *argument)
 {
   (void)argument;
 
-  printf("Initializing sensor task...\n");
+#if OS_TASKS_DEBUG
+  printf("SensorTask running (heap=%lu)\n", (unsigned long)xPortGetFreeHeapSize());
+#endif
 
   const osMutexAttr_t mutex_attr = {
     .name = "SensorValues",
@@ -115,7 +117,7 @@ void StartSensorTask(void *argument)
   TickType_t last_wake_time = osKernelGetTickCount();
   uint32_t temp_measurement_counter = 0U;
 
-  printf("Sensor task init OK. Running loop...\n");
+  printf("SensorTask init OK. Running loop...\n");
 
   for (;;)
   {

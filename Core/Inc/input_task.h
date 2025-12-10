@@ -31,8 +31,6 @@ void StartInputTask(void *argument);
 bool InputTask_TryGetVPEvent(Input2VPEvent_t *event, uint32_t timeout_ticks);
 bool InputTask_IsButtonPressed(button_id_t id);
 
-#define DEBUG_EVENT_PRINTING 1
-
 #ifdef __cplusplus
 }
 #endif

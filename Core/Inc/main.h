@@ -30,6 +30,7 @@ extern "C" {
 #include "stm32wbxx_hal.h"
 
 #include "stm32wbxx_nucleo.h"
+#include "task_debug.h"
 #include <stdio.h>
 
 /* Private includes ----------------------------------------------------------*/

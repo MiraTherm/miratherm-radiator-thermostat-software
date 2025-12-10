@@ -1,4 +1,5 @@
 #include "cmsis_os2.h"
+#include "FreeRTOS.h"
 #include "input_task.h"
 #include "main.h"
 #include "rotary_encoder.h"
@@ -29,7 +30,7 @@ static void InputTask_PostEvent(const Input2VPEvent_t *event)
   {
     return;
   }
-#if DEBUG_EVENT_PRINTING
+#if INPUT_TASK_DEBUG_PRINTING
   printf("InputTask_PostEvent: type=%d action=%d delta=%d timestamp=%lu\n",
          (int)event->type,
          (int)event->button_action,
@@ -44,7 +45,9 @@ void StartInputTask(void *argument)
 {
   (void)argument;
 
-  printf("Initializing input task...\n");
+#if OS_TASKS_DEBUG
+  printf("InputTask running (heap=%lu)\n", (unsigned long)xPortGetFreeHeapSize());
+#endif
 
   Buttons_Init();
 
@@ -61,7 +64,7 @@ void StartInputTask(void *argument)
 
   button_event_t button_event;
 
-  printf("Input task init OK. Running loop...\n");
+  printf("InputTask init OK. Running loop...\n");
 
   for (;;)
   {
@@ -125,5 +128,8 @@ bool InputTask_IsButtonPressed(button_id_t id)
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
+#if INPUT_TASK_DEBUG_PRINTING
+  printf("HAL_GPIO_EXTI_Callback: Pin=%u\n", GPIO_Pin);
+#endif
   Buttons_HandleExtiCallback(GPIO_Pin);
 }
