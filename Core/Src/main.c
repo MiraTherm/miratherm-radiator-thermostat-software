@@ -200,29 +200,14 @@ int main(void)
   /* Create the thread(s) */
   /* creation of defaultTask */
   defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
-#if OS_TASKS_DEBUG
-  DebugReportTaskCreation("defaultTask", defaultTaskHandle);
-#endif
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* creation of lvglTask */
   lvglTaskHandle = osThreadNew(StartLVGLTask, NULL, &lvglTask_attributes);
-#if OS_TASKS_DEBUG
-  DebugReportTaskCreation("lvglTask", lvglTaskHandle);
-#endif
   sensorTaskHandle = osThreadNew(StartSensorTask, NULL, &sensorTask_attributes);
-#if OS_TASKS_DEBUG
-  DebugReportTaskCreation("sensorTask", sensorTaskHandle);
-#endif
   inputTaskHandle = osThreadNew(StartInputTask, NULL, &inputTask_attributes);
-#if OS_TASKS_DEBUG
-  DebugReportTaskCreation("inputTask", inputTaskHandle);
-#endif
 #if !TESTS
   viewPresenterTaskHandle = osThreadNew(StartViewPresenterTask, NULL, &viewPresenterTask_attributes);
-#if OS_TASKS_DEBUG
-  DebugReportTaskCreation("viewPresenterTask", viewPresenterTaskHandle);
-#endif
 #endif
   /* USER CODE END RTOS_THREADS */
 
@@ -252,7 +237,17 @@ int main(void)
   }
   BSP_COM_SelectLogPort(COM1);
 
-  printf("Init OK. Starting scheduler...\n");
+#if OS_TASKS_DEBUG
+  DebugReportTaskCreation("lvglTask", lvglTaskHandle);
+  DebugReportTaskCreation("lvglTask", lvglTaskHandle);
+  DebugReportTaskCreation("sensorTask", sensorTaskHandle);
+  DebugReportTaskCreation("inputTask", inputTaskHandle);
+#if !TESTS
+  DebugReportTaskCreation("viewPresenterTask", viewPresenterTaskHandle);
+#endif
+#endif
+
+  printf("Maininit completed. Starting scheduler...\n");
 
   /* Start scheduler */
   osKernelStart();
