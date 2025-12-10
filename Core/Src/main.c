@@ -93,7 +93,7 @@ osThreadId_t viewPresenterTaskHandle;
 const osThreadAttr_t viewPresenterTask_attributes = {
   .name = "viewPresenterTask",
   .priority = (osPriority_t) osPriorityNormal1,
-  .stack_size = 512 * 4
+  .stack_size = VP_TASK_STACK_SIZE
 };
 #endif
 /* USER CODE END PV */
