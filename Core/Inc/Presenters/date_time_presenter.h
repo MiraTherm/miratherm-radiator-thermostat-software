@@ -38,6 +38,16 @@ void DateTimePresenter_HandleEvent(DateTimePresenter_t *presenter, const Input2V
 uint8_t DateTimePresenter_GetCurrentPage(DateTimePresenter_t *presenter);
 
 /**
+ * @brief Get active field on date selection page (0: day, 1: month, 2: year)
+ */
+uint8_t DateTimePresenter_GetDateActiveField(DateTimePresenter_t *presenter);
+
+/**
+ * @brief Get active field on time selection page (0: hour, 1: minute)
+ */
+uint8_t DateTimePresenter_GetTimeActiveField(DateTimePresenter_t *presenter);
+
+/**
  * @brief Check if configuration is complete (all 3 pages done)
  */
 bool DateTimePresenter_IsComplete(DateTimePresenter_t *presenter);

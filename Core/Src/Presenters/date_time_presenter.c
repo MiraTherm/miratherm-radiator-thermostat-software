@@ -20,6 +20,10 @@ typedef struct DateTimePresenter
     
     uint8_t time_hour_index;     /* Index in hour values (0-23) */
     uint8_t time_minute_index;   /* Index in minute values (0-59) */
+    
+    /* Wheel focus tracking */
+    uint8_t date_active_field;   /* 0: day, 1: month, 2: year */
+    uint8_t time_active_field;   /* 0: hour, 1: minute */
 } DateTimePresenter_t;
 
 /* Helper functions for roller value management */
@@ -62,6 +66,8 @@ DateTimePresenter_t* DateTimePresenter_Init(void)
     
     presenter->time_hour_index = DEFAULT_HOUR;
     presenter->time_minute_index = DEFAULT_MINUTE;
+    presenter->date_active_field = 0;
+    presenter->time_active_field = 0;
 
     return presenter;
 }
@@ -88,13 +94,10 @@ void DateTimePresenter_HandleEvent(DateTimePresenter_t *presenter, const Input2V
         /* Date selection page - 3 rollers: day, month, year */
         if (event->type == EVT_CTRL_WHEEL_DELTA)
         {
-            /* Determine which field is active based on button state or cycle through them */
-            /* For simplicity, rotate through fields on wheel clicks */
-            static uint8_t active_field = 0; /* 0: day, 1: month, 2: year */
-            
+            /* Adjust the currently focused roller */
             int16_t delta = event->delta;
             
-            if (active_field == 0)
+            if (presenter->date_active_field == 0)
             {
                 /* Day adjustment */
                 int16_t new_day = (int16_t)presenter->date_day_index + delta;
@@ -105,7 +108,7 @@ void DateTimePresenter_HandleEvent(DateTimePresenter_t *presenter, const Input2V
                 presenter->date_day_index = (uint8_t)new_day;
                 presenter->data.day = presenter->date_day_index + 1;
             }
-            else if (active_field == 1)
+            else if (presenter->date_active_field == 1)
             {
                 /* Month adjustment */
                 int16_t new_month = (int16_t)presenter->date_month_index + delta;
@@ -116,7 +119,7 @@ void DateTimePresenter_HandleEvent(DateTimePresenter_t *presenter, const Input2V
                 presenter->date_month_index = (uint8_t)new_month;
                 presenter->data.month = presenter->date_month_index + 1;
             }
-            else if (active_field == 2)
+            else if (presenter->date_active_field == 2)
             {
                 /* Year adjustment */
                 int16_t new_year = (int16_t)presenter->date_year_index + delta;
@@ -128,16 +131,27 @@ void DateTimePresenter_HandleEvent(DateTimePresenter_t *presenter, const Input2V
                 presenter->data.year = BASE_YEAR + presenter->date_year_index;
             }
         }
-        else if (event->type == EVT_MENU_BTN && event->button_action == BUTTON_ACTION_PRESSED)
-        {
-            /* Menu button cycles through fields */
-            static uint8_t active_field = 0;
-            active_field = (active_field + 1) % 3;
-        }
         else if (event->type == EVT_CENTRAL_BTN && event->button_action == BUTTON_ACTION_PRESSED)
         {
-            /* Central button confirms date and moves to next page */
-            presenter->current_page = 1;
+            /* Central button moves to next field: Day -> Month -> Year -> next page */
+            if (presenter->date_active_field < 2)
+            {
+                /* Move to next field (Day -> Month or Month -> Year) */
+                presenter->date_active_field++;
+            }
+            else
+            {
+                /* Year confirmed, move to time page */
+                presenter->current_page = 1;
+            }
+        }
+        else if (event->type == EVT_MODE_BTN && event->button_action == BUTTON_ACTION_PRESSED)
+        {
+            /* Left button goes back to previous field */
+            if (presenter->date_active_field > 0)
+            {
+                presenter->date_active_field--;
+            }
         }
     }
     else if (presenter->current_page == 1)
@@ -145,11 +159,9 @@ void DateTimePresenter_HandleEvent(DateTimePresenter_t *presenter, const Input2V
         /* Time selection page - 2 rollers: hour, minute */
         if (event->type == EVT_CTRL_WHEEL_DELTA)
         {
-            static uint8_t active_field = 0; /* 0: hour, 1: minute */
-            
             int16_t delta = event->delta;
             
-            if (active_field == 0)
+            if (presenter->time_active_field == 0)
             {
                 /* Hour adjustment */
                 int16_t new_hour = (int16_t)presenter->time_hour_index + delta;
@@ -160,7 +172,7 @@ void DateTimePresenter_HandleEvent(DateTimePresenter_t *presenter, const Input2V
                 presenter->time_hour_index = (uint8_t)new_hour;
                 presenter->data.hour = presenter->time_hour_index;
             }
-            else if (active_field == 1)
+            else if (presenter->time_active_field == 1)
             {
                 /* Minute adjustment */
                 int16_t new_minute = (int16_t)presenter->time_minute_index + delta;
@@ -172,21 +184,33 @@ void DateTimePresenter_HandleEvent(DateTimePresenter_t *presenter, const Input2V
                 presenter->data.minute = presenter->time_minute_index;
             }
         }
-        else if (event->type == EVT_MENU_BTN && event->button_action == BUTTON_ACTION_PRESSED)
-        {
-            /* Menu button cycles through fields */
-            static uint8_t active_field = 0;
-            active_field = (active_field + 1) % 2;
-        }
         else if (event->type == EVT_CENTRAL_BTN && event->button_action == BUTTON_ACTION_PRESSED)
         {
-            /* Central button confirms time and moves to next page */
-            presenter->current_page = 2;
+            /* Central button moves to next field: Hour -> Minute -> next page */
+            if (presenter->time_active_field < 1)
+            {
+                /* Move to minute field */
+                presenter->time_active_field++;
+            }
+            else
+            {
+                /* Minute confirmed, move to summer time page */
+                presenter->current_page = 2;
+            }
         }
         else if (event->type == EVT_MODE_BTN && event->button_action == BUTTON_ACTION_PRESSED)
         {
-            /* Mode button goes back to previous page */
-            presenter->current_page = 0;
+            /* Left button goes back to previous page or field */
+            if (presenter->time_active_field > 0)
+            {
+                /* Go back to hour field */
+                presenter->time_active_field--;
+            }
+            else
+            {
+                /* Go back to date page */
+                presenter->current_page = 0;
+            }
         }
     }
     else if (presenter->current_page == 2)
@@ -218,6 +242,26 @@ uint8_t DateTimePresenter_GetCurrentPage(DateTimePresenter_t *presenter)
     if (!presenter)
         return 0;
     return presenter->current_page;
+}
+
+/**
+ * @brief Get active field on date selection page (0: day, 1: month, 2: year)
+ */
+uint8_t DateTimePresenter_GetDateActiveField(DateTimePresenter_t *presenter)
+{
+    if (!presenter)
+        return 0;
+    return presenter->date_active_field;
+}
+
+/**
+ * @brief Get active field on time selection page (0: hour, 1: minute)
+ */
+uint8_t DateTimePresenter_GetTimeActiveField(DateTimePresenter_t *presenter)
+{
+    if (!presenter)
+        return 0;
+    return presenter->time_active_field;
 }
 
 /**

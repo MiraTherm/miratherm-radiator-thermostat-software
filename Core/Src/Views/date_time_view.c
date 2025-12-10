@@ -133,6 +133,8 @@ DateTimeView_t* DateTimeView_Init(DateTimePresenter_t *presenter)
 
     view->presenter = presenter;
 
+    stop_rendering();
+
     /* Create main screen */
     view->screen = lv_obj_create(NULL);
     if (!view->screen)
@@ -165,27 +167,26 @@ DateTimeView_t* DateTimeView_Init(DateTimePresenter_t *presenter)
     lv_roller_set_selected(view->roller_day, 0, LV_ANIM_OFF);
     lv_obj_set_pos(view->roller_day, 2, 16);
     lv_obj_set_size(view->roller_day, 42, 31);
-    lv_obj_set_style_text_color(view->roller_day, lv_color_white(), 0);
+    lv_obj_set_style_bg_color(view->roller_day, lv_color_white(), 0);
     lv_obj_set_style_text_color(view->roller_day, lv_color_black(), LV_PART_SELECTED);
-    lv_obj_set_style_bg_color(view->roller_day, lv_color_white(), LV_PART_SELECTED);
 
     view->roller_month = lv_roller_create(view->screen);
     lv_roller_set_options(view->roller_month, view->month_options, LV_ROLLER_MODE_NORMAL);
     lv_roller_set_selected(view->roller_month, 0, LV_ANIM_OFF);
     lv_obj_set_pos(view->roller_month, 45, 16);
     lv_obj_set_size(view->roller_month, 42, 31);
-    lv_obj_set_style_text_color(view->roller_month, lv_color_white(), 0);
+    lv_obj_set_style_bg_color(view->roller_month, lv_color_white(), 0);
     lv_obj_set_style_text_color(view->roller_month, lv_color_black(), LV_PART_SELECTED);
-    lv_obj_set_style_bg_color(view->roller_month, lv_color_white(), LV_PART_SELECTED);
 
     view->roller_year = lv_roller_create(view->screen);
     lv_roller_set_options(view->roller_year, view->year_options, LV_ROLLER_MODE_NORMAL);
     lv_roller_set_selected(view->roller_year, 5, LV_ANIM_OFF);  /* Default to 2025 */
     lv_obj_set_pos(view->roller_year, 88, 16);
     lv_obj_set_size(view->roller_year, 42, 31);
-    lv_obj_set_style_text_color(view->roller_year, lv_color_white(), 0);
+    lv_obj_set_style_bg_color(view->roller_year, lv_color_white(), 0);
     lv_obj_set_style_text_color(view->roller_year, lv_color_black(), LV_PART_SELECTED);
-    lv_obj_set_style_bg_color(view->roller_year, lv_color_white(), LV_PART_SELECTED);
+    lv_obj_set_style_border_color(view->roller_year, lv_color_black(), 0);
+    lv_obj_set_style_border_width(view->roller_year, 2, 0);
 
     /* Page 1: Time selection - 2 compact rollers (reduced height) */
     view->roller_hour = lv_roller_create(view->screen);
@@ -193,18 +194,18 @@ DateTimeView_t* DateTimeView_Init(DateTimePresenter_t *presenter)
     lv_roller_set_selected(view->roller_hour, 12, LV_ANIM_OFF);
     lv_obj_set_pos(view->roller_hour, 22, 16);
     lv_obj_set_size(view->roller_hour, 40, 31);
-    lv_obj_set_style_text_color(view->roller_hour, lv_color_white(), 0);
+    lv_obj_set_style_bg_color(view->roller_hour, lv_color_white(), 0);
     lv_obj_set_style_text_color(view->roller_hour, lv_color_black(), LV_PART_SELECTED);
-    lv_obj_set_style_bg_color(view->roller_hour, lv_color_white(), LV_PART_SELECTED);
 
     view->roller_minute = lv_roller_create(view->screen);
     lv_roller_set_options(view->roller_minute, view->minute_options, LV_ROLLER_MODE_NORMAL);
     lv_roller_set_selected(view->roller_minute, 0, LV_ANIM_OFF);
     lv_obj_set_pos(view->roller_minute, 70, 16);
     lv_obj_set_size(view->roller_minute, 40, 31);
-    lv_obj_set_style_text_color(view->roller_minute, lv_color_white(), 0);
+    lv_obj_set_style_bg_color(view->roller_minute, lv_color_white(), 0);
     lv_obj_set_style_text_color(view->roller_minute, lv_color_black(), LV_PART_SELECTED);
-    lv_obj_set_style_bg_color(view->roller_minute, lv_color_white(), LV_PART_SELECTED);
+    lv_obj_set_style_border_color(view->roller_minute, lv_color_black(), 0);
+    lv_obj_set_style_border_width(view->roller_minute, 2, 0);
 
     /* Page 2: Summer time toggle - minimal display */
     view->label_dst = lv_label_create(view->screen);
@@ -232,11 +233,7 @@ DateTimeView_t* DateTimeView_Init(DateTimePresenter_t *presenter)
     lv_obj_set_size(view->label_hint_center, 20, 13);
     lv_obj_set_style_text_color(view->label_hint_center, lv_color_white(), 0);
 
-    view->label_hint_right = lv_label_create(view->screen);
-    lv_label_set_text(view->label_hint_right, ">");
-    lv_obj_set_pos(view->label_hint_right, 114, 51);
-    lv_obj_set_size(view->label_hint_right, 20, 13);
-    lv_obj_set_style_text_color(view->label_hint_right, lv_color_white(), 0);
+    start_rendering();
 
     /* Initially show page 0 */
     DateTimeView_Render(view);
@@ -274,22 +271,56 @@ void DateTimeView_Render(DateTimeView_t *view)
     if (!data)
         return;
 
-    /* Hide all pages first */
+    stop_rendering();
+
+    /* Hide all pages and remove borders first */
     lv_obj_add_flag(view->roller_day, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_set_style_border_width(view->roller_day, 0, 0);
+    
     lv_obj_add_flag(view->roller_month, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_set_style_border_width(view->roller_month, 0, 0);
+    
     lv_obj_add_flag(view->roller_year, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_set_style_border_width(view->roller_year, 0, 0);
+    
     lv_obj_add_flag(view->roller_hour, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_set_style_border_width(view->roller_hour, 0, 0);
+    
     lv_obj_add_flag(view->roller_minute, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_set_style_border_width(view->roller_minute, 0, 0);
+    
     lv_obj_add_flag(view->label_dst, LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(view->label_dst_value, LV_OBJ_FLAG_HIDDEN);
 
     if (page == 0)
     {
-        /* Date selection page - show 3 rollers */
+        /* Date selection page */
         lv_label_set_text(view->label_step_caption, "Set date:");
+        
         lv_obj_clear_flag(view->roller_day, LV_OBJ_FLAG_HIDDEN);
         lv_obj_clear_flag(view->roller_month, LV_OBJ_FLAG_HIDDEN);
         lv_obj_clear_flag(view->roller_year, LV_OBJ_FLAG_HIDDEN);
+        
+        /* Add border to the active field */
+        uint8_t active_field = DateTimePresenter_GetDateActiveField(view->presenter);
+        if (active_field == 0)
+        {
+            /* Day is active */
+            lv_obj_set_style_border_color(view->roller_day, lv_color_black(), 0);
+            lv_obj_set_style_border_width(view->roller_day, 2, 0);
+        }
+        else if (active_field == 1)
+        {
+            /* Month is active */
+            lv_obj_set_style_border_color(view->roller_month, lv_color_black(), 0);
+            lv_obj_set_style_border_width(view->roller_month, 2, 0);
+        }
+        else if (active_field == 2)
+        {
+            /* Year is active */
+            lv_obj_set_style_border_color(view->roller_year, lv_color_black(), 0);
+            lv_obj_set_style_border_width(view->roller_year, 2, 0);
+        }
 
         lv_roller_set_selected(view->roller_day, data->day - 1, LV_ANIM_OFF);
         lv_roller_set_selected(view->roller_month, data->month - 1, LV_ANIM_OFF);
@@ -297,10 +328,26 @@ void DateTimeView_Render(DateTimeView_t *view)
     }
     else if (page == 1)
     {
-        /* Time selection page - show 2 rollers */
+        /* Time selection page */
         lv_label_set_text(view->label_step_caption, "Set time:");
+        
         lv_obj_clear_flag(view->roller_hour, LV_OBJ_FLAG_HIDDEN);
         lv_obj_clear_flag(view->roller_minute, LV_OBJ_FLAG_HIDDEN);
+        
+        /* Add border to the active field */
+        uint8_t active_field = DateTimePresenter_GetTimeActiveField(view->presenter);
+        if (active_field == 0)
+        {
+            /* Hour is active */
+            lv_obj_set_style_border_color(view->roller_hour, lv_color_black(), 0);
+            lv_obj_set_style_border_width(view->roller_hour, 2, 0);
+        }
+        else if (active_field == 1)
+        {
+            /* Minute is active */
+            lv_obj_set_style_border_color(view->roller_minute, lv_color_black(), 0);
+            lv_obj_set_style_border_width(view->roller_minute, 2, 0);
+        }
 
         lv_roller_set_selected(view->roller_hour, data->hour, LV_ANIM_OFF);
         lv_roller_set_selected(view->roller_minute, data->minute, LV_ANIM_OFF);
@@ -317,7 +364,10 @@ void DateTimeView_Render(DateTimeView_t *view)
         else
             lv_label_set_text(view->label_dst_value, "OFF");
     }
+
+    start_rendering();
 }
+
 
 /**
  * @brief Handle page transitions (next/previous)
