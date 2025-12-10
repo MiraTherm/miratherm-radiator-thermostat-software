@@ -215,20 +215,27 @@ void DateTimePresenter_HandleEvent(DateTimePresenter_t *presenter, const Input2V
     }
     else if (presenter->current_page == 2)
     {
-        /* Summer time toggle page */
-        if (event->type == EVT_CTRL_WHEEL_DELTA || event->type == EVT_CENTRAL_BTN)
+        /* Summer time toggle page - encoder and central button only */
+        if (event->type == EVT_CTRL_WHEEL_DELTA)
         {
-            /* Toggle summer time */
-            presenter->data.is_summer_time = presenter->data.is_summer_time ? 0 : 1;
+            /* Encoder left (negative delta) -> OFF, right (positive delta) -> ON */
+            if (event->delta < 0)
+            {
+                presenter->data.is_summer_time = 0;
+            }
+            else if (event->delta > 0)
+            {
+                presenter->data.is_summer_time = 1;
+            }
         }
-        else if (event->type == EVT_MENU_BTN && event->button_action == BUTTON_ACTION_PRESSED)
+        else if ((event->type == EVT_CENTRAL_BTN || event->type == EVT_CENTRAL_DOUBLE_CLICK) && event->button_action == BUTTON_ACTION_PRESSED)
         {
-            /* Confirm and complete - wizard done */
+            /* Central button confirms and completes the wizard */
             presenter->is_complete = 1;
         }
         else if (event->type == EVT_MODE_BTN && event->button_action == BUTTON_ACTION_PRESSED)
         {
-            /* Mode button goes back to previous page */
+            /* Left button goes back to previous page */
             presenter->current_page = 1;
         }
     }

@@ -30,7 +30,7 @@ typedef struct DateTimeView
     
     /* Page 2: Summer time toggle */
     lv_obj_t *label_dst;
-    lv_obj_t *label_dst_value;
+    lv_obj_t *checkbox_dst;
     
     /* Button hints (lower line) */
     lv_obj_t *label_hint_left;
@@ -207,18 +207,21 @@ DateTimeView_t* DateTimeView_Init(DateTimePresenter_t *presenter)
     lv_obj_set_style_border_color(view->roller_minute, lv_color_black(), 0);
     lv_obj_set_style_border_width(view->roller_minute, 2, 0);
 
-    /* Page 2: Summer time toggle - minimal display */
+    /* Page 2: Summer time toggle - checkbox control */
     view->label_dst = lv_label_create(view->screen);
-    lv_label_set_text(view->label_dst, "DST");
-    lv_obj_set_pos(view->label_dst, 10, 20);
-    lv_obj_set_size(view->label_dst, 50, 20);
+    lv_label_set_text(view->label_dst, "On/Off:");
+    lv_obj_set_pos(view->label_dst, 20, 20);
+    lv_obj_set_size(view->label_dst, 70, 20);
     lv_obj_set_style_text_color(view->label_dst, lv_color_white(), 0);
 
-    view->label_dst_value = lv_label_create(view->screen);
-    lv_label_set_text(view->label_dst_value, "OFF");
-    lv_obj_set_pos(view->label_dst_value, 70, 20);
-    lv_obj_set_size(view->label_dst_value, 50, 20);
-    lv_obj_set_style_text_color(view->label_dst_value, lv_color_white(), 0);
+    view->checkbox_dst = lv_checkbox_create(view->screen);
+    lv_checkbox_set_text(view->checkbox_dst, "");
+    lv_obj_set_pos(view->checkbox_dst, 80, 17);
+    lv_obj_set_size(view->checkbox_dst, 30, 20);
+    lv_obj_set_style_bg_color(view->checkbox_dst, lv_color_white(), LV_PART_INDICATOR);
+    lv_obj_set_style_bg_color(view->checkbox_dst, lv_color_white(), LV_PART_INDICATOR | LV_STATE_CHECKED);
+    lv_obj_set_style_border_color(view->checkbox_dst, lv_color_white(), LV_PART_INDICATOR);
+    lv_obj_set_style_text_color(view->checkbox_dst, lv_color_black(), LV_PART_INDICATOR | LV_STATE_CHECKED);
 
     /* Button hints (line 51-64 at bottom) */
     view->label_hint_left = lv_label_create(view->screen);
@@ -273,24 +276,32 @@ void DateTimeView_Render(DateTimeView_t *view)
 
     stop_rendering();
 
-    /* Hide all pages and remove borders first */
-    lv_obj_add_flag(view->roller_day, LV_OBJ_FLAG_HIDDEN);
+    /* Manage visibility based on page */
+    if (page != 0)
+    {
+        lv_obj_add_flag(view->roller_day, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(view->roller_month, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(view->roller_year, LV_OBJ_FLAG_HIDDEN);
+    }
+    
+    if (page != 1)
+    {
+        lv_obj_add_flag(view->roller_hour, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(view->roller_minute, LV_OBJ_FLAG_HIDDEN);
+    }
+    
+    if (page != 2)
+    {
+        lv_obj_add_flag(view->label_dst, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(view->checkbox_dst, LV_OBJ_FLAG_HIDDEN);
+    }
+
+    /* Reset borders (will be re-applied for active page) */
     lv_obj_set_style_border_width(view->roller_day, 0, 0);
-    
-    lv_obj_add_flag(view->roller_month, LV_OBJ_FLAG_HIDDEN);
     lv_obj_set_style_border_width(view->roller_month, 0, 0);
-    
-    lv_obj_add_flag(view->roller_year, LV_OBJ_FLAG_HIDDEN);
     lv_obj_set_style_border_width(view->roller_year, 0, 0);
-    
-    lv_obj_add_flag(view->roller_hour, LV_OBJ_FLAG_HIDDEN);
     lv_obj_set_style_border_width(view->roller_hour, 0, 0);
-    
-    lv_obj_add_flag(view->roller_minute, LV_OBJ_FLAG_HIDDEN);
     lv_obj_set_style_border_width(view->roller_minute, 0, 0);
-    
-    lv_obj_add_flag(view->label_dst, LV_OBJ_FLAG_HIDDEN);
-    lv_obj_add_flag(view->label_dst_value, LV_OBJ_FLAG_HIDDEN);
 
     if (page == 0)
     {
@@ -354,15 +365,20 @@ void DateTimeView_Render(DateTimeView_t *view)
     }
     else if (page == 2)
     {
-        /* Summer time page - show toggle state */
-        lv_label_set_text(view->label_step_caption, "Summer time:");
+        /* Summer time page - checkbox control */
+        lv_label_set_text(view->label_step_caption, "Summer time");
         lv_obj_clear_flag(view->label_dst, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_clear_flag(view->label_dst_value, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_clear_flag(view->checkbox_dst, LV_OBJ_FLAG_HIDDEN);
 
+        /* Update checkbox state */
         if (data->is_summer_time)
-            lv_label_set_text(view->label_dst_value, "ON");
+        {
+            lv_obj_add_state(view->checkbox_dst, LV_STATE_CHECKED);
+        }
         else
-            lv_label_set_text(view->label_dst_value, "OFF");
+        {
+            lv_obj_clear_state(view->checkbox_dst, LV_STATE_CHECKED);
+        }
     }
 
     start_rendering();
