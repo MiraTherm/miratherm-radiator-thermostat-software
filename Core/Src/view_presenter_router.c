@@ -3,6 +3,9 @@
 #include "date_time_view.h"
 #include "intallation_presenter.h"
 #include "installation_view.h"
+#if DEBUG_LEDS
+#include "stm32wbxx_nucleo.h"
+#endif
 #include <stdint.h>
 #include <stddef.h>
 
@@ -29,6 +32,41 @@ static Router_State_t g_router_state = {
     .inst_presenter = NULL,
     .inst_view = NULL,
 };
+
+#if DEBUG_LEDS
+static void Router_UpdateDebugLeds(const Input2VPEvent_t *event)
+{
+    if (!event)
+        return;
+
+    uint16_t target_led = 0;
+    bool should_update = true;
+    switch (event->type)
+    {
+        case EVT_MODE_BTN:
+            target_led = LED3;
+            break;
+        case EVT_CENTRAL_BTN:
+        case EVT_CENTRAL_DOUBLE_CLICK:
+            target_led = LED2;
+            break;
+        case EVT_MENU_BTN:
+            target_led = LED1;
+            break;
+        default:
+            should_update = false;
+            break;
+    }
+
+    if (!should_update)
+        return;
+
+    if (event->button_action == BUTTON_ACTION_PRESSED)
+        BSP_LED_On(target_led);
+    else if (event->button_action == BUTTON_ACTION_RELEASED)
+        BSP_LED_Off(target_led);
+}
+#endif
 
 /**
  * @brief Initialize the router and activate initial route (DATE_TIME)
@@ -86,6 +124,10 @@ void Router_HandleEvent(const Input2VPEvent_t *event)
 {
     if (!event)
         return;
+
+#if DEBUG_LEDS
+    Router_UpdateDebugLeds(event);
+#endif
 
     if (g_router_state.current_route == ROUTE_DATE_TIME)
     {

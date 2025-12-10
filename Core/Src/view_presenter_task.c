@@ -9,12 +9,16 @@
 void StartViewPresenterTask(void *argument)
 {
     (void)argument;
+
+    printf("Initializing view presenter task...\n");
     
     stop_rendering();
     Router_Init();
     start_rendering();
 
     Input2VPEvent_t event;
+
+    printf("ViewPresenter task init OK. Running loop...\n");
 
     for(;;)
     {

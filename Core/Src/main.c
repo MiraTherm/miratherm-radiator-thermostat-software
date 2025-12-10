@@ -220,7 +220,7 @@ int main(void)
   }
   BSP_COM_SelectLogPort(COM1);
 
-  printf("Starting main()\n");
+  printf("Init OK. Starting scheduler...\n");
 
   /* Start scheduler */
   osKernelStart();
@@ -607,6 +607,7 @@ static void MX_GPIO_Init(void)
 /* USER CODE END Header_StartDefaultTask */
 void StartDefaultTask(void *argument)
 {
+  printf("Starting default task...\n");
   /* USER CODE BEGIN 5 */
 #if TESTS
 #if DRIVER_TEST

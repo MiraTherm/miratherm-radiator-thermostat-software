@@ -29,6 +29,13 @@ static void InputTask_PostEvent(const Input2VPEvent_t *event)
   {
     return;
   }
+#if DEBUG_EVENT_PRINTING
+  printf("InputTask_PostEvent: type=%d action=%d delta=%d timestamp=%lu\n",
+         (int)event->type,
+         (int)event->button_action,
+         (int)event->delta,
+         (unsigned long)event->timestamp);
+#endif
 
   (void)osMessageQueuePut(s_event_queue, event, 0U, 0U);
 }
@@ -36,6 +43,8 @@ static void InputTask_PostEvent(const Input2VPEvent_t *event)
 void StartInputTask(void *argument)
 {
   (void)argument;
+
+  printf("Initializing input task...\n");
 
   Buttons_Init();
 
@@ -51,6 +60,8 @@ void StartInputTask(void *argument)
   }
 
   button_event_t button_event;
+
+  printf("Input task init OK. Running loop...\n");
 
   for (;;)
   {

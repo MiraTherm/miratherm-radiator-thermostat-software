@@ -109,6 +109,7 @@ static void update_go_button_label(lv_obj_t *label, bool forward)
 
 void Driver_Test(void)
 {
+  printf("Starting driver test...\n");
   /* Initialize display and LVGL after scheduler starts to avoid HardFault */
   SensorTask_SetTemperatureCalibrationOffset(5.0f);
 
@@ -271,7 +272,8 @@ void Driver_Test(void)
 #elif ADAPTATION_TEST
 void Adaptation_Test(void)
 {
-    /* Adaptation test not implemented yet */
+  printf("Starting adaptation test...\n");
+  /* Adaptation test not implemented yet */
 }
 
 #endif

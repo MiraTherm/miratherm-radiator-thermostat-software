@@ -47,6 +47,8 @@ void Router_GoToRoute(RouteTypeDef route);
  */
 RouteTypeDef Router_GetCurrentRoute(void);
 
+#define DEBUG_LEDS 1
+
 #ifdef __cplusplus
 }
 #endif
