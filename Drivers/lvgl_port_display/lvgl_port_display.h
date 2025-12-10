@@ -8,6 +8,8 @@
 
 #define LVGL_TASK_STACK_SIZE (512U * 4U)
 
+void StartLVGLTask(void *argument);
+
 /* Initialize the display subsystem: initialize SSD1306, LVGL and register the
  * LVGL display driver. This replaces separate calls to `ssd1306_Init()`,
  * `lv_init()` and the port-specific `lv_port_disp_init()`.
