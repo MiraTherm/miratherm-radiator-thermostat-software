@@ -634,10 +634,11 @@ static void MX_GPIO_Init(void)
 /* USER CODE END Header_StartDefaultTask */
 void StartDefaultTask(void *argument)
 {
+  /* USER CODE BEGIN 5 */
 #if OS_TASKS_DEBUG
   printf("DefaultTask running (heap=%lu)\n", (unsigned long)xPortGetFreeHeapSize());
 #endif
-  /* USER CODE BEGIN 5 */
+
 #if TESTS
 #if DRIVER_TEST
   Driver_Test();
