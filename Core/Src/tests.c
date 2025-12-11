@@ -8,8 +8,6 @@
 #include "motor.h"
 #include "sensor_task.h"
 
-extern volatile bool rendering;
-
 #if DRIVER_TEST
 static int32_t scale_value_for_label(float value, uint8_t decimals)
 {
@@ -113,12 +111,15 @@ void Driver_Test(void)
   /* Initialize display and LVGL after scheduler starts to avoid HardFault */
   SensorTask_SetTemperatureCalibrationOffset(5.0f);
 
+  if (!lv_port_lock())
+  {
+    printf("Failed to acquire LVGL lock\n");
+    return;
+  }
+
   lv_obj_t *scr = lv_scr_act();
   lv_obj_clean(scr);
   lv_obj_set_style_bg_color(scr, lv_color_black(), 0);
-
-  stop_rendering();
-  osDelay(20);
 
   lv_obj_t *encoder_label = lv_label_create(scr);
   lv_obj_set_style_text_color(encoder_label, lv_color_white(), 0);
@@ -174,7 +175,7 @@ void Driver_Test(void)
   bool motor_direction_forward = true;
   update_go_button_label(buttons[1].label, motor_direction_forward);
 
-  start_rendering();
+  lv_port_unlock();
 
   static const Input2VPEventTypeDef button_event_types[] = {
     EVT_MODE_BTN,
@@ -195,65 +196,69 @@ void Driver_Test(void)
 
     if (event_ready)
     {
-      if (event.type == EVT_CTRL_WHEEL_DELTA)
+      if (lv_port_lock())
       {
-        encoder_value += event.delta;
-        lv_label_set_text_fmt(encoder_label, "RE:%d", (int)encoder_value);
-      }
-      else
-      {
-        switch (event.type)
+        if (event.type == EVT_CTRL_WHEEL_DELTA)
         {
-          case EVT_MODE_BTN:
-            if (event.button_action == BUTTON_ACTION_PRESSED)
-            {
-              motor_direction_forward = !motor_direction_forward;
-              if (motor_running)
+          encoder_value += event.delta;
+          lv_label_set_text_fmt(encoder_label, "RE:%d", (int)encoder_value);
+        }
+        else
+        {
+          switch (event.type)
+          {
+            case EVT_MODE_BTN:
+              if (event.button_action == BUTTON_ACTION_PRESSED)
               {
+                motor_direction_forward = !motor_direction_forward;
+                if (motor_running)
+                {
+                  Motor_SetState(motor_direction_forward ? MOTOR_FORWARD : MOTOR_BACKWARD);
+                }
+                update_go_button_label(buttons[1].label, motor_direction_forward);
+              }
+              break;
+            case EVT_CENTRAL_BTN:
+              if (event.button_action == BUTTON_ACTION_PRESSED)
+              {
+                motor_running = true;
                 Motor_SetState(motor_direction_forward ? MOTOR_FORWARD : MOTOR_BACKWARD);
               }
-              update_go_button_label(buttons[1].label, motor_direction_forward);
-            }
-            break;
-          case EVT_CENTRAL_BTN:
-            if (event.button_action == BUTTON_ACTION_PRESSED)
-            {
-              motor_running = true;
-              Motor_SetState(motor_direction_forward ? MOTOR_FORWARD : MOTOR_BACKWARD);
-            }
-            else
-            {
-              motor_running = false;
-              Motor_SetState(MOTOR_COAST);
-            }
-            break;
-          default:
-            break;
-        }
+              else
+              {
+                motor_running = false;
+                Motor_SetState(MOTOR_COAST);
+              }
+              break;
+            default:
+              break;
+          }
 
-        size_t idx = button_event_count;
-        for (size_t i = 0; i < button_event_count; ++i)
-        {
-          if (event.type == button_event_types[i])
+          size_t idx = button_event_count;
+          for (size_t i = 0; i < button_event_count; ++i)
           {
-            idx = i;
-            break;
+            if (event.type == button_event_types[i])
+            {
+              idx = i;
+              break;
+            }
+          }
+
+          if (idx < button_event_count)
+          {
+            const bool pressed = (event.button_action == BUTTON_ACTION_PRESSED);
+            if (pressed != buttons[idx].active)
+            {
+              buttons[idx].active = pressed;
+              const lv_color_t bg = pressed ? lv_color_white() : lv_color_black();
+              const lv_color_t txt = pressed ? lv_color_black() : lv_color_white();
+
+              lv_obj_set_style_bg_color(buttons[idx].btn, bg, 0);
+              lv_obj_set_style_text_color(buttons[idx].label, txt, 0);
+            }
           }
         }
-
-        if (idx < button_event_count)
-        {
-          const bool pressed = (event.button_action == BUTTON_ACTION_PRESSED);
-          if (pressed != buttons[idx].active)
-          {
-            buttons[idx].active = pressed;
-            const lv_color_t bg = pressed ? lv_color_white() : lv_color_black();
-            const lv_color_t txt = pressed ? lv_color_black() : lv_color_white();
-
-            lv_obj_set_style_bg_color(buttons[idx].btn, bg, 0);
-            lv_obj_set_style_text_color(buttons[idx].label, txt, 0);
-          }
-        }
+        lv_port_unlock();
       }
     }
 
@@ -263,7 +268,11 @@ void Driver_Test(void)
       SensorValuesTypeDef values = {0.0f, 0.0f, 0.0f};
       if (SensorTask_CopySensorValues(&values))
       {
-        sensor_display_update(current_label, battery_label, temp_label, &values);
+        if (lv_port_lock())
+        {
+          sensor_display_update(current_label, battery_label, temp_label, &values);
+          lv_port_unlock();
+        }
       }
       last_sensor_tick = now;
     }

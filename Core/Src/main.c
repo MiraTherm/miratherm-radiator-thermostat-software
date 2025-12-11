@@ -60,14 +60,14 @@ osThreadId_t defaultTaskHandle;
 const osThreadAttr_t defaultTask_attributes = {
   .name = "defaultTask",
   .priority = (osPriority_t) osPriorityNormal,
-  .stack_size = 512 * 4
+  .stack_size = 1024 * 4
 };
 /* USER CODE BEGIN PV */
 /* Definitions for LVGLTask */
 osThreadId_t lvglTaskHandle;
 const osThreadAttr_t lvglTask_attributes = {
   .name = "lvglTask",
-  .priority = (osPriority_t) osPriorityHigh,
+  .priority = (osPriority_t) osPriorityHigh1,
   .stack_size = LVGL_TASK_STACK_SIZE
 };
 
@@ -75,16 +75,16 @@ const osThreadAttr_t lvglTask_attributes = {
 osThreadId_t inputTaskHandle;
 const osThreadAttr_t inputTask_attributes = {
   .name = "inputTask",
-  .priority = (osPriority_t) osPriorityLow,
-  .stack_size = 256 * 4
+  .priority = (osPriority_t) osPriorityHigh2,
+  .stack_size = 512 * 4
 };
 
 /* Definitions for SensorTask */
 osThreadId_t sensorTaskHandle;
 const osThreadAttr_t sensorTask_attributes = {
   .name = "sensorTask",
-  .priority = (osPriority_t) osPriorityNormal2,
-  .stack_size = 384 * 4
+  .priority = (osPriority_t) osPriorityHigh3,
+  .stack_size = 512 * 4
 };
 
 #if !TESTS
@@ -622,7 +622,33 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-
+// Override the HAL_Delay to use it in ssd1306_Init() before the scheduler starts:
+// The issue is that HAL_Delay relies on the HAL tick interrupt (TIM17) to increment uwTick. 
+// During initialization, before the scheduler starts or if interrupts  are not yet fully 
+// active/prioritized correctly, uwTick may not increment, causing HAL_Delay to hang in 
+// an infinite loop.
+/**
+  * @brief  This function provides minimum delay (in milliseconds) based
+  *         on variable incremented.
+  * @param  Delay  specifies the delay time length, in milliseconds.
+  * @retval None
+  */
+void HAL_Delay(uint32_t Delay)
+{
+  if (osKernelGetState() == osKernelRunning)
+  {
+     osDelay(Delay);
+  }
+  else
+  {
+    /* Busy wait */
+    volatile uint32_t count = (SystemCoreClock / 4000) * Delay;
+    while (count--)
+    {
+      __NOP();
+    }
+  }
+}
 /* USER CODE END 4 */
 
 /* USER CODE BEGIN Header_StartDefaultTask */
@@ -648,7 +674,9 @@ void StartDefaultTask(void *argument)
   StartViewPresenterTask(NULL);
 #endif
 #else
-  StartViewPresenterTask(NULL);
+  for(;;) {
+    osDelay(1000);
+  }
 #endif
   /* USER CODE END 5 */
 }

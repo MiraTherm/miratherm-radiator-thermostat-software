@@ -133,7 +133,8 @@ DateTimeView_t* DateTimeView_Init(DateTimePresenter_t *presenter)
 
     view->presenter = presenter;
 
-    stop_rendering();
+    if (!lv_port_lock())
+        return NULL;
 
     /* Create main screen */
     view->screen = lv_obj_create(NULL);
@@ -242,6 +243,8 @@ DateTimeView_t* DateTimeView_Init(DateTimePresenter_t *presenter)
     /* Load the screen */
     lv_scr_load(view->screen);
 
+    lv_port_unlock();
+
     return view;
 }
 
@@ -272,7 +275,8 @@ void DateTimeView_Render(DateTimeView_t *view)
     if (!data)
         return;
 
-    stop_rendering();
+    if (!lv_port_lock())
+        return;
 
     /* Manage visibility based on page */
     if (page != 0)
@@ -379,7 +383,7 @@ void DateTimeView_Render(DateTimeView_t *view)
         }
     }
 
-    start_rendering();
+    lv_port_unlock();
 }
 
 

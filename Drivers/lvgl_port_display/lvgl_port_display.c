@@ -36,19 +36,25 @@
 #define ROW_BITS 3  /* log2(BYTE_BITS) */
 #define COL_SHIFT 4 /* bits to shift for upper column address */
 
-/* Flag to control LVGL rendering */
-static bool rendering = true;
+/* LVGL rendering mutex for thread safety */
+static osMutexId_t s_lvgl_mutex;
 
-void start_rendering(void) {
-	taskENTER_CRITICAL();
-	rendering = true;
-	taskEXIT_CRITICAL();
+bool lv_port_lock(void)
+{
+	if (s_lvgl_mutex == NULL)
+	{
+		return false;
+	}
+	return osMutexAcquire(s_lvgl_mutex, osWaitForever) == osOK;
 }
 
-void stop_rendering(void) {
-	taskENTER_CRITICAL();
-	rendering = false;
-	taskEXIT_CRITICAL();
+void lv_port_unlock(void)
+{
+	if (s_lvgl_mutex == NULL)
+	{
+		return;
+	}
+	osMutexRelease(s_lvgl_mutex);
 }
 
 void StartLVGLTask(void *argument)
@@ -57,23 +63,20 @@ void StartLVGLTask(void *argument)
 	(void)argument;
 #if OS_TASKS_DEBUG
 	printf("LVGLTask running (heap=%lu)\n", (unsigned long)xPortGetFreeHeapSize());
-	osDelay(5);
+	osDelay(10);
 #endif
 	for(;;)
   {
-    /* Only render if the rendering flag is set */
-	bool local_rendering;
-	taskENTER_CRITICAL();
-	local_rendering = rendering;
-	taskEXIT_CRITICAL();
-    if (local_rendering)
+    /* Acquire lock for LVGL rendering */
+    if (lv_port_lock())
     {
       /* Handle LVGL timers and rendering */
       lv_timer_handler();
+      lv_port_unlock();
     }
 
     /* Yield to other tasks - adjust delay based on display refresh rate */
-    osDelay(10);
+    osDelay(pdMS_TO_TICKS(1U));
   }
 }
 
@@ -164,6 +167,13 @@ static void lv_port_disp_init(void) {
 }
 
 void display_system_init(void) {
+	/* Create the LVGL rendering mutex */
+	const osMutexAttr_t mutex_attr = {
+		.name = "LVGL Mutex",
+		.attr_bits = osMutexPrioInherit | osMutexRecursive
+	};
+	s_lvgl_mutex = osMutexNew(&mutex_attr);
+	
 	ssd1306_Init();
 	lv_init();
 	lv_port_disp_init();

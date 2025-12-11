@@ -6,7 +6,7 @@
 
 #include "lvgl.h"
 
-#define LVGL_TASK_STACK_SIZE (512U * 4U)
+#define LVGL_TASK_STACK_SIZE (1024U * 4U)
 
 void StartLVGLTask(void *argument);
 
@@ -16,7 +16,14 @@ void StartLVGLTask(void *argument);
  */
 void display_system_init(void);
 
-void start_rendering(void);
-void stop_rendering(void);
+/* Acquire the LVGL rendering lock. Must be called before any LVGL operations
+ * from outside the LVGL task. Returns true if lock was acquired successfully.
+ */
+bool lv_port_lock(void);
+
+/* Release the LVGL rendering lock. Must be called to release ownership of the
+ * LVGL rendering mutex.
+ */
+void lv_port_unlock(void);
 
 #endif /* LVGL_PORT_DISPLAY_H */

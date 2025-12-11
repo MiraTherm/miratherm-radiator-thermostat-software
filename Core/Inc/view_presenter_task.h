@@ -5,7 +5,7 @@
 extern "C" {
 #endif
 
-#define VP_TASK_STACK_SIZE (512U * 4U) // Important: Too small stack will cause hard faults!
+#define VP_TASK_STACK_SIZE (1024U * 4U) // Important: Too small stack will cause hard faults!
 
 void StartViewPresenterTask(void *argument);
 

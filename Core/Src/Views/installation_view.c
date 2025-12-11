@@ -34,7 +34,11 @@ InstallationView_t* InstallationView_Init(InstallationPresenter_t *presenter)
     view->presenter = presenter;
     view->dot_count = 0;
 
-    stop_rendering();
+    if (!lv_port_lock())
+    {
+        free(view);
+        return NULL;
+    }
 
     /* Create main screen */
     view->screen = lv_obj_create(NULL);
@@ -57,6 +61,8 @@ InstallationView_t* InstallationView_Init(InstallationPresenter_t *presenter)
 
     /* Load the screen */
     lv_scr_load(view->screen);
+
+    lv_port_unlock();
 
     return view;
 }
@@ -82,7 +88,8 @@ void InstallationView_Render(InstallationView_t *view)
     if (!view)
         return;
 
-    stop_rendering();
+    if (!lv_port_lock())
+        return;
 
     /* Create animated dots with rotation pattern */
     view->dot_count = (view->dot_count + 1) % 4;
@@ -96,5 +103,5 @@ void InstallationView_Render(InstallationView_t *view)
 
     lv_label_set_text(view->label_dots, dots[view->dot_count]);
 
-    start_rendering();
+    lv_port_unlock();
 }
