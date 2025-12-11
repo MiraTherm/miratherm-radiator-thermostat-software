@@ -670,12 +670,10 @@ void StartDefaultTask(void *argument)
   Driver_Test();
 #elif ADAPTATION_TEST
   Adaptation_Test();
-#elif VIEW_PRESENTER_TEST
-  StartViewPresenterTask(NULL);
 #endif
 #else
   for(;;) {
-    osDelay(1000);
+    osDelay(pdMS_TO_TICKS(60000U));
   }
 #endif
   /* USER CODE END 5 */
