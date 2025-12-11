@@ -116,6 +116,7 @@ void StartSensorTask(void *argument)
 
   const osMutexAttr_t mutex_attr = {
     .name = "SensorValues",
+    .attr_bits = osMutexPrioInherit,
   };
   s_sensor_values_mutex = osMutexNew(&mutex_attr);
   if (s_sensor_values_mutex == NULL)
