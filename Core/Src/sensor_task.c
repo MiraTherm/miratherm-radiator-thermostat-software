@@ -4,6 +4,7 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include "main.h"
+#include "task_debug.h"
 #include "stm32wbxx_hal.h"
 #include "stm32wbxx_hal_adc_ex.h"
 #include "stm32wbxx_ll_adc.h"
@@ -23,6 +24,11 @@ static uint16_t s_adc_dma_buffer[SENSOR_TASK_ADC_CHANNEL_COUNT];
 static SensorValuesTypeDef s_sensor_values = {0.0f, 0.0f, 0.0f};
 static osMutexId_t s_sensor_values_mutex;
 static float s_temperature_offset_c = 0.0f;
+#if TESTS & DRIVER_TEST
+static bool s_motor_measurements_enabled = true;
+#else
+static bool s_motor_measurements_enabled = false;
+#endif
 
 extern ADC_HandleTypeDef hadc1;
 
@@ -86,6 +92,20 @@ float SensorTask_GetTemperatureCalibrationOffset(void)
   return offset;
 }
 
+void SensorTask_StartMotorMeasurements(void)
+{
+  taskENTER_CRITICAL();
+  s_motor_measurements_enabled = true;
+  taskEXIT_CRITICAL();
+}
+
+void SensorTask_StopMotorMeasurements(void)
+{
+  taskENTER_CRITICAL();
+  s_motor_measurements_enabled = false;
+  taskEXIT_CRITICAL();
+}
+
 void StartSensorTask(void *argument)
 {
   (void)argument;
@@ -114,45 +134,82 @@ void StartSensorTask(void *argument)
     Error_Handler();
   }
 
+  /* Wait for first ADC conversions to complete before starting main loop.
+     Wait for 3 complete sampling periods to ensure the DMA buffer is properly filled. */
+  osDelay(safe_ms_to_ticks(SENSOR_TASK_MIN_SAMPLING_PERIOD_MS * 3U));
+
   TickType_t last_wake_time = osKernelGetTickCount();
-  uint32_t temp_measurement_counter = 0U;
+  const uint16_t temp_cycle_threshold = TEMP_MEAS_PER_MOTOR_MEAS_CYCLES;
+  uint32_t temp_measurement_counter = temp_cycle_threshold;  /* Trigger immediate measurement */
 
   printf("SensorTask init OK. Running loop...\n");
 
   for (;;)
   {
-    const TickType_t motor_interval = safe_ms_to_ticks(MOTOR_MEAS_PERIOD_MS);
-    vTaskDelayUntil(&last_wake_time, motor_interval);
-
     /* 1. Perform all ADC calculations OUTSIDE the mutex (keep critical section short) */
     const uint16_t vref_raw = s_adc_dma_buffer[SENSOR_TASK_VREF_CHANNEL_INDEX];
     const uint32_t vref_mv = calculate_vref_voltage(vref_raw);
-    const uint16_t motor_raw = s_adc_dma_buffer[SENSOR_TASK_MOTOR_CHANNEL_INDEX];
-    const float motor_voltage = convert_raw_to_voltage(motor_raw, vref_mv);
-    const float motor_current = motor_voltage / SENSOR_TASK_MOTOR_SHUNT_OHMS;
 
     float temperature = 0.0f;
     float battery_voltage = 0.0f;
+    float motor_current = 0.0f;
+    bool update_motor = false;
     bool update_temp_bat = false;
 
-    temp_measurement_counter += 1U;
-    const uint32_t temp_cycle_threshold = TEMP_MEAS_PER_MOTOR_MEAS_CYCLES;
-    
-    if (temp_cycle_threshold == 0U || temp_measurement_counter >= temp_cycle_threshold)
+    /* Check if motor measurements are enabled */
+    bool local_motor_enabled;
+    taskENTER_CRITICAL();
+    local_motor_enabled = s_motor_measurements_enabled;
+    taskEXIT_CRITICAL();
+
+    if (local_motor_enabled)
     {
-      temp_measurement_counter = 0U;
+      /* Motor measurements are enabled */
+      const uint16_t motor_raw = s_adc_dma_buffer[SENSOR_TASK_MOTOR_CHANNEL_INDEX];
+      const float motor_voltage = convert_raw_to_voltage(motor_raw, vref_mv);
+      motor_current = motor_voltage / SENSOR_TASK_MOTOR_SHUNT_OHMS;
+      update_motor = true;
+
+      /* Check if it's time to measure temperature and battery */  
+      if (temp_cycle_threshold == 0U || temp_measurement_counter >= temp_cycle_threshold)
+      {
+        temp_measurement_counter = 0U;
+        const uint16_t temp_raw = s_adc_dma_buffer[SENSOR_TASK_TEMPERATURE_CHANNEL_INDEX];
+        const uint16_t vbat_raw = s_adc_dma_buffer[SENSOR_TASK_VBAT_CHANNEL_INDEX];
+        
+        temperature = calculate_temperature(temp_raw, vref_mv);
+        battery_voltage = convert_raw_to_voltage(vbat_raw, vref_mv) * SENSOR_TASK_VBAT_DIVIDER;
+        update_temp_bat = true;
+#if SENSOR_TASK_DEBUG_PRINTING
+        printf("SensorTask: vref_raw=%u, temp_raw=%u, vbat_raw=%u, vref_mv=%lu\n",
+               vref_raw, temp_raw, vbat_raw, (unsigned long)vref_mv);
+#endif
+      }
+      temp_measurement_counter += 1U;
+    }
+    else
+    {
+      /* Motor measurements disabled: always measure temperature and battery */
       const uint16_t temp_raw = s_adc_dma_buffer[SENSOR_TASK_TEMPERATURE_CHANNEL_INDEX];
       const uint16_t vbat_raw = s_adc_dma_buffer[SENSOR_TASK_VBAT_CHANNEL_INDEX];
       
       temperature = calculate_temperature(temp_raw, vref_mv);
       battery_voltage = convert_raw_to_voltage(vbat_raw, vref_mv) * SENSOR_TASK_VBAT_DIVIDER;
       update_temp_bat = true;
+      temp_measurement_counter = 0U;  /* Reset counter */
+#if SENSOR_TASK_DEBUG_PRINTING
+      printf("SensorTask: vref_raw=%u, temp_raw=%u, vbat_raw=%u, vref_mv=%lu\n",
+             vref_raw, temp_raw, vbat_raw, (unsigned long)vref_mv);
+#endif
     }
 
     /* 2. Single Mutex Acquire for all updates */
     if (osMutexAcquire(s_sensor_values_mutex, osWaitForever) == osOK)
     {
-      s_sensor_values.MotorCurrent = motor_current;
+      if (update_motor)
+      {
+        s_sensor_values.MotorCurrent = motor_current;
+      }
       
       if (update_temp_bat)
       {
@@ -161,5 +218,19 @@ void StartSensorTask(void *argument)
       }
       osMutexRelease(s_sensor_values_mutex);
     }
+
+    /* 3. Determine delay interval based on motor measurement state */
+    TickType_t task_interval;
+    if (local_motor_enabled)
+    {
+      /* Motor measurements enabled: use standard motor measurement period */
+      task_interval = safe_ms_to_ticks(MOTOR_MEAS_PERIOD_MS);
+    }
+    else
+    {
+      /* Motor measurements disabled: measure temperature/battery once per minute */
+      task_interval = safe_ms_to_ticks(TEMPERATURE_AND_BAT_MEAS_PERIOD);
+    }
+    vTaskDelayUntil(&last_wake_time, task_interval);
   }
 }
