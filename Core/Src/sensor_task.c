@@ -135,8 +135,8 @@ void StartSensorTask(void *argument)
   }
 
   /* Wait for first ADC conversions to complete before starting main loop.
-     Wait for 3 complete sampling periods to ensure the DMA buffer is properly filled. */
-  osDelay(safe_ms_to_ticks(SENSOR_TASK_MIN_SAMPLING_PERIOD_MS * 3U));
+     Wait for 1 complete sampling period to ensure the DMA buffer is properly filled. */
+  osDelay(safe_ms_to_ticks(SENSOR_TASK_MIN_SAMPLING_PERIOD_MS));
 
   TickType_t last_wake_time = osKernelGetTickCount();
   const uint16_t temp_cycle_threshold = TEMP_MEAS_PER_MOTOR_MEAS_CYCLES;
@@ -229,7 +229,7 @@ void StartSensorTask(void *argument)
     else
     {
       /* Motor measurements disabled: measure temperature/battery once per minute */
-      task_interval = safe_ms_to_ticks(TEMPERATURE_AND_BAT_MEAS_PERIOD);
+      task_interval = safe_ms_to_ticks(TEMPERATURE_AND_BAT_MEAS_PERIOD_MS);
     }
     vTaskDelayUntil(&last_wake_time, task_interval);
   }
