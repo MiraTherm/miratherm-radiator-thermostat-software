@@ -5,7 +5,7 @@
 #include "rotary_encoder.h"
 
 #define INPUT_BUTTON_QUEUE_DEPTH 8U
-#define INPUT_BUTTON_POLL_DELAY_MS 5U
+#define INPUT_BUTTON_POLL_DELAY_MS 25U
 
 static osMessageQueueId_t s_event_queue;
 
@@ -107,7 +107,7 @@ void StartInputTask(void *argument)
       InputTask_PostEvent(&event);
     }
 
-    osDelay(INPUT_BUTTON_POLL_DELAY_MS);
+    osDelay(pdMS_TO_TICKS(INPUT_BUTTON_POLL_DELAY_MS));
   }
 }
 
