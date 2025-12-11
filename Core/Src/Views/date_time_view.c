@@ -43,35 +43,23 @@ typedef struct DateTimeView
     char year_options[512];
     char hour_options[256];
     char minute_options[512];
+    
+    /* Cached values to avoid unnecessary updates */
+    uint8_t last_day;
+    uint8_t last_month;
+    uint16_t last_year;
+    uint8_t last_hour;
+    uint8_t last_minute;
+    uint8_t last_page;
+    uint8_t last_active_field;
+    bool last_dst_state;
 } DateTimeView_t;
 
-/* Helper function to create day options string */
-static void create_day_options(char *buf, size_t size)
-{
-    size_t pos = 0;
-    for (int i = 1; i <= 31; i++)
-    {
-        if (pos + 4 < size)
-        {
-            pos += sprintf(buf + pos, "%d\n", i);
-        }
-    }
-}
-
-/* Helper function to create month options string */
-static void create_month_options(char *buf, size_t size)
-{
-    const char *months[] = { "1", "2", "3", "4", "5", "6",
-                              "7", "8", "9", "10", "11", "12" };
-    size_t pos = 0;
-    for (int i = 0; i < 12; i++)
-    {
-        if (pos + 5 < size)  /* "10\n" is longest for month */
-        {
-            pos += sprintf(buf + pos, "%s\n", months[i]);
-        }
-    }
-}
+/* Static pre-built option strings for better performance */
+static const char DAY_OPTIONS[] = "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n22\n23\n24\n25\n26\n27\n28\n29\n30\n31\n";
+static const char MONTH_OPTIONS[] = "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n";
+static const char HOUR_OPTIONS[] = "00\n01\n02\n03\n04\n05\n06\n07\n08\n09\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n22\n23\n";
+static const char MINUTE_OPTIONS[] = "00\n01\n02\n03\n04\n05\n06\n07\n08\n09\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n22\n23\n24\n25\n26\n27\n28\n29\n30\n31\n32\n33\n34\n35\n36\n37\n38\n39\n40\n41\n42\n43\n44\n45\n46\n47\n48\n49\n50\n51\n52\n53\n54\n55\n56\n57\n58\n59\n";
 
 /* Helper function to create year options string */
 static void create_year_options(char *buf, size_t size)
@@ -79,38 +67,9 @@ static void create_year_options(char *buf, size_t size)
     size_t pos = 0;
     for (int i = 2020; i <= 2049; i++)
     {
-        int digits = (i >= 2020) ? 4 : 3;  /* All years are 4 digits */
-        if (pos + digits + 2 < size)  /* year + newline + null terminator */
+        if (pos + 6 < size)
         {
-            pos += sprintf(buf + pos, "%d\n", i);
-        }
-    }
-}
-
-/* Helper function to create hour options string */
-static void create_hour_options(char *buf, size_t size)
-{
-    buf[0] = '\0';
-    for (int i = 0; i <= 23; i++)
-    {
-        if (strlen(buf) + 4 < size)
-        {
-            int len = strlen(buf);
-            snprintf(buf + len, size - len, "%02d\n", i);
-        }
-    }
-}
-
-/* Helper function to create minute options string */
-static void create_minute_options(char *buf, size_t size)
-{
-    buf[0] = '\0';
-    for (int i = 0; i <= 59; i++)
-    {
-        if (strlen(buf) + 4 < size)
-        {
-            int len = strlen(buf);
-            snprintf(buf + len, size - len, "%02d\n", i);
+            pos += snprintf(buf + pos, size - pos, "%d\n", i);
         }
     }
 }
@@ -155,12 +114,22 @@ DateTimeView_t* DateTimeView_Init(DateTimePresenter_t *presenter)
     lv_obj_set_style_text_color(view->label_step_caption, lv_color_white(), 0);
     lv_obj_set_style_text_align(view->label_step_caption, LV_TEXT_ALIGN_CENTER, 0);
 
-    /* Prepare roller option strings */
-    create_day_options(view->day_options, sizeof(view->day_options));
-    create_month_options(view->month_options, sizeof(view->month_options));
+    /* Initialize cached values */
+    view->last_day = 0xFF;
+    view->last_month = 0xFF;
+    view->last_year = 0xFFFF;
+    view->last_hour = 0xFF;
+    view->last_minute = 0xFF;
+    view->last_page = 0xFF;
+    view->last_active_field = 0xFF;
+    view->last_dst_state = 0xFF;
+
+    /* Prepare roller option strings - use static strings */
+    memcpy(view->day_options, DAY_OPTIONS, sizeof(DAY_OPTIONS));
+    memcpy(view->month_options, MONTH_OPTIONS, sizeof(MONTH_OPTIONS));
+    memcpy(view->hour_options, HOUR_OPTIONS, sizeof(HOUR_OPTIONS));
+    memcpy(view->minute_options, MINUTE_OPTIONS, sizeof(MINUTE_OPTIONS));
     create_year_options(view->year_options, sizeof(view->year_options));
-    create_hour_options(view->hour_options, sizeof(view->hour_options));
-    create_minute_options(view->minute_options, sizeof(view->minute_options));
 
     /* Page 0: Date selection - 3 compact rollers (reduced height) */
     view->roller_day = lv_roller_create(view->screen);
@@ -184,10 +153,7 @@ DateTimeView_t* DateTimeView_Init(DateTimePresenter_t *presenter)
     lv_roller_set_selected(view->roller_year, 5, LV_ANIM_OFF);  /* Default to 2025 */
     lv_obj_set_pos(view->roller_year, 88, 16);
     lv_obj_set_size(view->roller_year, 42, 31);
-    lv_obj_set_style_bg_color(view->roller_year, lv_color_white(), 0);
     lv_obj_set_style_text_color(view->roller_year, lv_color_black(), LV_PART_SELECTED);
-    lv_obj_set_style_border_color(view->roller_year, lv_color_black(), 0);
-    lv_obj_set_style_border_width(view->roller_year, 2, 0);
 
     /* Page 1: Time selection - 2 compact rollers (reduced height) */
     view->roller_hour = lv_roller_create(view->screen);
@@ -195,7 +161,6 @@ DateTimeView_t* DateTimeView_Init(DateTimePresenter_t *presenter)
     lv_roller_set_selected(view->roller_hour, 12, LV_ANIM_OFF);
     lv_obj_set_pos(view->roller_hour, 22, 16);
     lv_obj_set_size(view->roller_hour, 40, 31);
-    lv_obj_set_style_bg_color(view->roller_hour, lv_color_white(), 0);
     lv_obj_set_style_text_color(view->roller_hour, lv_color_black(), LV_PART_SELECTED);
 
     view->roller_minute = lv_roller_create(view->screen);
@@ -203,10 +168,7 @@ DateTimeView_t* DateTimeView_Init(DateTimePresenter_t *presenter)
     lv_roller_set_selected(view->roller_minute, 0, LV_ANIM_OFF);
     lv_obj_set_pos(view->roller_minute, 70, 16);
     lv_obj_set_size(view->roller_minute, 40, 31);
-    lv_obj_set_style_bg_color(view->roller_minute, lv_color_white(), 0);
     lv_obj_set_style_text_color(view->roller_minute, lv_color_black(), LV_PART_SELECTED);
-    lv_obj_set_style_border_color(view->roller_minute, lv_color_black(), 0);
-    lv_obj_set_style_border_width(view->roller_minute, 2, 0);
 
     /* Page 2: Summer time toggle - checkbox control */
     view->label_dst = lv_label_create(view->screen);
@@ -262,6 +224,50 @@ void DateTimeView_Deinit(DateTimeView_t *view)
 }
 
 /**
+ * @brief Helper to update border for date rollers
+ */
+static void update_date_roller_borders(DateTimeView_t *view, uint8_t active_field)
+{
+    /* Only update if active field changed to avoid unnecessary style updates */
+    if (view->last_active_field != active_field)
+    {
+        view->last_active_field = active_field;
+        
+        /* Reset all borders first */
+        lv_obj_set_style_border_width(view->roller_day, 0, 0);
+        lv_obj_set_style_border_width(view->roller_month, 0, 0);
+        lv_obj_set_style_border_width(view->roller_year, 0, 0);
+        
+        /* Set border only on active field */
+        lv_obj_t *active_roller = (active_field == 0) ? view->roller_day : 
+                                   (active_field == 1) ? view->roller_month : view->roller_year;
+        lv_obj_set_style_border_color(active_roller, lv_color_black(), 0);
+        lv_obj_set_style_border_width(active_roller, 2, 0);
+    }
+}
+
+/**
+ * @brief Helper to update border for time rollers
+ */
+static void update_time_roller_borders(DateTimeView_t *view, uint8_t active_field)
+{
+    /* Only update if active field changed to avoid unnecessary style updates */
+    if (view->last_active_field != active_field)
+    {
+        view->last_active_field = active_field;
+        
+        /* Reset all borders first */
+        lv_obj_set_style_border_width(view->roller_hour, 0, 0);
+        lv_obj_set_style_border_width(view->roller_minute, 0, 0);
+        
+        /* Set border only on active field */
+        lv_obj_t *active_roller = (active_field == 0) ? view->roller_hour : view->roller_minute;
+        lv_obj_set_style_border_color(active_roller, lv_color_black(), 0);
+        lv_obj_set_style_border_width(active_roller, 2, 0);
+    }
+}
+
+/**
  * @brief Render/update the current page
  */
 void DateTimeView_Render(DateTimeView_t *view)
@@ -278,108 +284,106 @@ void DateTimeView_Render(DateTimeView_t *view)
     if (!lv_port_lock())
         return;
 
-    /* Manage visibility based on page */
-    if (page != 0)
+    /* Only update visibility and borders if page changed */
+    if (view->last_page != page)
     {
+        view->last_page = page;
+        view->last_active_field = 0xFF;  /* Force border update on page change */
+        
+        /* Hide all elements first */
         lv_obj_add_flag(view->roller_day, LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_flag(view->roller_month, LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_flag(view->roller_year, LV_OBJ_FLAG_HIDDEN);
-    }
-    
-    if (page != 1)
-    {
         lv_obj_add_flag(view->roller_hour, LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_flag(view->roller_minute, LV_OBJ_FLAG_HIDDEN);
-    }
-    
-    if (page != 2)
-    {
         lv_obj_add_flag(view->label_dst, LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_flag(view->checkbox_dst, LV_OBJ_FLAG_HIDDEN);
+
+        /* Reset all borders */
+        lv_obj_set_style_border_width(view->roller_day, 0, 0);
+        lv_obj_set_style_border_width(view->roller_month, 0, 0);
+        lv_obj_set_style_border_width(view->roller_year, 0, 0);
+        lv_obj_set_style_border_width(view->roller_hour, 0, 0);
+        lv_obj_set_style_border_width(view->roller_minute, 0, 0);
+
+        /* Show page-specific elements */
+        if (page == 0)
+        {
+            lv_label_set_text(view->label_step_caption, "Set date:");
+            lv_obj_clear_flag(view->roller_day, LV_OBJ_FLAG_HIDDEN);
+            lv_obj_clear_flag(view->roller_month, LV_OBJ_FLAG_HIDDEN);
+            lv_obj_clear_flag(view->roller_year, LV_OBJ_FLAG_HIDDEN);
+        }
+        else if (page == 1)
+        {
+            lv_label_set_text(view->label_step_caption, "Set time:");
+            lv_obj_clear_flag(view->roller_hour, LV_OBJ_FLAG_HIDDEN);
+            lv_obj_clear_flag(view->roller_minute, LV_OBJ_FLAG_HIDDEN);
+        }
+        else if (page == 2)
+        {
+            lv_label_set_text(view->label_step_caption, "Summer time");
+            lv_obj_clear_flag(view->label_dst, LV_OBJ_FLAG_HIDDEN);
+            lv_obj_clear_flag(view->checkbox_dst, LV_OBJ_FLAG_HIDDEN);
+        }
     }
 
-    /* Reset borders (will be re-applied for active page) */
-    lv_obj_set_style_border_width(view->roller_day, 0, 0);
-    lv_obj_set_style_border_width(view->roller_month, 0, 0);
-    lv_obj_set_style_border_width(view->roller_year, 0, 0);
-    lv_obj_set_style_border_width(view->roller_hour, 0, 0);
-    lv_obj_set_style_border_width(view->roller_minute, 0, 0);
-
+    /* Update page-specific data only if changed */
     if (page == 0)
     {
         /* Date selection page */
-        lv_label_set_text(view->label_step_caption, "Set date:");
-        
-        lv_obj_clear_flag(view->roller_day, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_clear_flag(view->roller_month, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_clear_flag(view->roller_year, LV_OBJ_FLAG_HIDDEN);
-        
-        /* Add border to the active field */
         uint8_t active_field = DateTimePresenter_GetDateActiveField(view->presenter);
-        if (active_field == 0)
+        
+        if (view->last_day != data->day)
         {
-            /* Day is active */
-            lv_obj_set_style_border_color(view->roller_day, lv_color_black(), 0);
-            lv_obj_set_style_border_width(view->roller_day, 2, 0);
+            view->last_day = data->day;
+            lv_roller_set_selected(view->roller_day, data->day - 1, LV_ANIM_OFF);
         }
-        else if (active_field == 1)
+        if (view->last_month != data->month)
         {
-            /* Month is active */
-            lv_obj_set_style_border_color(view->roller_month, lv_color_black(), 0);
-            lv_obj_set_style_border_width(view->roller_month, 2, 0);
+            view->last_month = data->month;
+            lv_roller_set_selected(view->roller_month, data->month - 1, LV_ANIM_OFF);
         }
-        else if (active_field == 2)
+        if (view->last_year != data->year)
         {
-            /* Year is active */
-            lv_obj_set_style_border_color(view->roller_year, lv_color_black(), 0);
-            lv_obj_set_style_border_width(view->roller_year, 2, 0);
+            view->last_year = data->year;
+            lv_roller_set_selected(view->roller_year, data->year - 2020, LV_ANIM_OFF);
         }
-
-        lv_roller_set_selected(view->roller_day, data->day - 1, LV_ANIM_OFF);
-        lv_roller_set_selected(view->roller_month, data->month - 1, LV_ANIM_OFF);
-        lv_roller_set_selected(view->roller_year, data->year - 2020, LV_ANIM_OFF);
+        
+        update_date_roller_borders(view, active_field);
     }
     else if (page == 1)
     {
         /* Time selection page */
-        lv_label_set_text(view->label_step_caption, "Set time:");
-        
-        lv_obj_clear_flag(view->roller_hour, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_clear_flag(view->roller_minute, LV_OBJ_FLAG_HIDDEN);
-        
-        /* Add border to the active field */
         uint8_t active_field = DateTimePresenter_GetTimeActiveField(view->presenter);
-        if (active_field == 0)
+        
+        if (view->last_hour != data->hour)
         {
-            /* Hour is active */
-            lv_obj_set_style_border_color(view->roller_hour, lv_color_black(), 0);
-            lv_obj_set_style_border_width(view->roller_hour, 2, 0);
+            view->last_hour = data->hour;
+            lv_roller_set_selected(view->roller_hour, data->hour, LV_ANIM_OFF);
         }
-        else if (active_field == 1)
+        if (view->last_minute != data->minute)
         {
-            /* Minute is active */
-            lv_obj_set_style_border_color(view->roller_minute, lv_color_black(), 0);
-            lv_obj_set_style_border_width(view->roller_minute, 2, 0);
+            view->last_minute = data->minute;
+            lv_roller_set_selected(view->roller_minute, data->minute, LV_ANIM_OFF);
         }
-
-        lv_roller_set_selected(view->roller_hour, data->hour, LV_ANIM_OFF);
-        lv_roller_set_selected(view->roller_minute, data->minute, LV_ANIM_OFF);
+        
+        update_time_roller_borders(view, active_field);
     }
     else if (page == 2)
     {
         /* Summer time page - checkbox control */
-        lv_label_set_text(view->label_step_caption, "Summer time");
-        lv_obj_clear_flag(view->label_dst, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_clear_flag(view->checkbox_dst, LV_OBJ_FLAG_HIDDEN);
-
-        /* Update checkbox state */
-        if (data->is_summer_time)
+        if (view->last_dst_state != data->is_summer_time)
         {
-            lv_obj_add_state(view->checkbox_dst, LV_STATE_CHECKED);
-        }
-        else
-        {
-            lv_obj_clear_state(view->checkbox_dst, LV_STATE_CHECKED);
+            view->last_dst_state = data->is_summer_time;
+            if (data->is_summer_time)
+            {
+                lv_obj_add_state(view->checkbox_dst, LV_STATE_CHECKED);
+            }
+            else
+            {
+                lv_obj_clear_state(view->checkbox_dst, LV_STATE_CHECKED);
+            }
         }
     }
 
