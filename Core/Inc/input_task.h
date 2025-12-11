@@ -31,6 +31,8 @@ void StartInputTask(void *argument);
 bool InputTask_TryGetVPEvent(Input2VPEvent_t *event, uint32_t timeout_ticks);
 bool InputTask_IsButtonPressed(button_id_t id);
 
+#define INPUT_TASK_STACK_SIZE (512U * 4U)
+
 #ifdef __cplusplus
 }
 #endif

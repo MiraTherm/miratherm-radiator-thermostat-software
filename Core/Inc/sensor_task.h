@@ -33,6 +33,8 @@ float SensorTask_GetTemperatureCalibrationOffset(void);
 void SensorTask_StartMotorMeasurements(void);
 void SensorTask_StopMotorMeasurements(void);
 
+#define SENSOR_TASK_STACK_SIZE (512U * 4U)
+
 #ifdef __cplusplus
 }
 #endif

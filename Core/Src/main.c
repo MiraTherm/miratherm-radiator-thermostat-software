@@ -76,7 +76,7 @@ osThreadId_t inputTaskHandle;
 const osThreadAttr_t inputTask_attributes = {
   .name = "inputTask",
   .priority = (osPriority_t) osPriorityHigh2,
-  .stack_size = 512 * 4
+  .stack_size = INPUT_TASK_STACK_SIZE
 };
 
 /* Definitions for SensorTask */
@@ -84,7 +84,7 @@ osThreadId_t sensorTaskHandle;
 const osThreadAttr_t sensorTask_attributes = {
   .name = "sensorTask",
   .priority = (osPriority_t) osPriorityHigh3,
-  .stack_size = 512 * 4
+  .stack_size = SENSOR_TASK_STACK_SIZE
 };
 
 #if !TESTS
