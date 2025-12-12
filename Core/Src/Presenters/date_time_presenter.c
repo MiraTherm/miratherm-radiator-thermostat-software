@@ -4,6 +4,12 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "input_task.h"
+#include "stm32wbxx_hal.h"
+
+/**
+ * @brief External RTC handle from main.c
+ */
+extern RTC_HandleTypeDef hrtc;
 
 /**
  * @brief Internal presenter structure
@@ -41,6 +47,47 @@ static const uint8_t DEFAULT_MONTH = 1;
 static const uint16_t DEFAULT_YEAR = 2025;
 static const uint8_t DEFAULT_HOUR = 12;
 static const uint8_t DEFAULT_MINUTE = 0;
+
+/**
+ * @brief Set the RTC with the configured date and time
+ */
+void set_rtc(DateTimePresenter_t *presenter)
+{
+    if (!presenter)
+        return;
+
+    /* Initialize RTC structures */
+    RTC_TimeTypeDef sTime = {0};
+    RTC_DateTypeDef sDate = {0};
+
+    /* Set date from presenter data */
+    sDate.Year = (uint8_t)(presenter->data.year - 2000);  /* RTC year is 00-99 (2000-2099) */
+    sDate.Month = presenter->data.month;
+    sDate.Date = presenter->data.day;
+    sDate.WeekDay = RTC_WEEKDAY_MONDAY;  /* Default to Monday, can be calculated if needed */
+
+    /* Set time from presenter data */
+    sTime.Hours = presenter->data.hour;
+    sTime.Minutes = presenter->data.minute;
+    sTime.Seconds = 0;  /* Default to 0 seconds */
+    sTime.TimeFormat = RTC_HOURFORMAT_24;
+    sTime.DayLightSaving = (presenter->data.is_summer_time) ? RTC_DAYLIGHTSAVING_ADD1H : RTC_DAYLIGHTSAVING_NONE;
+    sTime.StoreOperation = RTC_STOREOPERATION_RESET;
+
+    /* Set the time */
+    if (HAL_RTC_SetTime(&hrtc, &sTime, RTC_FORMAT_BIN) != HAL_OK)
+    {
+        /* Error occurred, could log this */
+        return;
+    }
+
+    /* Set the date */
+    if (HAL_RTC_SetDate(&hrtc, &sDate, RTC_FORMAT_BIN) != HAL_OK)
+    {
+        /* Error occurred, could log this */
+        return;
+    }
+}
 
 /**
  * @brief Initialize the date/time presenter
@@ -250,6 +297,7 @@ void DateTimePresenter_HandleEvent(DateTimePresenter_t *presenter, const Input2V
         else if ((event->type == EVT_CENTRAL_BTN || event->type == EVT_CENTRAL_DOUBLE_CLICK) && event->button_action == BUTTON_ACTION_PRESSED)
         {
             /* Central button confirms and completes the wizard */
+            set_rtc(presenter);
             presenter->is_complete = 1;
         }
         else if (event->type == EVT_MODE_BTN && event->button_action == BUTTON_ACTION_PRESSED)
