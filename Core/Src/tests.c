@@ -40,23 +40,23 @@ static void sensor_current_label_update(lv_obj_t *label, float current)
   lv_label_set_text(label, buf);
 }
 
-static void sensor_battery_label_update(lv_obj_t *label, float voltage)
+static void sensor_battery_label_update(lv_obj_t *label, float voltage, uint8_t soc)
 {
   if (label == NULL)
   {
     return;
   }
 
-  const int32_t scaled = scale_value_for_label(voltage, 2);
-  int32_t integral = scaled / 100;
-  int32_t fraction = scaled % 100;
+  const int32_t scaled = scale_value_for_label(voltage, 1);
+  int32_t integral = scaled / 10;
+  int32_t fraction = scaled % 10;
   if (fraction < 0)
   {
     fraction = -fraction;
   }
 
   char buf[32];
-  snprintf(buf, sizeof(buf), "Bat:%ld.%02ldV", (long)integral, (long)fraction);
+  snprintf(buf, sizeof(buf), "B:%ld.%1ldV/%u%%", (long)integral, (long)fraction, soc);
   lv_label_set_text(label, buf);
 }
 
@@ -91,7 +91,7 @@ static void sensor_display_update(lv_obj_t *current_label,
   }
 
   sensor_current_label_update(current_label, values->MotorCurrent);
-  sensor_battery_label_update(battery_label, values->BatteryVoltage);
+  sensor_battery_label_update(battery_label, values->BatteryVoltage, values->SoC);
   sensor_temperature_label_update(temp_label, values->CurrentTemp);
 }
 
@@ -133,8 +133,8 @@ void Driver_Test(void)
 
   lv_obj_t *battery_label = lv_label_create(scr);
   lv_obj_set_style_text_color(battery_label, lv_color_white(), 0);
-  lv_label_set_text(battery_label, "Bat: -.--V");
-  lv_obj_align(battery_label, LV_ALIGN_TOP_RIGHT, -4, 4);
+  lv_label_set_text(battery_label, "B:-.-V/--%%");
+  lv_obj_align(battery_label, LV_ALIGN_TOP_RIGHT, -2, 4);
 
   lv_obj_t *temp_label = lv_label_create(scr);
   lv_obj_set_style_text_color(temp_label, lv_color_white(), 0);
