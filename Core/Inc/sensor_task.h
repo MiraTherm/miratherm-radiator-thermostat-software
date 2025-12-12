@@ -4,7 +4,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#include "main.h"
+#include "tests.h"
+#include "cmsis_os2.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -25,9 +26,16 @@ typedef struct
   float MotorCurrent;
 } SensorValuesTypeDef;
 
-void StartSensorTask(void *argument);
+/**
+ * @brief Sensor values access wrapper with mutex protection
+ */
+typedef struct SensorValuesAccessTypeDef
+{
+  osMutexId_t mutex;
+  SensorValuesTypeDef data;
+} SensorValuesAccessTypeDef;
 
-bool SensorTask_CopySensorValues(SensorValuesTypeDef *dest);
+void StartSensorTask(void *argument);
 
 void SensorTask_StartMotorMeasurements(void);
 void SensorTask_StopMotorMeasurements(void);

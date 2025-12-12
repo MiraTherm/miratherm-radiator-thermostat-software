@@ -1,9 +1,11 @@
 #include "sensor_task.h"
 
+#include "main.h"
 #include "cmsis_os2.h"
 #include "FreeRTOS.h"
 #include "task.h"
 #include "task_debug.h"
+#include "tests.h"
 #include "stm32wbxx_hal.h"
 #include "stm32wbxx_hal_adc_ex.h"
 #include "stm32wbxx_ll_adc.h"
@@ -21,15 +23,7 @@
 #define SENSOR_TASK_VBAT_DIVIDER 3.0f
 
 static uint16_t s_adc_dma_buffer[SENSOR_TASK_ADC_CHANNEL_COUNT];
-static SensorValuesTypeDef s_sensor_values = {
-  0.0f,
-#if DRIVER_TEST
-  0.0f,
-#endif
-  0,
-  0.0f
-};
-static osMutexId_t s_sensor_values_mutex;
+static SensorValuesAccessTypeDef *s_sensor_values_access = NULL;
 static ConfigAccessTypeDef *s_config_access = NULL;
 #if TESTS & DRIVER_TEST
 static bool s_motor_measurements_enabled = true;
@@ -132,23 +126,6 @@ static uint8_t calculate_battery_soc(float battery_voltage_v)
   return 0; /* Should not reach here */
 }
 
-bool SensorTask_CopySensorValues(SensorValuesTypeDef *dest)
-{
-  if (dest == NULL || s_sensor_values_mutex == NULL)
-  {
-    return false;
-  }
-
-  if (osMutexAcquire(s_sensor_values_mutex, osWaitForever) != osOK)
-  {
-    return false;
-  }
-
-  *dest = s_sensor_values;
-  osMutexRelease(s_sensor_values_mutex);
-  return true;
-}
-
 void SensorTask_StartMotorMeasurements(void)
 {
   taskENTER_CRITICAL();
@@ -167,22 +144,24 @@ void StartSensorTask(void *argument)
 {
   SensorTaskArgsTypeDef *args = (SensorTaskArgsTypeDef *)argument;
   
-  /* Receive config access handle from main */
-  if (args != NULL && args->config_access != NULL)
+  /* Receive config access and sensor values access handles from main */
+  if (args != NULL)
   {
-    s_config_access = args->config_access;
+    if (args->config_access != NULL)
+    {
+      s_config_access = args->config_access;
+    }
+    if (args->sensor_values_access != NULL)
+    {
+      s_sensor_values_access = args->sensor_values_access;
+    }
   }
 
 #if OS_TASKS_DEBUG
   printf("SensorTask running (heap=%lu)\n", (unsigned long)xPortGetFreeHeapSize());
 #endif
 
-  const osMutexAttr_t mutex_attr = {
-    .name = "SensorValues",
-    .attr_bits = osMutexPrioInherit,
-  };
-  s_sensor_values_mutex = osMutexNew(&mutex_attr);
-  if (s_sensor_values_mutex == NULL)
+  if (s_sensor_values_access == NULL || s_sensor_values_access->mutex == NULL)
   {
     Error_Handler();
   }
@@ -271,22 +250,22 @@ void StartSensorTask(void *argument)
     }
 
     /* 2. Single Mutex Acquire for all updates */
-    if (osMutexAcquire(s_sensor_values_mutex, osWaitForever) == osOK)
+    if (osMutexAcquire(s_sensor_values_access->mutex, osWaitForever) == osOK)
     {
       if (update_motor)
       {
-        s_sensor_values.MotorCurrent = motor_current;
+        s_sensor_values_access->data.MotorCurrent = motor_current;
       }
       
       if (update_temp_bat)
       {
-        s_sensor_values.CurrentTemp = temperature;
-        s_sensor_values.SoC = battery_soc;
+        s_sensor_values_access->data.CurrentTemp = temperature;
+        s_sensor_values_access->data.SoC = battery_soc;
 #if DRIVER_TEST
-        s_sensor_values.BatteryVoltage = battery_voltage;
+        s_sensor_values_access->data.BatteryVoltage = battery_voltage;
 #endif
       }
-      osMutexRelease(s_sensor_values_mutex);
+      osMutexRelease(s_sensor_values_access->mutex);
     }
 
     /* 3. Determine delay interval based on motor measurement state */

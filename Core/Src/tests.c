@@ -1,5 +1,6 @@
 #include "tests.h"
 
+#if TESTS
 #include "cmsis_os2.h"
 #include "FreeRTOS.h"
 
@@ -74,7 +75,7 @@ static void update_go_button_label(lv_obj_t *label, bool forward)
   lv_label_set_text_fmt(label, "Go: %s", forward ? "F" : "R");
 }
 
-void Driver_Test(osMessageQueueId_t storage2system_event_queue, ConfigAccessTypeDef *config_access)
+void Driver_Test(osMessageQueueId_t storage2system_event_queue, ConfigAccessTypeDef *config_access, SensorValuesAccessTypeDef *sensor_values_access)
 {
   printf("Starting driver test...\n");
   
@@ -288,13 +289,18 @@ void Driver_Test(osMessageQueueId_t storage2system_event_queue, ConfigAccessType
     const TickType_t now = osKernelGetTickCount();
     if ((now - last_sensor_tick) >= sensor_display_interval)
     {
-      SensorValuesTypeDef values = {0.0f, 0.0f, 0.0f};
-      if (SensorTask_CopySensorValues(&values))
+      if (sensor_values_access != NULL && sensor_values_access->mutex != NULL)
       {
-        if (lv_port_lock())
+        if (osMutexAcquire(sensor_values_access->mutex, osWaitForever) == osOK)
         {
-          sensor_display_update(current_label, battery_label, temp_label, &values);
-          lv_port_unlock();
+          SensorValuesTypeDef values = sensor_values_access->data;
+          osMutexRelease(sensor_values_access->mutex);
+          
+          if (lv_port_lock())
+          {
+            sensor_display_update(current_label, battery_label, temp_label, &values);
+            lv_port_unlock();
+          }
         }
       }
       last_sensor_tick = now;
@@ -307,5 +313,5 @@ void Adaptation_Test(void)
   printf("Starting adaptation test...\n");
   /* Adaptation test not implemented yet */
 }
-
 #endif
+#endif /* TESTS */

@@ -37,17 +37,23 @@ extern "C" {
 #include "task_debug.h"
 #include "cmsis_os2.h"
 #include "storage_task.h"
+#include "sensor_task.h"
+#include "tests.h"
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
 /* USER CODE BEGIN ET */
+
+struct ConfigAccessTypeDef;
+struct SensorValuesAccessTypeDef;
 
 /**
  * @brief Arguments for defaultTask
  */
 typedef struct {
   osMessageQueueId_t storage2system_event_queue;  /**< Storage event queue handle */
-  ConfigAccessTypeDef *config_access;             /**< Configuration access with mutex protection */
+  struct ConfigAccessTypeDef *config_access;             /**< Configuration access with mutex protection */
+  struct SensorValuesAccessTypeDef *sensor_values_access; /**< Sensor values access with mutex protection */
 } DefaultTaskArgsTypeDef;
 
 /**
@@ -55,14 +61,15 @@ typedef struct {
  */
 typedef struct {
   osMessageQueueId_t storage2system_event_queue;  /**< Storage event queue handle */
-  ConfigAccessTypeDef *config_access;             /**< Configuration access with mutex protection */
+  struct ConfigAccessTypeDef *config_access;             /**< Configuration access with mutex protection */
 } StorageTaskArgsTypeDef;
 
 /**
  * @brief Arguments for sensorTask
  */
 typedef struct {
-  ConfigAccessTypeDef *config_access;             /**< Configuration access with mutex protection */
+  struct ConfigAccessTypeDef *config_access;             /**< Configuration access with mutex protection */
+  struct SensorValuesAccessTypeDef *sensor_values_access; /**< Sensor values access with mutex protection */
 } SensorTaskArgsTypeDef;
 
 /* USER CODE END ET */
@@ -122,15 +129,7 @@ void Error_Handler(void);
 #define JTDO_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
-// Tests settings
-#define TESTS               1
-#define DRIVER_TEST         1
-#define ADAPTATION_TEST     0
 
-
-#if TESTS
-#include "tests.h"
-#endif
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus

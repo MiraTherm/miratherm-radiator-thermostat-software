@@ -208,6 +208,28 @@ int main(void)
   {
     Error_Handler();
   }
+
+  /* Create sensor values access structure with mutex */
+  static SensorValuesAccessTypeDef sensorValuesAccess = {
+    .mutex = NULL,
+    .data = {
+      .CurrentTemp = 0.0f,
+      .SoC = 0,
+#if DRIVER_TEST
+      .BatteryVoltage = 0.0f,
+#endif
+      .MotorCurrent = 0.0f
+    }
+  };
+  const osMutexAttr_t sensorValuesMutexAttr = {
+    .name = "SensorValuesMutex",
+    .attr_bits = osMutexPrioInherit,
+  };
+  sensorValuesAccess.mutex = osMutexNew(&sensorValuesMutexAttr);
+  if (sensorValuesAccess.mutex == NULL)
+  {
+    Error_Handler();
+  }
   /* USER CODE END RTOS_MUTEX */
 
   /* USER CODE BEGIN RTOS_SEMAPHORES */
@@ -227,20 +249,24 @@ int main(void)
   }
   static DefaultTaskArgsTypeDef defaultTaskArgs = {
     .storage2system_event_queue = NULL,
-    .config_access = NULL
+    .config_access = NULL,
+    .sensor_values_access = NULL
   };
   static StorageTaskArgsTypeDef storageTaskArgs = {
     .storage2system_event_queue = NULL,
     .config_access = NULL
   };
   static SensorTaskArgsTypeDef sensorTaskArgs = {
-    .config_access = NULL
+    .config_access = NULL,
+    .sensor_values_access = NULL
   };
   defaultTaskArgs.storage2system_event_queue = storage2SystemEventQueueHandle;
   defaultTaskArgs.config_access = &configAccess;
+  defaultTaskArgs.sensor_values_access = &sensorValuesAccess;
   storageTaskArgs.storage2system_event_queue = storage2SystemEventQueueHandle;
   storageTaskArgs.config_access = &configAccess;
   sensorTaskArgs.config_access = &configAccess;
+  sensorTaskArgs.sensor_values_access = &sensorValuesAccess;
   /* USER CODE END RTOS_QUEUES */
 
   /* Create the thread(s) */
@@ -707,7 +733,11 @@ void HAL_Delay(uint32_t Delay)
 void StartDefaultTask(void *argument)
 {
   /* USER CODE BEGIN 5 */
+#if TESTS
   DefaultTaskArgsTypeDef *args = (DefaultTaskArgsTypeDef *)argument;
+#else
+  (void)argument;  /* Unused */
+#endif
 
 #if OS_TASKS_DEBUG
   printf("DefaultTask running (heap=%lu)\n", (unsigned long)xPortGetFreeHeapSize());
@@ -715,7 +745,7 @@ void StartDefaultTask(void *argument)
 
 #if TESTS
 #if DRIVER_TEST
-  Driver_Test(args->storage2system_event_queue, args->config_access);
+  Driver_Test(args->storage2system_event_queue, args->config_access, args->sensor_values_access);
 #elif ADAPTATION_TEST
   Adaptation_Test();
 #endif

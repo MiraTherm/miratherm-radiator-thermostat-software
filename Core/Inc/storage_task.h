@@ -23,7 +23,7 @@ typedef struct
 /**
  * @brief Configuration access wrapper with mutex protection
  */
-typedef struct
+typedef struct ConfigAccessTypeDef
 {
   osMutexId_t mutex;
   ConfigTypeDef data;
