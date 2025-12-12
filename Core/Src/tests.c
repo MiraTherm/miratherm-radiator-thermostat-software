@@ -7,6 +7,7 @@
 #include "input_task.h"
 #include "motor.h"
 #include "sensor_task.h"
+#include "storage_task.h"
 
 #if DRIVER_TEST
 static void sensor_current_label_update(lv_obj_t *label, float current)
@@ -73,11 +74,51 @@ static void update_go_button_label(lv_obj_t *label, bool forward)
   lv_label_set_text_fmt(label, "Go: %s", forward ? "F" : "R");
 }
 
-void Driver_Test(void)
+void Driver_Test(osMessageQueueId_t storage2system_event_queue)
 {
   printf("Starting driver test...\n");
-  /* Initialize display and LVGL after scheduler starts to avoid HardFault */
-  SensorTask_SetTemperatureCalibrationOffset(5.0f);
+  
+  /* Validate queue handle */
+  if (storage2system_event_queue == NULL)
+  {
+    printf("ERROR: storage2system_event_queue is NULL\n");
+    return;
+  }
+  
+  printf("Driver_Test: Queue handle: %p\n", (void *)storage2system_event_queue);
+  
+  /* Give StorageTask time to initialize */
+  osDelay(pdMS_TO_TICKS(100U));
+  
+  /* Wait for configuration to be loaded */
+  printf("Waiting for config to load...\n");
+  Storage2SystemEventTypeDef event;
+  const TickType_t config_wait_ticks = pdMS_TO_TICKS(5000U);  /* 5 second timeout */
+  
+  osStatus_t status = osMessageQueueGet(storage2system_event_queue, &event, NULL, config_wait_ticks);
+  printf("osMessageQueueGet for storage2system_event_queue returned status=%d, event=%d\n", status, event);
+  
+  if (status == osOK)
+  {
+    if (event == EVT_CFG_LOAD_END)
+    {
+      printf("Config loaded successfully\n");
+    }
+  }
+  else
+  {
+    printf("Config load timeout (status=%d) - using default configuration\n", status);
+  }
+
+  /* Set temperature calibration offset in config */
+  ConfigTypeDef config;
+  if (StorageTask_CopyConfig(&config))
+  {
+    printf("Current temperature offset: %.1f°C\n", config.TemperatureOffsetC);
+    config.TemperatureOffsetC = 5.0f;
+    StorageTask_SetConfig(&config);
+    printf("Set temperature offset to %.1f°C\n", config.TemperatureOffsetC);
+  }
 
   if (!lv_port_lock())
   {

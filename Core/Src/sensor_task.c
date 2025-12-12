@@ -7,6 +7,7 @@
 #include "stm32wbxx_hal.h"
 #include "stm32wbxx_hal_adc_ex.h"
 #include "stm32wbxx_ll_adc.h"
+#include "storage_task.h"
 
 #include <stddef.h>
 #include <string.h>
@@ -29,7 +30,6 @@ static SensorValuesTypeDef s_sensor_values = {
   0.0f
 };
 static osMutexId_t s_sensor_values_mutex;
-static float s_temperature_offset_c = 0.0f;
 #if TESTS & DRIVER_TEST
 static bool s_motor_measurements_enabled = true;
 #else
@@ -62,7 +62,16 @@ static float convert_raw_to_voltage(uint16_t raw_value, uint32_t vref_mv)
 static float calculate_temperature(uint16_t temperature_raw, uint32_t vref_mv)
 {
   const int32_t temperature = __LL_ADC_CALC_TEMPERATURE(vref_mv, temperature_raw, LL_ADC_RESOLUTION_12B);
-  return (float)temperature + s_temperature_offset_c;
+  
+  /* Read temperature offset from storage task */
+  ConfigTypeDef config = {0.0f};
+  float offset = 0.0f;
+  if (StorageTask_CopyConfig(&config))
+  {
+    offset = config.TemperatureOffsetC;
+  }
+  
+  return (float)temperature + offset;
 }
 
 static uint8_t calculate_battery_soc(float battery_voltage_v)
@@ -137,22 +146,6 @@ bool SensorTask_CopySensorValues(SensorValuesTypeDef *dest)
   *dest = s_sensor_values;
   osMutexRelease(s_sensor_values_mutex);
   return true;
-}
-
-void SensorTask_SetTemperatureCalibrationOffset(float offset_c)
-{
-  taskENTER_CRITICAL();
-  s_temperature_offset_c = offset_c;
-  taskEXIT_CRITICAL();
-}
-
-float SensorTask_GetTemperatureCalibrationOffset(void)
-{
-  float offset;
-  taskENTER_CRITICAL();
-  offset = s_temperature_offset_c;
-  taskEXIT_CRITICAL();
-  return offset;
 }
 
 void SensorTask_StartMotorMeasurements(void)

@@ -35,10 +35,25 @@ extern "C" {
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "task_debug.h"
+#include "cmsis_os2.h"
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
 /* USER CODE BEGIN ET */
+
+/**
+ * @brief Arguments for defaultTask
+ */
+typedef struct {
+  osMessageQueueId_t storage2system_event_queue;  /**< Storage event queue handle */
+} DefaultTaskArgsTypeDef;
+
+/**
+ * @brief Arguments for storageTask
+ */
+typedef struct {
+  osMessageQueueId_t storage2system_event_queue;  /**< Storage event queue handle */
+} StorageTaskArgsTypeDef;
 
 /* USER CODE END ET */
 
@@ -98,8 +113,8 @@ void Error_Handler(void);
 
 /* USER CODE BEGIN Private defines */
 // Tests settings
-#define TESTS               0
-#define DRIVER_TEST         0
+#define TESTS               1
+#define DRIVER_TEST         1
 #define ADAPTATION_TEST     0
 
 

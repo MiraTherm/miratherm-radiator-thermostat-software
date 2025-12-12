@@ -88,6 +88,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user sources here
     Core/Src/input_task.c
     Core/Src/sensor_task.c
+    Core/Src/storage_task.c
     Core/Src/tests.c
     Core/Src/view_presenter_task.c
     Core/Src/view_presenter_router.c

@@ -27,6 +27,7 @@
 #include "lvgl_port_display.h"
 #include "input_task.h"
 #include "sensor_task.h"
+#include "storage_task.h"
 #include "view_presenter_task.h"
 /* USER CODE END Includes */
 
@@ -86,6 +87,17 @@ const osThreadAttr_t sensorTask_attributes = {
   .priority = (osPriority_t) osPriorityHigh3,
   .stack_size = SENSOR_TASK_STACK_SIZE
 };
+
+/* Definitions for StorageTask */
+osThreadId_t storageTaskHandle;
+const osThreadAttr_t storageTask_attributes = {
+  .name = "storageTask",
+  .priority = (osPriority_t) osPriorityLow,
+  .stack_size = STORAGE_TASK_STACK_SIZE
+};
+
+/* Storage event queue */
+osMessageQueueId_t storage2SystemEventQueueHandle;
 
 #if !TESTS
 /*Definitions for ViewPresenterTask*/
@@ -194,17 +206,30 @@ int main(void)
   /* USER CODE END RTOS_TIMERS */
 
   /* USER CODE BEGIN RTOS_QUEUES */
-  /* add queues, ... */
+  /* Create storage event queue */
+  storage2SystemEventQueueHandle = osMessageQueueNew(4, sizeof(Storage2SystemEventTypeDef), NULL);
+  if (storage2SystemEventQueueHandle == NULL)
+  {
+    Error_Handler();
+  }
+  static DefaultTaskArgsTypeDef defaultTaskArgs = {
+    .storage2system_event_queue = NULL
+  };
+  static StorageTaskArgsTypeDef storageTaskArgs = {
+    .storage2system_event_queue = NULL
+  };
+  defaultTaskArgs.storage2system_event_queue = storage2SystemEventQueueHandle;
+  storageTaskArgs.storage2system_event_queue = storage2SystemEventQueueHandle;
   /* USER CODE END RTOS_QUEUES */
 
   /* Create the thread(s) */
   /* creation of defaultTask */
-  defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
+  defaultTaskHandle = osThreadNew(StartDefaultTask, (void *)&defaultTaskArgs, &defaultTask_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
-  /* creation of lvglTask */
   lvglTaskHandle = osThreadNew(StartLVGLTask, NULL, &lvglTask_attributes);
   sensorTaskHandle = osThreadNew(StartSensorTask, NULL, &sensorTask_attributes);
+  storageTaskHandle = osThreadNew(StartStorageTask, (void *)&storageTaskArgs, &storageTask_attributes);
   inputTaskHandle = osThreadNew(StartInputTask, NULL, &inputTask_attributes);
 #if !TESTS
   viewPresenterTaskHandle = osThreadNew(StartViewPresenterTask, NULL, &viewPresenterTask_attributes);
@@ -654,20 +679,23 @@ void HAL_Delay(uint32_t Delay)
 /* USER CODE BEGIN Header_StartDefaultTask */
 /**
   * @brief  Function implementing the defaultTask thread.
-  * @param  argument: Not used
+  * @param  argument: Pointer to DefaultTaskArgsTypeDef containing task arguments
   * @retval None
   */
 /* USER CODE END Header_StartDefaultTask */
 void StartDefaultTask(void *argument)
 {
   /* USER CODE BEGIN 5 */
+  DefaultTaskArgsTypeDef *args = (DefaultTaskArgsTypeDef *)argument;
+  osMessageQueueId_t storage2system_event_queue = args->storage2system_event_queue;
+
 #if OS_TASKS_DEBUG
   printf("DefaultTask running (heap=%lu)\n", (unsigned long)xPortGetFreeHeapSize());
 #endif
 
 #if TESTS
 #if DRIVER_TEST
-  Driver_Test();
+  Driver_Test(storage2system_event_queue);
 #elif ADAPTATION_TEST
   Adaptation_Test();
 #endif

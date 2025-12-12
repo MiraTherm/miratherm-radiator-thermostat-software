@@ -29,9 +29,6 @@ void StartSensorTask(void *argument);
 
 bool SensorTask_CopySensorValues(SensorValuesTypeDef *dest);
 
-void SensorTask_SetTemperatureCalibrationOffset(float offset_c);
-float SensorTask_GetTemperatureCalibrationOffset(void);
-
 void SensorTask_StartMotorMeasurements(void);
 void SensorTask_StopMotorMeasurements(void);
 
