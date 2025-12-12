@@ -36,6 +36,7 @@ extern "C" {
 /* USER CODE BEGIN Includes */
 #include "task_debug.h"
 #include "cmsis_os2.h"
+#include "storage_task.h"
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
@@ -46,6 +47,7 @@ extern "C" {
  */
 typedef struct {
   osMessageQueueId_t storage2system_event_queue;  /**< Storage event queue handle */
+  ConfigAccessTypeDef *config_access;             /**< Configuration access with mutex protection */
 } DefaultTaskArgsTypeDef;
 
 /**
@@ -53,7 +55,15 @@ typedef struct {
  */
 typedef struct {
   osMessageQueueId_t storage2system_event_queue;  /**< Storage event queue handle */
+  ConfigAccessTypeDef *config_access;             /**< Configuration access with mutex protection */
 } StorageTaskArgsTypeDef;
+
+/**
+ * @brief Arguments for sensorTask
+ */
+typedef struct {
+  ConfigAccessTypeDef *config_access;             /**< Configuration access with mutex protection */
+} SensorTaskArgsTypeDef;
 
 /* USER CODE END ET */
 

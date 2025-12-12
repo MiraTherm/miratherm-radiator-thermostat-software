@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#include "main.h"
+#include "cmsis_os2.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -20,25 +20,16 @@ typedef struct
   float TemperatureOffsetC;
 } ConfigTypeDef;
 
+/**
+ * @brief Configuration access wrapper with mutex protection
+ */
+typedef struct
+{
+  osMutexId_t mutex;
+  ConfigTypeDef data;
+} ConfigAccessTypeDef;
+
 void StartStorageTask(void *argument);
-
-/**
- * argument should be the osMessageQueueId_t for the event queue
- * This queue is created in main.c before task creation
- */
-
-bool StorageTask_CopyConfig(ConfigTypeDef *dest);
-/**
- * Copy current configuration to destination.
- * Thread-safe via internal mutex.
- */
-bool StorageTask_CopyConfig(ConfigTypeDef *dest);
-
-/**
- * Set configuration and save to Flash.
- * Thread-safe via internal mutex.
- */
-bool StorageTask_SetConfig(const ConfigTypeDef *src);
 
 /**
  * Try to get a storage system event.

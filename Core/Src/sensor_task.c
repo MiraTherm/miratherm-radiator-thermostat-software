@@ -30,6 +30,7 @@ static SensorValuesTypeDef s_sensor_values = {
   0.0f
 };
 static osMutexId_t s_sensor_values_mutex;
+static ConfigAccessTypeDef *s_config_access = NULL;
 #if TESTS & DRIVER_TEST
 static bool s_motor_measurements_enabled = true;
 #else
@@ -63,12 +64,12 @@ static float calculate_temperature(uint16_t temperature_raw, uint32_t vref_mv)
 {
   const int32_t temperature = __LL_ADC_CALC_TEMPERATURE(vref_mv, temperature_raw, LL_ADC_RESOLUTION_12B);
   
-  /* Read temperature offset from storage task */
-  ConfigTypeDef config = {0.0f};
+  /* Read temperature offset from config access */
   float offset = 0.0f;
-  if (StorageTask_CopyConfig(&config))
+  if (osMutexAcquire(s_config_access->mutex, osWaitForever) == osOK)
   {
-    offset = config.TemperatureOffsetC;
+    offset = s_config_access->data.TemperatureOffsetC;
+    osMutexRelease(s_config_access->mutex);
   }
   
   return (float)temperature + offset;
@@ -164,7 +165,13 @@ void SensorTask_StopMotorMeasurements(void)
 
 void StartSensorTask(void *argument)
 {
-  (void)argument;
+  SensorTaskArgsTypeDef *args = (SensorTaskArgsTypeDef *)argument;
+  
+  /* Receive config access handle from main */
+  if (args != NULL && args->config_access != NULL)
+  {
+    s_config_access = args->config_access;
+  }
 
 #if OS_TASKS_DEBUG
   printf("SensorTask running (heap=%lu)\n", (unsigned long)xPortGetFreeHeapSize());

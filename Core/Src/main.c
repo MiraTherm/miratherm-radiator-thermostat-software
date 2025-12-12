@@ -194,7 +194,20 @@ int main(void)
   osKernelInitialize();
 
   /* USER CODE BEGIN RTOS_MUTEX */
-  /* add mutexes, ... */
+  /* Create config access structure with mutex */
+  static ConfigAccessTypeDef configAccess = {
+    .mutex = NULL,
+    .data = {.TemperatureOffsetC = 0.0f}
+  };
+  const osMutexAttr_t configMutexAttr = {
+    .name = "ConfigMutex",
+    .attr_bits = osMutexPrioInherit,
+  };
+  configAccess.mutex = osMutexNew(&configMutexAttr);
+  if (configAccess.mutex == NULL)
+  {
+    Error_Handler();
+  }
   /* USER CODE END RTOS_MUTEX */
 
   /* USER CODE BEGIN RTOS_SEMAPHORES */
@@ -213,13 +226,21 @@ int main(void)
     Error_Handler();
   }
   static DefaultTaskArgsTypeDef defaultTaskArgs = {
-    .storage2system_event_queue = NULL
+    .storage2system_event_queue = NULL,
+    .config_access = NULL
   };
   static StorageTaskArgsTypeDef storageTaskArgs = {
-    .storage2system_event_queue = NULL
+    .storage2system_event_queue = NULL,
+    .config_access = NULL
+  };
+  static SensorTaskArgsTypeDef sensorTaskArgs = {
+    .config_access = NULL
   };
   defaultTaskArgs.storage2system_event_queue = storage2SystemEventQueueHandle;
+  defaultTaskArgs.config_access = &configAccess;
   storageTaskArgs.storage2system_event_queue = storage2SystemEventQueueHandle;
+  storageTaskArgs.config_access = &configAccess;
+  sensorTaskArgs.config_access = &configAccess;
   /* USER CODE END RTOS_QUEUES */
 
   /* Create the thread(s) */
@@ -228,7 +249,7 @@ int main(void)
 
   /* USER CODE BEGIN RTOS_THREADS */
   lvglTaskHandle = osThreadNew(StartLVGLTask, NULL, &lvglTask_attributes);
-  sensorTaskHandle = osThreadNew(StartSensorTask, NULL, &sensorTask_attributes);
+  sensorTaskHandle = osThreadNew(StartSensorTask, (void *)&sensorTaskArgs, &sensorTask_attributes);
   storageTaskHandle = osThreadNew(StartStorageTask, (void *)&storageTaskArgs, &storageTask_attributes);
   inputTaskHandle = osThreadNew(StartInputTask, NULL, &inputTask_attributes);
 #if !TESTS
@@ -687,7 +708,6 @@ void StartDefaultTask(void *argument)
 {
   /* USER CODE BEGIN 5 */
   DefaultTaskArgsTypeDef *args = (DefaultTaskArgsTypeDef *)argument;
-  osMessageQueueId_t storage2system_event_queue = args->storage2system_event_queue;
 
 #if OS_TASKS_DEBUG
   printf("DefaultTask running (heap=%lu)\n", (unsigned long)xPortGetFreeHeapSize());
@@ -695,7 +715,7 @@ void StartDefaultTask(void *argument)
 
 #if TESTS
 #if DRIVER_TEST
-  Driver_Test(storage2system_event_queue);
+  Driver_Test(args->storage2system_event_queue, args->config_access);
 #elif ADAPTATION_TEST
   Adaptation_Test();
 #endif

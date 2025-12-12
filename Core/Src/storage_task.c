@@ -1,5 +1,6 @@
 #include "storage_task.h"
 
+#include "main.h"
 #include "cmsis_os2.h"
 #include "FreeRTOS.h"
 #include "task.h"
@@ -25,11 +26,7 @@ typedef struct
   uint32_t checksum;
 } StorageBlockTypeDef;
 
-static ConfigTypeDef s_config = {
-  .TemperatureOffsetC = 0.0f
-};
-
-static osMutexId_t s_config_mutex = NULL;
+static ConfigAccessTypeDef *s_config_access = NULL;
 static osMessageQueueId_t s_event_queue = NULL;
 
 /**
@@ -129,40 +126,6 @@ static bool write_config_to_flash(const ConfigTypeDef *config)
   return true;
 }
 
-bool StorageTask_CopyConfig(ConfigTypeDef *dest)
-{
-  if (dest == NULL || s_config_mutex == NULL)
-    return false;
-
-  if (osMutexAcquire(s_config_mutex, osWaitForever) != osOK)
-    return false;
-
-  *dest = s_config;
-  osMutexRelease(s_config_mutex);
-  return true;
-}
-
-bool StorageTask_SetConfig(const ConfigTypeDef *src)
-{
-  if (src == NULL || s_config_mutex == NULL)
-    return false;
-
-  if (osMutexAcquire(s_config_mutex, osWaitForever) != osOK)
-    return false;
-
-  /* Write to Flash */
-  bool flash_ok = write_config_to_flash(src);
-
-  if (flash_ok)
-  {
-    /* Update RAM copy only if Flash write succeeded */
-    s_config = *src;
-  }
-
-  osMutexRelease(s_config_mutex);
-  return flash_ok;
-}
-
 static void StorageTask_PostEvent(Storage2SystemEventTypeDef event)
 {
   if (s_event_queue == NULL)
@@ -188,26 +151,26 @@ void StartStorageTask(void *argument)
 {
   StorageTaskArgsTypeDef *args = (StorageTaskArgsTypeDef *)argument;
   osMessageQueueId_t event_queue = args->storage2system_event_queue;
+  ConfigAccessTypeDef *config_access = args->config_access;
 
-  /* Receive event queue handle from main */
+  /* Receive event queue and config access handles from main */
   if (event_queue != NULL)
   {
     s_event_queue = event_queue;
   }
 
-  /* Create mutex for config protection */
-  const osMutexAttr_t mutex_attr = {
-    .name = "Config",
-    .attr_bits = osMutexPrioInherit,
-  };
-  s_config_mutex = osMutexNew(&mutex_attr);
-  if (s_config_mutex == NULL)
+  if (config_access != NULL)
+  {
+    s_config_access = config_access;
+  }
+
+  /* Verify both are available */
+  if (s_event_queue == NULL)
   {
     Error_Handler();
   }
 
-  /* Verify event queue is available */
-  if (s_event_queue == NULL)
+  if (s_config_access == NULL || s_config_access->mutex == NULL)
   {
     Error_Handler();
   }
@@ -216,14 +179,20 @@ void StartStorageTask(void *argument)
   ConfigTypeDef loaded_config = {.TemperatureOffsetC = 0.0f};
   if (read_config_from_flash(&loaded_config))
   {
-    s_config = loaded_config;
+    /* Store in shared config with mutex protection */
+    if (osMutexAcquire(s_config_access->mutex, osWaitForever) == osOK)
+    {
+      s_config_access->data = loaded_config;
+      osMutexRelease(s_config_access->mutex);
+    }
     printf("StorageTask: Configuration loaded from Flash\n");
   }
   else
   {
     printf("StorageTask: No valid configuration in Flash, using defaults\n");
     /* Save default configuration to Flash */
-    if (write_config_to_flash(&s_config))
+    ConfigTypeDef default_config = {.TemperatureOffsetC = 0.0f};
+    if (write_config_to_flash(&default_config))
     {
       printf("StorageTask: Default configuration saved to Flash\n");
     }
@@ -240,10 +209,43 @@ void StartStorageTask(void *argument)
   printf("StorageTask running (heap=%lu)\n", (unsigned long)xPortGetFreeHeapSize());
 #endif
 
-  /* StorageTask mainly runs on-demand via SetConfig/CopyConfig calls.
-     Keep task alive but mostly idle. */
+  /* Track last written config to detect changes */
+  ConfigTypeDef last_written_config = s_config_access->data;
+
+  /* Periodic write task: check every 2.5 seconds if config changed */
   for (;;)
   {
-    osDelay(pdMS_TO_TICKS(10000U));  /* Check every 10 seconds */
+    osDelay(pdMS_TO_TICKS(2500U));  /* Check every 2.5 seconds */
+
+    if (osMutexAcquire(s_config_access->mutex, osWaitForever) == osOK)
+    {
+      /* Check if config changed by comparing with last written version */
+      bool config_changed = (memcmp(&s_config_access->data, &last_written_config, sizeof(ConfigTypeDef)) != 0);
+
+      if (config_changed)
+      {
+        ConfigTypeDef current_data = s_config_access->data;
+        osMutexRelease(s_config_access->mutex);
+
+        /* Config changed, write to Flash */
+        if (write_config_to_flash(&current_data))
+        {
+          if (osMutexAcquire(s_config_access->mutex, osWaitForever) == osOK)
+          {
+            last_written_config = s_config_access->data;
+            osMutexRelease(s_config_access->mutex);
+          }
+          printf("StorageTask: Configuration saved to Flash\n");
+        }
+        else
+        {
+          printf("StorageTask: Failed to save configuration to Flash\n");
+        }
+      }
+      else
+      {
+        osMutexRelease(s_config_access->mutex);
+      }
+    }
   }
 }

@@ -74,7 +74,7 @@ static void update_go_button_label(lv_obj_t *label, bool forward)
   lv_label_set_text_fmt(label, "Go: %s", forward ? "F" : "R");
 }
 
-void Driver_Test(osMessageQueueId_t storage2system_event_queue)
+void Driver_Test(osMessageQueueId_t storage2system_event_queue, ConfigAccessTypeDef *config_access)
 {
   printf("Starting driver test...\n");
   
@@ -82,6 +82,13 @@ void Driver_Test(osMessageQueueId_t storage2system_event_queue)
   if (storage2system_event_queue == NULL)
   {
     printf("ERROR: storage2system_event_queue is NULL\n");
+    return;
+  }
+  
+  /* Validate config access handle */
+  if (config_access == NULL || config_access->mutex == NULL)
+  {
+    printf("ERROR: config_access or mutex is NULL\n");
     return;
   }
   
@@ -110,14 +117,21 @@ void Driver_Test(osMessageQueueId_t storage2system_event_queue)
     printf("Config load timeout (status=%d) - using default configuration\n", status);
   }
 
-  /* Set temperature calibration offset in config */
+  /* Set temperature calibration offset in config - manually manage mutex */
   ConfigTypeDef config;
-  if (StorageTask_CopyConfig(&config))
+  if (osMutexAcquire(config_access->mutex, osWaitForever) == osOK)
   {
+    config = config_access->data;
     printf("Current temperature offset: %.1f°C\n", config.TemperatureOffsetC);
+    
     config.TemperatureOffsetC = 5.0f;
-    StorageTask_SetConfig(&config);
+    config_access->data = config;
+    osMutexRelease(config_access->mutex);
+    
     printf("Set temperature offset to %.1f°C\n", config.TemperatureOffsetC);
+  }
+  else {
+    printf("Failed to acquire config mutex\n");
   }
 
   if (!lv_port_lock())
