@@ -52,6 +52,7 @@ struct SensorValuesAccessTypeDef;
  */
 typedef struct {
   osMessageQueueId_t storage2system_event_queue;  /**< Storage event queue handle */
+  osMessageQueueId_t input2vp_event_queue;        /**< Input to ViewPresenter event queue handle */
   struct ConfigAccessTypeDef *config_access;             /**< Configuration access with mutex protection */
   struct SensorValuesAccessTypeDef *sensor_values_access; /**< Sensor values access with mutex protection */
 } DefaultTaskArgsTypeDef;

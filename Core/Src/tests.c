@@ -75,14 +75,20 @@ static void update_go_button_label(lv_obj_t *label, bool forward)
   lv_label_set_text_fmt(label, "Go: %s", forward ? "F" : "R");
 }
 
-void Driver_Test(osMessageQueueId_t storage2system_event_queue, ConfigAccessTypeDef *config_access, SensorValuesAccessTypeDef *sensor_values_access)
+void Driver_Test(osMessageQueueId_t storage2system_event_queue, osMessageQueueId_t input2vp_event_queue, ConfigAccessTypeDef *config_access, SensorValuesAccessTypeDef *sensor_values_access)
 {
   printf("Starting driver test...\n");
   
-  /* Validate queue handle */
+  /* Validate queue handles */
   if (storage2system_event_queue == NULL)
   {
     printf("ERROR: storage2system_event_queue is NULL\n");
+    return;
+  }
+
+  if (input2vp_event_queue == NULL)
+  {
+    printf("ERROR: input2vp_event_queue is NULL\n");
     return;
   }
   
@@ -216,7 +222,7 @@ void Driver_Test(osMessageQueueId_t storage2system_event_queue, ConfigAccessType
   for (;;)
   {
     Input2VPEvent_t event;
-    const bool event_ready = InputTask_TryGetVPEvent(&event, event_wait_ticks);
+    const bool event_ready = (osMessageQueueGet(input2vp_event_queue, &event, NULL, event_wait_ticks) == osOK);
 
     if (event_ready)
     {

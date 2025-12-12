@@ -11,7 +11,17 @@
 
 void StartViewPresenterTask(void *argument)
 {
-    (void)argument;
+    const ViewPresenterTaskArgsTypeDef *args = (const ViewPresenterTaskArgsTypeDef *)argument;
+    if (args == NULL)
+    {
+        Error_Handler();
+    }
+
+    osMessageQueueId_t input2vp_queue = args->input2vp_event_queue;
+    if (input2vp_queue == NULL)
+    {
+        Error_Handler();
+    }
 
 #if OS_TASKS_DEBUG
     printf("ViewPresenterTask running (heap=%lu)\n", (unsigned long)xPortGetFreeHeapSize());
@@ -27,11 +37,11 @@ void StartViewPresenterTask(void *argument)
     {
         // Wait for event with timeout to allow periodic updates
         // Use the timeout to pace the loop when idle, but process immediately when busy
-        if (InputTask_TryGetVPEvent(&event, pdMS_TO_TICKS(VIEW_DELAY_MS))) {
+        if (osMessageQueueGet(input2vp_queue, &event, NULL, pdMS_TO_TICKS(VIEW_DELAY_MS)) == osOK) {
             Router_HandleEvent(&event);
             
             // Drain remaining events in the queue without blocking
-            while (InputTask_TryGetVPEvent(&event, 0)) {
+            while (osMessageQueueGet(input2vp_queue, &event, NULL, 0) == osOK) {
                 Router_HandleEvent(&event);
             }
         }

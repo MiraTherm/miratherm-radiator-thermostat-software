@@ -26,10 +26,12 @@ typedef struct
 	uint32_t timestamp;
 } Input2VPEvent_t;
 
-void StartInputTask(void *argument);
+typedef struct
+{
+	osMessageQueueId_t input2vp_event_queue;
+} InputTaskArgsTypeDef;
 
-bool InputTask_TryGetVPEvent(Input2VPEvent_t *event, uint32_t timeout_ticks);
-bool InputTask_IsButtonPressed(button_id_t id);
+void StartInputTask(void *argument);
 
 #define INPUT_TASK_STACK_SIZE (512U * 4U)
 

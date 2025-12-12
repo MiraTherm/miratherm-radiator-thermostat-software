@@ -4,7 +4,6 @@
 #include "main.h"
 #include "rotary_encoder.h"
 
-#define INPUT_BUTTON_QUEUE_DEPTH 8U
 #define INPUT_BUTTON_POLL_DELAY_MS 25U
 
 static osMessageQueueId_t s_event_queue;
@@ -43,19 +42,23 @@ static void InputTask_PostEvent(const Input2VPEvent_t *event)
 
 void StartInputTask(void *argument)
 {
-  (void)argument;
+  const InputTaskArgsTypeDef *args = (const InputTaskArgsTypeDef *)argument;
+  if (args == NULL)
+  {
+    Error_Handler();
+  }
+
+  s_event_queue = args->input2vp_event_queue;
+  if (s_event_queue == NULL)
+  {
+    Error_Handler();
+  }
 
 #if OS_TASKS_DEBUG
   printf("InputTask running (heap=%lu)\n", (unsigned long)xPortGetFreeHeapSize());
 #endif
 
   Buttons_Init();
-
-  s_event_queue = osMessageQueueNew(INPUT_BUTTON_QUEUE_DEPTH, sizeof(Input2VPEvent_t), NULL);
-  if (s_event_queue == NULL)
-  {
-    Error_Handler();
-  }
 
   if (RotaryEncoder_Init() != HAL_OK)
   {
@@ -109,21 +112,6 @@ void StartInputTask(void *argument)
 
     osDelay(pdMS_TO_TICKS(INPUT_BUTTON_POLL_DELAY_MS));
   }
-}
-
-bool InputTask_TryGetVPEvent(Input2VPEvent_t *event, uint32_t timeout_ticks)
-{
-  if ((event == NULL) || (s_event_queue == NULL))
-  {
-    return false;
-  }
-
-  return (osMessageQueueGet(s_event_queue, event, NULL, timeout_ticks) == osOK);
-}
-
-bool InputTask_IsButtonPressed(button_id_t id)
-{
-  return Buttons_GetStableState(id);
 }
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)

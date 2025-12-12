@@ -99,6 +99,9 @@ const osThreadAttr_t storageTask_attributes = {
 /* Storage event queue */
 osMessageQueueId_t storage2SystemEventQueueHandle;
 
+/* Input to ViewPresenter event queue */
+osMessageQueueId_t input2VPEventQueueHandle;
+
 #if !TESTS
 /*Definitions for ViewPresenterTask*/
 osThreadId_t viewPresenterTaskHandle;
@@ -247,26 +250,50 @@ int main(void)
   {
     Error_Handler();
   }
+  
+  /* Create input to ViewPresenter event queue */
+  input2VPEventQueueHandle = osMessageQueueNew(8U, sizeof(Input2VPEvent_t), NULL);
+  if (input2VPEventQueueHandle == NULL)
+  {
+    Error_Handler();
+  }
+  
   static DefaultTaskArgsTypeDef defaultTaskArgs = {
     .storage2system_event_queue = NULL,
-    .config_access = NULL,
-    .sensor_values_access = NULL
-  };
-  static StorageTaskArgsTypeDef storageTaskArgs = {
-    .storage2system_event_queue = NULL,
-    .config_access = NULL
-  };
-  static SensorTaskArgsTypeDef sensorTaskArgs = {
+    .input2vp_event_queue = NULL,
     .config_access = NULL,
     .sensor_values_access = NULL
   };
   defaultTaskArgs.storage2system_event_queue = storage2SystemEventQueueHandle;
+  defaultTaskArgs.input2vp_event_queue = input2VPEventQueueHandle;
   defaultTaskArgs.config_access = &configAccess;
   defaultTaskArgs.sensor_values_access = &sensorValuesAccess;
+
+  static StorageTaskArgsTypeDef storageTaskArgs = {
+    .storage2system_event_queue = NULL,
+    .config_access = NULL
+  };
   storageTaskArgs.storage2system_event_queue = storage2SystemEventQueueHandle;
   storageTaskArgs.config_access = &configAccess;
+
+  static SensorTaskArgsTypeDef sensorTaskArgs = {
+    .config_access = NULL,
+    .sensor_values_access = NULL
+  };
   sensorTaskArgs.config_access = &configAccess;
   sensorTaskArgs.sensor_values_access = &sensorValuesAccess;
+
+  static InputTaskArgsTypeDef inputTaskArgs = {
+    .input2vp_event_queue = NULL
+  };
+  inputTaskArgs.input2vp_event_queue = input2VPEventQueueHandle;
+  
+#if !TESTS
+  static ViewPresenterTaskArgsTypeDef viewPresenterTaskArgs = {
+    .input2vp_event_queue = NULL
+  };
+  viewPresenterTaskArgs.input2vp_event_queue = input2VPEventQueueHandle;
+#endif
   /* USER CODE END RTOS_QUEUES */
 
   /* Create the thread(s) */
@@ -277,9 +304,9 @@ int main(void)
   lvglTaskHandle = osThreadNew(StartLVGLTask, NULL, &lvglTask_attributes);
   sensorTaskHandle = osThreadNew(StartSensorTask, (void *)&sensorTaskArgs, &sensorTask_attributes);
   storageTaskHandle = osThreadNew(StartStorageTask, (void *)&storageTaskArgs, &storageTask_attributes);
-  inputTaskHandle = osThreadNew(StartInputTask, NULL, &inputTask_attributes);
+  inputTaskHandle = osThreadNew(StartInputTask, (void *)&inputTaskArgs, &inputTask_attributes);
 #if !TESTS
-  viewPresenterTaskHandle = osThreadNew(StartViewPresenterTask, NULL, &viewPresenterTask_attributes);
+  viewPresenterTaskHandle = osThreadNew(StartViewPresenterTask, (void *)&viewPresenterTaskArgs, &viewPresenterTask_attributes);
 #endif
   /* USER CODE END RTOS_THREADS */
 
@@ -745,7 +772,7 @@ void StartDefaultTask(void *argument)
 
 #if TESTS
 #if DRIVER_TEST
-  Driver_Test(args->storage2system_event_queue, args->config_access, args->sensor_values_access);
+  Driver_Test(args->storage2system_event_queue, args->input2vp_event_queue, args->config_access, args->sensor_values_access);
 #elif ADAPTATION_TEST
   Adaptation_Test();
 #endif
