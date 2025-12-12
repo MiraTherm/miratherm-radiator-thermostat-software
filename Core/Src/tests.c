@@ -27,16 +27,17 @@ static void sensor_current_label_update(lv_obj_t *label, float current)
     return;
   }
 
-  const int32_t scaled = scale_value_for_label(current, 3);
-  int32_t integral = scaled / 1000;
-  int32_t fraction = scaled % 1000;
-  if (fraction < 0)
+  /* Convert amps to milliamps */
+  const float current_ma = current * 1000.0f;
+  const int32_t scaled = scale_value_for_label(current_ma, 0);
+  int32_t integral = scaled;
+  if (integral < 0)
   {
-    fraction = -fraction;
+    integral = -integral;
   }
 
   char buf[32];
-  snprintf(buf, sizeof(buf), "I:%ld.%03ldA", (long)integral, (long)fraction);
+  snprintf(buf, sizeof(buf), "M:%ldmA", (long)integral);
   lv_label_set_text(label, buf);
 }
 
@@ -76,7 +77,7 @@ static void sensor_temperature_label_update(lv_obj_t *label, float temperature)
   }
 
   char buf[32];
-  snprintf(buf, sizeof(buf), "T:%ld.%1ldC", (long)integral, (long)fraction);
+  snprintf(buf, sizeof(buf), "T:%ld.%1ld°C", (long)integral, (long)fraction);
   lv_label_set_text(label, buf);
 }
 
@@ -123,12 +124,12 @@ void Driver_Test(void)
 
   lv_obj_t *encoder_label = lv_label_create(scr);
   lv_obj_set_style_text_color(encoder_label, lv_color_white(), 0);
-  lv_label_set_text(encoder_label, "RE: 0");
+  lv_label_set_text(encoder_label, "RE:0");
   lv_obj_align(encoder_label, LV_ALIGN_TOP_LEFT, 4, 4);
 
   lv_obj_t *current_label = lv_label_create(scr);
   lv_obj_set_style_text_color(current_label, lv_color_white(), 0);
-  lv_label_set_text(current_label, "I: -.---A");
+  lv_label_set_text(current_label, "M:---mA");
   lv_obj_align_to(current_label, encoder_label, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 2);
 
   lv_obj_t *battery_label = lv_label_create(scr);
@@ -138,8 +139,8 @@ void Driver_Test(void)
 
   lv_obj_t *temp_label = lv_label_create(scr);
   lv_obj_set_style_text_color(temp_label, lv_color_white(), 0);
-  lv_label_set_text(temp_label, "T: --.-C");
-  lv_obj_align_to(temp_label, battery_label, LV_ALIGN_OUT_BOTTOM_RIGHT, 0, 2);
+  lv_label_set_text(temp_label, "T: --.-°C");
+  lv_obj_align_to(temp_label, battery_label, LV_ALIGN_OUT_BOTTOM_RIGHT, -2, 2);
   
   struct button_ui
   {
