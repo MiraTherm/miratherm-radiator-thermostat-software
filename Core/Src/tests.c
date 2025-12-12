@@ -9,17 +9,6 @@
 #include "sensor_task.h"
 
 #if DRIVER_TEST
-static int32_t scale_value_for_label(float value, uint8_t decimals)
-{
-  int32_t scale = 1;
-  for (uint8_t i = 0; i < decimals; ++i)
-  {
-    scale *= 10;
-  }
-  const float scaled = value * (float)scale + (value >= 0.0f ? 0.5f : -0.5f);
-  return (int32_t)scaled;
-}
-
 static void sensor_current_label_update(lv_obj_t *label, float current)
 {
   if (label == NULL)
@@ -29,15 +18,9 @@ static void sensor_current_label_update(lv_obj_t *label, float current)
 
   /* Convert amps to milliamps */
   const float current_ma = current * 1000.0f;
-  const int32_t scaled = scale_value_for_label(current_ma, 0);
-  int32_t integral = scaled;
-  if (integral < 0)
-  {
-    integral = -integral;
-  }
 
   char buf[32];
-  snprintf(buf, sizeof(buf), "M:%ldmA", (long)integral);
+  snprintf(buf, sizeof(buf), "M:%.0fmA", current_ma);
   lv_label_set_text(label, buf);
 }
 
@@ -48,16 +31,8 @@ static void sensor_battery_label_update(lv_obj_t *label, float voltage, uint8_t 
     return;
   }
 
-  const int32_t scaled = scale_value_for_label(voltage, 1);
-  int32_t integral = scaled / 10;
-  int32_t fraction = scaled % 10;
-  if (fraction < 0)
-  {
-    fraction = -fraction;
-  }
-
   char buf[32];
-  snprintf(buf, sizeof(buf), "B:%ld.%1ldV/%u%%", (long)integral, (long)fraction, soc);
+  snprintf(buf, sizeof(buf), "B:%.1fV/%u%%", voltage, soc);
   lv_label_set_text(label, buf);
 }
 
@@ -68,16 +43,8 @@ static void sensor_temperature_label_update(lv_obj_t *label, float temperature)
     return;
   }
 
-  const int32_t scaled = scale_value_for_label(temperature, 1);
-  int32_t integral = scaled / 10;
-  int32_t fraction = scaled % 10;
-  if (fraction < 0)
-  {
-    fraction = -fraction;
-  }
-
   char buf[32];
-  snprintf(buf, sizeof(buf), "T:%ld.%1ld°C", (long)integral, (long)fraction);
+  snprintf(buf, sizeof(buf), "T:%.1f°C", temperature);
   lv_label_set_text(label, buf);
 }
 
