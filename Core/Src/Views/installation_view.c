@@ -1,6 +1,8 @@
 #include "installation_view.h"
 
 #include "lvgl_port_display.h"
+#include <src/misc/lv_area.h>
+#include <src/misc/lv_txt.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdbool.h>
@@ -48,10 +50,9 @@ InstallationView_t* InstallationView_Init(void)
 
     /* Create animated dots label - centered, minimal text */
     view->label_dots = lv_label_create(view->screen);
-    lv_label_set_text(view->label_dots, ".");
-    lv_obj_set_pos(view->label_dots, 60, 28);
-    lv_obj_set_size(view->label_dots, 8, 8);
-    lv_obj_set_style_text_align(view->label_dots, LV_TEXT_ALIGN_CENTER, 0);
+    lv_label_set_text(view->label_dots, "Installation...");
+    lv_obj_align(view->label_dots, LV_ALIGN_LEFT_MID, 20, 0);
+    lv_obj_set_style_text_align(view->label_dots, LV_TEXT_ALIGN_LEFT, 0);
     lv_obj_set_style_text_color(view->label_dots, lv_color_white(), 0);
 
     /* Load the screen to make it visible */
@@ -95,15 +96,14 @@ void InstallationView_Render(InstallationView_t *view, const Installation_ViewMo
     {
         view->last_animation_frame = data->animation_frame;
 
-        const char *dots[] = {
-            ".",
-            "..",
-            "...",
-            "...."
+        const char *frames[] = {
+            "Installation.",
+            "Installation..",
+            "Installation..."
         };
 
-        uint32_t dot_index = (data->animation_frame) % 4;
-        lv_label_set_text(view->label_dots, dots[dot_index]);
+        uint32_t frame_index = (data->animation_frame) % 3;
+        lv_label_set_text(view->label_dots, frames[frame_index]);
     }
 
     lv_port_unlock();

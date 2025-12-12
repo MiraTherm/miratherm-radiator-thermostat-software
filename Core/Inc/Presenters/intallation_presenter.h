@@ -32,7 +32,7 @@ const Installation_ViewModelData_t* InstallationPresenter_GetData(InstallationPr
 /**
  * @brief Periodic run/tick for presenter updates (call regularly)
  */
-void InstallationPresenter_Run(InstallationPresenter_t *presenter);
+void InstallationPresenter_Run(InstallationPresenter_t *presenter, uint32_t current_tick);
 
 #ifdef __cplusplus
 }

@@ -4,6 +4,7 @@
 #include "intallation_presenter.h"
 #include "installation_view.h"
 #include "task_debug.h"
+#include "cmsis_os2.h"
 #if VIEW_PRESENTER_TASK_DEBUG_LEDS
 #include "stm32wbxx_nucleo.h"
 #endif
@@ -158,8 +159,6 @@ void Router_HandleEvent(const Input2VPEvent_t *event)
  */
 void Router_OnTick(uint32_t current_tick)
 {
-    (void)current_tick;
-
     if (g_router_state.current_route == ROUTE_DATE_TIME)
     {
         /* Call presenter's run method to update view */
@@ -173,7 +172,7 @@ void Router_OnTick(uint32_t current_tick)
         /* Call presenter's run method to update view */
         if (g_router_state.inst_presenter)
         {
-            InstallationPresenter_Run(g_router_state.inst_presenter);
+            InstallationPresenter_Run(g_router_state.inst_presenter, current_tick);
         }
     }
 }
@@ -210,7 +209,7 @@ void Router_GoToRoute(RouteTypeDef route)
         {
             g_router_state.inst_presenter = InstallationPresenter_Init(g_router_state.inst_view);
             /* Run immediately after initializing to ensure screen is displayed */
-            InstallationPresenter_Run(g_router_state.inst_presenter);
+            InstallationPresenter_Run(g_router_state.inst_presenter, osKernelGetTickCount());
         }
     }
 
