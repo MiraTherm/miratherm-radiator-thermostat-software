@@ -168,7 +168,28 @@ int main(void)
   HAL_Init();
 
   /* USER CODE BEGIN Init */
-
+  static DefaultTaskArgsTypeDef defaultTaskArgs = {
+    .storage2system_event_queue = NULL,
+    .input2vp_event_queue = NULL,
+    .config_access = NULL,
+    .sensor_values_access = NULL
+  };
+  static StorageTaskArgsTypeDef storageTaskArgs = {
+    .storage2system_event_queue = NULL,
+    .config_access = NULL
+  };
+  static SensorTaskArgsTypeDef sensorTaskArgs = {
+    .config_access = NULL,
+    .sensor_values_access = NULL
+  };
+  static InputTaskArgsTypeDef inputTaskArgs = {
+    .input2vp_event_queue = NULL
+  };
+#if !TESTS
+  static ViewPresenterTaskArgsTypeDef viewPresenterTaskArgs = {
+    .input2vp_event_queue = NULL
+  };
+#endif
   /* USER CODE END Init */
 
   /* Configure the system clock */
@@ -211,6 +232,9 @@ int main(void)
   {
     Error_Handler();
   }
+  defaultTaskArgs.config_access = &configAccess;
+  storageTaskArgs.config_access = &configAccess;
+  sensorTaskArgs.config_access = &configAccess;
 
   /* Create sensor values access structure with mutex */
   static SensorValuesAccessTypeDef sensorValuesAccess = {
@@ -233,6 +257,8 @@ int main(void)
   {
     Error_Handler();
   }
+  defaultTaskArgs.sensor_values_access = &sensorValuesAccess;
+  sensorTaskArgs.sensor_values_access = &sensorValuesAccess;
   /* USER CODE END RTOS_MUTEX */
 
   /* USER CODE BEGIN RTOS_SEMAPHORES */
@@ -250,6 +276,8 @@ int main(void)
   {
     Error_Handler();
   }
+  defaultTaskArgs.storage2system_event_queue = storage2SystemEventQueueHandle;
+  storageTaskArgs.storage2system_event_queue = storage2SystemEventQueueHandle;
   
   /* Create input to ViewPresenter event queue */
   input2VPEventQueueHandle = osMessageQueueNew(8U, sizeof(Input2VPEvent_t), NULL);
@@ -257,41 +285,9 @@ int main(void)
   {
     Error_Handler();
   }
-  
-  static DefaultTaskArgsTypeDef defaultTaskArgs = {
-    .storage2system_event_queue = NULL,
-    .input2vp_event_queue = NULL,
-    .config_access = NULL,
-    .sensor_values_access = NULL
-  };
-  defaultTaskArgs.storage2system_event_queue = storage2SystemEventQueueHandle;
   defaultTaskArgs.input2vp_event_queue = input2VPEventQueueHandle;
-  defaultTaskArgs.config_access = &configAccess;
-  defaultTaskArgs.sensor_values_access = &sensorValuesAccess;
-
-  static StorageTaskArgsTypeDef storageTaskArgs = {
-    .storage2system_event_queue = NULL,
-    .config_access = NULL
-  };
-  storageTaskArgs.storage2system_event_queue = storage2SystemEventQueueHandle;
-  storageTaskArgs.config_access = &configAccess;
-
-  static SensorTaskArgsTypeDef sensorTaskArgs = {
-    .config_access = NULL,
-    .sensor_values_access = NULL
-  };
-  sensorTaskArgs.config_access = &configAccess;
-  sensorTaskArgs.sensor_values_access = &sensorValuesAccess;
-
-  static InputTaskArgsTypeDef inputTaskArgs = {
-    .input2vp_event_queue = NULL
-  };
   inputTaskArgs.input2vp_event_queue = input2VPEventQueueHandle;
-  
 #if !TESTS
-  static ViewPresenterTaskArgsTypeDef viewPresenterTaskArgs = {
-    .input2vp_event_queue = NULL
-  };
   viewPresenterTaskArgs.input2vp_event_queue = input2VPEventQueueHandle;
 #endif
   /* USER CODE END RTOS_QUEUES */
