@@ -4,6 +4,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#include "main.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -16,7 +18,10 @@ extern "C" {
 typedef struct
 {
   float CurrentTemp;
+#if DRIVER_TEST
   float BatteryVoltage;
+#endif
+  uint8_t SoC;
   float MotorCurrent;
 } SensorValuesTypeDef;
 

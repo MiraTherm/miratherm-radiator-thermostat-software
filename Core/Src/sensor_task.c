@@ -3,7 +3,6 @@
 #include "cmsis_os2.h"
 #include "FreeRTOS.h"
 #include "task.h"
-#include "main.h"
 #include "task_debug.h"
 #include "stm32wbxx_hal.h"
 #include "stm32wbxx_hal_adc_ex.h"
@@ -21,7 +20,14 @@
 #define SENSOR_TASK_VBAT_DIVIDER 3.0f
 
 static uint16_t s_adc_dma_buffer[SENSOR_TASK_ADC_CHANNEL_COUNT];
-static SensorValuesTypeDef s_sensor_values = {0.0f, 0.0f, 0.0f};
+static SensorValuesTypeDef s_sensor_values = {
+  0.0f,
+#if DRIVER_TEST
+  0.0f,
+#endif
+  0,
+  0.0f
+};
 static osMutexId_t s_sensor_values_mutex;
 static float s_temperature_offset_c = 0.0f;
 #if TESTS & DRIVER_TEST
@@ -57,6 +63,63 @@ static float calculate_temperature(uint16_t temperature_raw, uint32_t vref_mv)
 {
   const int32_t temperature = __LL_ADC_CALC_TEMPERATURE(vref_mv, temperature_raw, LL_ADC_RESOLUTION_12B);
   return (float)temperature + s_temperature_offset_c;
+}
+
+static uint8_t calculate_battery_soc(float battery_voltage_v)
+{
+  /* Calculate State of Charge for 2 AA alkaline batteries in series.
+     Uses a piecewise linear interpolation based on realistic alkaline discharge curve. */
+  
+  typedef struct {
+    uint16_t mv;
+    uint8_t soc;
+  } BatteryPoint;
+
+  /* Discharge curve for 2 AA alkaline batteries (voltage points in mV).
+     Values are doubled from single-battery curve since we have 2 batteries in series. */
+  static const BatteryPoint curve[] = {
+    {3200, 100}, /* Freshly out of pack (2 x 1.6V) */
+    {3000, 100}, /* Nominal Full (2 x 1.5V) */
+    {2800, 85},  /* High (2 x 1.4V) */
+    {2600, 60},  /* Mid (2 x 1.3V) */
+    {2400, 35},  /* Low (2 x 1.2V) */
+    {2200, 10},  /* Critical (2 x 1.1V) */
+    {2000, 0}    /* Cutoff (2 x 1.0V) */
+  };
+
+  /* Convert from volts to millivolts */
+  uint16_t voltage_mv = (uint16_t)(battery_voltage_v * 1000.0f);
+
+  /* Handle boundary cases */
+  if (voltage_mv >= curve[0].mv)
+    return 100;
+  if (voltage_mv <= curve[6].mv)
+    return 0;
+
+  /* Interpolate between points */
+  for (int i = 0; i < 6; i++)
+  {
+    if (voltage_mv >= curve[i + 1].mv)
+    {
+      /* We are between curve[i] and curve[i+1] */
+      uint16_t v_high = curve[i].mv;
+      uint16_t v_low = curve[i + 1].mv;
+      uint8_t s_high = curve[i].soc;
+      uint8_t s_low = curve[i + 1].soc;
+
+      /* Linear interpolation formula:
+         SoC = s_low + (v_measured - v_low) * (s_high - s_low) / (v_high - v_low) */
+      
+      /* Using 32-bit math for the multiplication to prevent overflow before division */
+      uint32_t soc = s_low + 
+                     ((uint32_t)(voltage_mv - v_low) * (s_high - s_low)) / 
+                     (v_high - v_low);
+      
+      return (uint8_t)soc;
+    }
+  }
+
+  return 0; /* Should not reach here */
 }
 
 bool SensorTask_CopySensorValues(SensorValuesTypeDef *dest)
@@ -154,6 +217,7 @@ void StartSensorTask(void *argument)
     float temperature = 0.0f;
     float battery_voltage = 0.0f;
     float motor_current = 0.0f;
+    uint8_t battery_soc = 0U;
     bool update_motor = false;
     bool update_temp_bat = false;
 
@@ -180,10 +244,11 @@ void StartSensorTask(void *argument)
         
         temperature = calculate_temperature(temp_raw, vref_mv);
         battery_voltage = convert_raw_to_voltage(vbat_raw, vref_mv) * SENSOR_TASK_VBAT_DIVIDER;
+        battery_soc = calculate_battery_soc(battery_voltage);
         update_temp_bat = true;
 #if SENSOR_TASK_DEBUG_PRINTING
-        printf("SensorTask: vref_raw=%u, temp_raw=%u, vbat_raw=%u, vref_mv=%lu\n",
-               vref_raw, temp_raw, vbat_raw, (unsigned long)vref_mv);
+        printf("SensorTask: vref_raw=%u, temp_raw=%u, vbat_raw=%u, vref_mv=%lu, battery_soc=%u%%\n",
+               vref_raw, temp_raw, vbat_raw, (unsigned long)vref_mv, battery_soc);
 #endif
       }
       temp_measurement_counter += 1U;
@@ -196,11 +261,12 @@ void StartSensorTask(void *argument)
       
       temperature = calculate_temperature(temp_raw, vref_mv);
       battery_voltage = convert_raw_to_voltage(vbat_raw, vref_mv) * SENSOR_TASK_VBAT_DIVIDER;
+      battery_soc = calculate_battery_soc(battery_voltage);
       update_temp_bat = true;
       temp_measurement_counter = 0U;  /* Reset counter */
 #if SENSOR_TASK_DEBUG_PRINTING
-      printf("SensorTask: vref_raw=%u, temp_raw=%u, vbat_raw=%u, vref_mv=%lu\n",
-             vref_raw, temp_raw, vbat_raw, (unsigned long)vref_mv);
+      printf("SensorTask: vref_raw=%u, temp_raw=%u, vbat_raw=%u, vref_mv=%lu, battery_soc=%u%%\n",
+             vref_raw, temp_raw, vbat_raw, (unsigned long)vref_mv, battery_soc);
 #endif
     }
 
@@ -215,7 +281,10 @@ void StartSensorTask(void *argument)
       if (update_temp_bat)
       {
         s_sensor_values.CurrentTemp = temperature;
+        s_sensor_values.SoC = battery_soc;
+#if DRIVER_TEST
         s_sensor_values.BatteryVoltage = battery_voltage;
+#endif
       }
       osMutexRelease(s_sensor_values_mutex);
     }
