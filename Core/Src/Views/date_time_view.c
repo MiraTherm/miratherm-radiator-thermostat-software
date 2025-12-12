@@ -11,8 +11,6 @@
  */
 typedef struct DateTimeView
 {
-    DateTimePresenter_t *presenter;
-    
     /* LVGL objects for the wizard */
     lv_obj_t *screen;
     
@@ -75,22 +73,17 @@ static void create_year_options(char *buf, size_t size)
 }
 
 /* Forward declaration */
-void DateTimeView_Render(DateTimeView_t *view);
+static void DateTimeView_RenderInternal(DateTimeView_t *view, const DateTime_ViewModelData_t *data);
 
 
 /**
  * @brief Initialize the date/time view (optimized for 128x64 display)
  */
-DateTimeView_t* DateTimeView_Init(DateTimePresenter_t *presenter)
+DateTimeView_t* DateTimeView_Init(void)
 {
-    if (!presenter)
-        return NULL;
-
     DateTimeView_t *view = (DateTimeView_t *)malloc(sizeof(DateTimeView_t));
     if (!view)
         return NULL;
-
-    view->presenter = presenter;
 
     if (!lv_port_lock())
         return NULL;
@@ -199,10 +192,21 @@ DateTimeView_t* DateTimeView_Init(DateTimePresenter_t *presenter)
     lv_obj_set_size(view->label_hint_center, 20, 13);
     lv_obj_set_style_text_color(view->label_hint_center, lv_color_white(), 0);
 
-    /* Initially show page 0 */
-    DateTimeView_Render(view);
+    /* Initially show page 0 with default data */
+    DateTime_ViewModelData_t default_data = {
+        .day = 1,
+        .month = 1,
+        .year = 2025,
+        .hour = 12,
+        .minute = 0,
+        .is_summer_time = 0,
+        .current_page = 0,
+        .date_active_field = 0,
+        .time_active_field = 0
+    };
+    DateTimeView_RenderInternal(view, &default_data);
 
-    /* Load the screen */
+    /* Load the screen to make it visible */
     lv_scr_load(view->screen);
 
     lv_port_unlock();
@@ -268,26 +272,24 @@ static void update_time_roller_borders(DateTimeView_t *view, uint8_t active_fiel
 }
 
 /**
- * @brief Render/update the current page
+ * @brief Internal render function with data parameters
  */
-void DateTimeView_Render(DateTimeView_t *view)
+static void DateTimeView_RenderInternal(DateTimeView_t *view, const DateTime_ViewModelData_t *data)
 {
-    if (!view || !view->presenter)
-        return;
-
-    uint8_t page = DateTimePresenter_GetCurrentPage(view->presenter);
-    const DateTime_ViewModelData_t *data = DateTimePresenter_GetData(view->presenter);
-
-    if (!data)
+    if (!view || !data)
         return;
 
     if (!lv_port_lock())
         return;
 
+    uint8_t current_page = data->current_page;
+    uint8_t date_active_field = data->date_active_field;
+    uint8_t time_active_field = data->time_active_field;
+
     /* Only update visibility and borders if page changed */
-    if (view->last_page != page)
+    if (view->last_page != current_page)
     {
-        view->last_page = page;
+        view->last_page = current_page;
         view->last_active_field = 0xFF;  /* Force border update on page change */
         
         /* Hide all elements first */
@@ -307,20 +309,20 @@ void DateTimeView_Render(DateTimeView_t *view)
         lv_obj_set_style_border_width(view->roller_minute, 0, 0);
 
         /* Show page-specific elements */
-        if (page == 0)
+        if (current_page == 0)
         {
             lv_label_set_text(view->label_step_caption, "Set date:");
             lv_obj_clear_flag(view->roller_day, LV_OBJ_FLAG_HIDDEN);
             lv_obj_clear_flag(view->roller_month, LV_OBJ_FLAG_HIDDEN);
             lv_obj_clear_flag(view->roller_year, LV_OBJ_FLAG_HIDDEN);
         }
-        else if (page == 1)
+        else if (current_page == 1)
         {
             lv_label_set_text(view->label_step_caption, "Set time:");
             lv_obj_clear_flag(view->roller_hour, LV_OBJ_FLAG_HIDDEN);
             lv_obj_clear_flag(view->roller_minute, LV_OBJ_FLAG_HIDDEN);
         }
-        else if (page == 2)
+        else if (current_page == 2)
         {
             lv_label_set_text(view->label_step_caption, "Summer time");
             lv_obj_clear_flag(view->label_dst, LV_OBJ_FLAG_HIDDEN);
@@ -329,11 +331,9 @@ void DateTimeView_Render(DateTimeView_t *view)
     }
 
     /* Update page-specific data only if changed */
-    if (page == 0)
+    if (current_page == 0)
     {
         /* Date selection page */
-        uint8_t active_field = DateTimePresenter_GetDateActiveField(view->presenter);
-        
         if (view->last_day != data->day)
         {
             view->last_day = data->day;
@@ -350,13 +350,11 @@ void DateTimeView_Render(DateTimeView_t *view)
             lv_roller_set_selected(view->roller_year, data->year - 2020, LV_ANIM_OFF);
         }
         
-        update_date_roller_borders(view, active_field);
+        update_date_roller_borders(view, date_active_field);
     }
-    else if (page == 1)
+    else if (current_page == 1)
     {
         /* Time selection page */
-        uint8_t active_field = DateTimePresenter_GetTimeActiveField(view->presenter);
-        
         if (view->last_hour != data->hour)
         {
             view->last_hour = data->hour;
@@ -368,9 +366,9 @@ void DateTimeView_Render(DateTimeView_t *view)
             lv_roller_set_selected(view->roller_minute, data->minute, LV_ANIM_OFF);
         }
         
-        update_time_roller_borders(view, active_field);
+        update_time_roller_borders(view, time_active_field);
     }
-    else if (page == 2)
+    else if (current_page == 2)
     {
         /* Summer time page - checkbox control */
         if (view->last_dst_state != data->is_summer_time)
@@ -390,23 +388,23 @@ void DateTimeView_Render(DateTimeView_t *view)
     lv_port_unlock();
 }
 
-
 /**
- * @brief Handle page transitions (next/previous)
+ * @brief Render/update the current page with data from view model
  */
-void DateTimeView_NextPage(DateTimeView_t *view)
+void DateTimeView_Render(DateTimeView_t *view, const DateTime_ViewModelData_t *data)
 {
-    if (!view)
+    if (!view || !data)
         return;
-    DateTimeView_Render(view);
+
+    /* The mutex has to be recursive! */
+    if (!lv_port_lock())
+        return;
+
+    /* Ensure screen is active */
+    lv_scr_load(view->screen);
+
+    DateTimeView_RenderInternal(view, data);
+
+    lv_port_unlock();
 }
 
-/**
- * @brief Handle page transitions (previous)
- */
-void DateTimeView_PreviousPage(DateTimeView_t *view)
-{
-    if (!view)
-        return;
-    DateTimeView_Render(view);
-}

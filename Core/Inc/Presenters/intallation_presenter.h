@@ -12,11 +12,12 @@ extern "C" {
  */
 
 typedef struct InstallationPresenter InstallationPresenter_t;
+typedef struct InstallationView InstallationView_t;
 
 /**
- * @brief Initialize the installation presenter
+ * @brief Initialize the installation presenter with a view
  */
-InstallationPresenter_t* InstallationPresenter_Init(void);
+InstallationPresenter_t* InstallationPresenter_Init(InstallationView_t *view);
 
 /**
  * @brief Deinitialize the installation presenter
@@ -27,6 +28,11 @@ void InstallationPresenter_Deinit(InstallationPresenter_t *presenter);
  * @brief Get the current data
  */
 const Installation_ViewModelData_t* InstallationPresenter_GetData(InstallationPresenter_t *presenter);
+
+/**
+ * @brief Periodic run/tick for presenter updates (call regularly)
+ */
+void InstallationPresenter_Run(InstallationPresenter_t *presenter);
 
 #ifdef __cplusplus
 }

@@ -16,11 +16,12 @@ extern "C" {
  */
 
 typedef struct DateTimePresenter DateTimePresenter_t;
+typedef struct DateTimeView DateTimeView_t;
 
 /**
- * @brief Initialize the date/time presenter
+ * @brief Initialize the date/time presenter with a view
  */
-DateTimePresenter_t* DateTimePresenter_Init(void);
+DateTimePresenter_t* DateTimePresenter_Init(DateTimeView_t *view);
 
 /**
  * @brief Deinitialize the date/time presenter
@@ -61,6 +62,11 @@ const DateTime_ViewModelData_t* DateTimePresenter_GetData(DateTimePresenter_t *p
  * @brief Update view - called when state changes
  */
 void DateTimePresenter_OnViewUpdateNeeded(DateTimePresenter_t *presenter);
+
+/**
+ * @brief Periodic run/tick for presenter updates (call regularly)
+ */
+void DateTimePresenter_Run(DateTimePresenter_t *presenter);
 
 #ifdef __cplusplus
 }

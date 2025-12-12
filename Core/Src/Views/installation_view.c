@@ -1,4 +1,5 @@
 #include "installation_view.h"
+
 #include "lvgl_port_display.h"
 #include <stdlib.h>
 #include <stdint.h>
@@ -9,30 +10,24 @@
  */
 typedef struct InstallationView
 {
-    InstallationPresenter_t *presenter;
-    
     /* LVGL objects */
     lv_obj_t *screen;
     lv_obj_t *label_dots;
     
     /* Animation state */
-    uint32_t dot_count;  /* Number of dots in animation */
+    uint32_t last_animation_frame;  /* Last rendered frame */
 } InstallationView_t;
 
 /**
  * @brief Initialize the installation view (optimized for 128x64)
  */
-InstallationView_t* InstallationView_Init(InstallationPresenter_t *presenter)
+InstallationView_t* InstallationView_Init(void)
 {
-    if (!presenter)
-        return NULL;
-
     InstallationView_t *view = (InstallationView_t *)malloc(sizeof(InstallationView_t));
     if (!view)
         return NULL;
 
-    view->presenter = presenter;
-    view->dot_count = 0;
+    view->last_animation_frame = 0;
 
     if (!lv_port_lock())
     {
@@ -59,7 +54,7 @@ InstallationView_t* InstallationView_Init(InstallationPresenter_t *presenter)
     lv_obj_set_style_text_align(view->label_dots, LV_TEXT_ALIGN_CENTER, 0);
     lv_obj_set_style_text_color(view->label_dots, lv_color_white(), 0);
 
-    /* Load the screen */
+    /* Load the screen to make it visible */
     lv_scr_load(view->screen);
 
     lv_port_unlock();
@@ -83,25 +78,33 @@ void InstallationView_Deinit(InstallationView_t *view)
 /**
  * @brief Render/update the view with animated dots
  */
-void InstallationView_Render(InstallationView_t *view)
+void InstallationView_Render(InstallationView_t *view, const Installation_ViewModelData_t *data)
 {
-    if (!view)
+    if (!view || !data)
         return;
 
+    /* The mutex has to be recursive! */
     if (!lv_port_lock())
         return;
 
-    /* Create animated dots with rotation pattern */
-    view->dot_count = (view->dot_count + 1) % 4;
+    /* Ensure screen is active */
+    lv_scr_load(view->screen);
 
-    const char *dots[] = {
-        ".",
-        "..",
-        "...",
-        "...."
-    };
+    /* Update animation only if frame changed */
+    if (view->last_animation_frame != data->animation_frame)
+    {
+        view->last_animation_frame = data->animation_frame;
 
-    lv_label_set_text(view->label_dots, dots[view->dot_count]);
+        const char *dots[] = {
+            ".",
+            "..",
+            "...",
+            "...."
+        };
+
+        uint32_t dot_index = (data->animation_frame) % 4;
+        lv_label_set_text(view->label_dots, dots[dot_index]);
+    }
 
     lv_port_unlock();
 }

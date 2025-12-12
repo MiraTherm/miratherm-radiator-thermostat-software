@@ -13,6 +13,7 @@ extern "C" {
 typedef struct
 {
     uint32_t progress; /* 0-100 or indefinite state */
+    uint32_t animation_frame; /* Animation frame counter */
 } Installation_ViewModelData_t;
 
 #ifdef __cplusplus

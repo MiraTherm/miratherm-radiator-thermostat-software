@@ -76,18 +76,19 @@ static void Router_UpdateDebugLeds(const Input2VPEvent_t *event)
  */
 void Router_Init(void)
 {
-    /* Initialize date/time presenter and view */
-    g_router_state.dt_presenter = DateTimePresenter_Init();
-    if (g_router_state.dt_presenter)
-    {
-        g_router_state.dt_view = DateTimeView_Init(g_router_state.dt_presenter);
-    }
-
-    /* Initialize installation presenter and view (but don't show yet) */
-    g_router_state.inst_presenter = InstallationPresenter_Init();
-    
     /* Set initial route */
     g_router_state.current_route = ROUTE_DATE_TIME;
+    /* Initialize date/time view first, then presenter with view */
+    g_router_state.dt_view = DateTimeView_Init();
+    if (g_router_state.dt_view)
+    {
+        g_router_state.dt_presenter = DateTimePresenter_Init(g_router_state.dt_view);
+        if (g_router_state.dt_presenter)
+        {
+            /* Render initial state */
+            DateTimePresenter_Run(g_router_state.dt_presenter);
+        }
+    }
 }
 
 /**
@@ -134,6 +135,7 @@ void Router_HandleEvent(const Input2VPEvent_t *event)
     {
         if (g_router_state.dt_presenter)
         {
+            /* Presenter handles the event and updates itself, which triggers view updates */
             DateTimePresenter_HandleEvent(g_router_state.dt_presenter, event);
             
             /* Check if date/time setup is complete and transition to installation */
@@ -141,12 +143,6 @@ void Router_HandleEvent(const Input2VPEvent_t *event)
             {
                 Router_GoToRoute(ROUTE_INSTALLATION);
                 return;
-            }
-            
-            /* Update view for current page */
-            if (g_router_state.dt_view)
-            {
-                DateTimeView_Render(g_router_state.dt_view);
             }
         }
     }
@@ -166,23 +162,18 @@ void Router_OnTick(uint32_t current_tick)
 
     if (g_router_state.current_route == ROUTE_DATE_TIME)
     {
-        /* Update date/time view if needed */
-        if (g_router_state.dt_view)
+        /* Call presenter's run method to update view */
+        if (g_router_state.dt_presenter)
         {
-            DateTimeView_Render(g_router_state.dt_view);
+            DateTimePresenter_Run(g_router_state.dt_presenter);
         }
     }
     else if (g_router_state.current_route == ROUTE_INSTALLATION)
     {
-        /* Update installation view with animation */
-        if (!g_router_state.inst_view && g_router_state.inst_presenter)
+        /* Call presenter's run method to update view */
+        if (g_router_state.inst_presenter)
         {
-            g_router_state.inst_view = InstallationView_Init(g_router_state.inst_presenter);
-        }
-        
-        if (g_router_state.inst_view)
-        {
-            InstallationView_Render(g_router_state.inst_view);
+            InstallationPresenter_Run(g_router_state.inst_presenter);
         }
     }
 }
@@ -195,56 +186,55 @@ void Router_GoToRoute(RouteTypeDef route)
     if (g_router_state.current_route == route)
         return;
 
-    /* Initialize new route first (to ensure smooth transition and valid screen) */
+    /* Initialize new route first (view first, then presenter with view) */
     if (route == ROUTE_DATE_TIME)
     {
-        if (!g_router_state.dt_presenter)
+        if (!g_router_state.dt_view)
         {
-            g_router_state.dt_presenter = DateTimePresenter_Init();
+            g_router_state.dt_view = DateTimeView_Init();
         }
-        if (g_router_state.dt_presenter && !g_router_state.dt_view)
+        if (g_router_state.dt_view && !g_router_state.dt_presenter)
         {
-            g_router_state.dt_view = DateTimeView_Init(g_router_state.dt_presenter);
-            /* Render immediately after initializing to ensure screen is displayed */
-            if (g_router_state.dt_view)
-            {
-                DateTimeView_Render(g_router_state.dt_view);
-            }
+            g_router_state.dt_presenter = DateTimePresenter_Init(g_router_state.dt_view);
+            /* Run immediately after initializing to ensure screen is displayed */
+            DateTimePresenter_Run(g_router_state.dt_presenter);
         }
     }
     else if (route == ROUTE_INSTALLATION)
     {
-        if (!g_router_state.inst_presenter)
+        if (!g_router_state.inst_view)
         {
-            g_router_state.inst_presenter = InstallationPresenter_Init();
+            g_router_state.inst_view = InstallationView_Init();
         }
-        if (g_router_state.inst_presenter && !g_router_state.inst_view)
+        if (g_router_state.inst_view && !g_router_state.inst_presenter)
         {
-            g_router_state.inst_view = InstallationView_Init(g_router_state.inst_presenter);
-            /* Render immediately after initializing to ensure screen is displayed */
-            if (g_router_state.inst_view)
-            {
-                InstallationView_Render(g_router_state.inst_view);
-            }
+            g_router_state.inst_presenter = InstallationPresenter_Init(g_router_state.inst_view);
+            /* Run immediately after initializing to ensure screen is displayed */
+            InstallationPresenter_Run(g_router_state.inst_presenter);
         }
     }
 
     /* Cleanup old route */
     if (g_router_state.current_route == ROUTE_DATE_TIME)
     {
-        if (g_router_state.dt_view)
-        {
-            DateTimeView_Deinit(g_router_state.dt_view);
-            g_router_state.dt_view = NULL;
-        }
         if (g_router_state.dt_presenter)
         {
             DateTimePresenter_Deinit(g_router_state.dt_presenter);
             g_router_state.dt_presenter = NULL;
         }
+        if (g_router_state.dt_view)
+        {
+            DateTimeView_Deinit(g_router_state.dt_view);
+            g_router_state.dt_view = NULL;
+        }
     }
     else if (g_router_state.current_route == ROUTE_INSTALLATION)
     {
+        if (g_router_state.inst_presenter)
+        {
+            InstallationPresenter_Deinit(g_router_state.inst_presenter);
+            g_router_state.inst_presenter = NULL;
+        }
         if (g_router_state.inst_view)
         {
             InstallationView_Deinit(g_router_state.inst_view);

@@ -1,4 +1,5 @@
 #include "date_time_presenter.h"
+#include "date_time_view.h"
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdbool.h>
@@ -9,6 +10,7 @@
  */
 typedef struct DateTimePresenter
 {
+    DateTimeView_t *view;        /* Reference to the view */
     DateTime_ViewModelData_t data;
     uint8_t current_page;        /* 0: date, 1: time, 2: summer time */
     bool is_complete;
@@ -43,11 +45,13 @@ static const uint8_t DEFAULT_MINUTE = 0;
 /**
  * @brief Initialize the date/time presenter
  */
-DateTimePresenter_t* DateTimePresenter_Init(void)
+DateTimePresenter_t* DateTimePresenter_Init(DateTimeView_t *view)
 {
     DateTimePresenter_t *presenter = (DateTimePresenter_t *)malloc(sizeof(DateTimePresenter_t));
     if (!presenter)
         return NULL;
+
+    presenter->view = view;
 
     /* Initialize with defaults */
     presenter->data.day = DEFAULT_DAY;
@@ -56,6 +60,9 @@ DateTimePresenter_t* DateTimePresenter_Init(void)
     presenter->data.hour = DEFAULT_HOUR;
     presenter->data.minute = DEFAULT_MINUTE;
     presenter->data.is_summer_time = 0;
+    presenter->data.current_page = 0;
+    presenter->data.date_active_field = 0;
+    presenter->data.time_active_field = 0;
     
     presenter->current_page = 0;
     presenter->is_complete = 0;
@@ -88,6 +95,8 @@ void DateTimePresenter_HandleEvent(DateTimePresenter_t *presenter, const Input2V
 {
     if (!presenter || !event)
         return;
+
+    bool state_changed = false;
 
     if (presenter->current_page == 0)
     {
@@ -130,6 +139,7 @@ void DateTimePresenter_HandleEvent(DateTimePresenter_t *presenter, const Input2V
                 presenter->date_year_index = (uint8_t)new_year;
                 presenter->data.year = BASE_YEAR + presenter->date_year_index;
             }
+            state_changed = true;
         }
         else if (event->type == EVT_CENTRAL_BTN && event->button_action == BUTTON_ACTION_PRESSED)
         {
@@ -143,7 +153,9 @@ void DateTimePresenter_HandleEvent(DateTimePresenter_t *presenter, const Input2V
             {
                 /* Year confirmed, move to time page */
                 presenter->current_page = 1;
+                presenter->date_active_field = 0;  /* Reset to first field on new page */
             }
+            state_changed = true;
         }
         else if (event->type == EVT_MODE_BTN && event->button_action == BUTTON_ACTION_PRESSED)
         {
@@ -151,6 +163,7 @@ void DateTimePresenter_HandleEvent(DateTimePresenter_t *presenter, const Input2V
             if (presenter->date_active_field > 0)
             {
                 presenter->date_active_field--;
+                state_changed = true;
             }
         }
     }
@@ -183,6 +196,7 @@ void DateTimePresenter_HandleEvent(DateTimePresenter_t *presenter, const Input2V
                 presenter->time_minute_index = (uint8_t)new_minute;
                 presenter->data.minute = presenter->time_minute_index;
             }
+            state_changed = true;
         }
         else if (event->type == EVT_CENTRAL_BTN && event->button_action == BUTTON_ACTION_PRESSED)
         {
@@ -196,7 +210,9 @@ void DateTimePresenter_HandleEvent(DateTimePresenter_t *presenter, const Input2V
             {
                 /* Minute confirmed, move to summer time page */
                 presenter->current_page = 2;
+                presenter->time_active_field = 0;  /* Reset for new page */
             }
+            state_changed = true;
         }
         else if (event->type == EVT_MODE_BTN && event->button_action == BUTTON_ACTION_PRESSED)
         {
@@ -210,7 +226,9 @@ void DateTimePresenter_HandleEvent(DateTimePresenter_t *presenter, const Input2V
             {
                 /* Go back to date page */
                 presenter->current_page = 0;
+                presenter->date_active_field = 0;  /* Reset to first field */
             }
+            state_changed = true;
         }
     }
     else if (presenter->current_page == 2)
@@ -227,6 +245,7 @@ void DateTimePresenter_HandleEvent(DateTimePresenter_t *presenter, const Input2V
             {
                 presenter->data.is_summer_time = 1;
             }
+            state_changed = true;
         }
         else if ((event->type == EVT_CENTRAL_BTN || event->type == EVT_CENTRAL_DOUBLE_CLICK) && event->button_action == BUTTON_ACTION_PRESSED)
         {
@@ -237,6 +256,21 @@ void DateTimePresenter_HandleEvent(DateTimePresenter_t *presenter, const Input2V
         {
             /* Left button goes back to previous page */
             presenter->current_page = 1;
+            presenter->time_active_field = 0;  /* Reset to first field */
+            state_changed = true;
+        }
+    }
+
+    /* If state changed, sync to ViewModel and render */
+    if (state_changed)
+    {
+        presenter->data.current_page = presenter->current_page;
+        presenter->data.date_active_field = presenter->date_active_field;
+        presenter->data.time_active_field = presenter->time_active_field;
+        
+        if (presenter->view)
+        {
+            DateTimeView_Render(presenter->view, &presenter->data);
         }
     }
 }
@@ -298,4 +332,20 @@ void DateTimePresenter_OnViewUpdateNeeded(DateTimePresenter_t *presenter)
 {
     /* This would trigger a view render in a full implementation */
     (void)presenter;
+}
+/**
+ * @brief Periodic run/tick for presenter updates
+ */
+void DateTimePresenter_Run(DateTimePresenter_t *presenter)
+{
+    if (!presenter || !presenter->view)
+        return;
+
+    /* Sync internal state to ViewModel */
+    presenter->data.current_page = presenter->current_page;
+    presenter->data.date_active_field = presenter->date_active_field;
+    presenter->data.time_active_field = presenter->time_active_field;
+
+    /* Render the current state to the view */
+    DateTimeView_Render(presenter->view, &presenter->data);
 }
