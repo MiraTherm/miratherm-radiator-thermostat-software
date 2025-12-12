@@ -10,7 +10,7 @@ extern "C" {
 
 /**
  * @brief DateTime Presenter - handles logic for 3-page wizard:
- *        Page 0: Date selection (Day, Month, Year rollers)
+ *        Page 0: Date selection (Year, Month, Day rollers)
  *        Page 1: Time selection (Hour, Minute rollers)
  *        Page 2: Summer time switch (On/Off)
  */
@@ -39,7 +39,7 @@ void DateTimePresenter_HandleEvent(DateTimePresenter_t *presenter, const Input2V
 uint8_t DateTimePresenter_GetCurrentPage(DateTimePresenter_t *presenter);
 
 /**
- * @brief Get active field on date selection page (0: day, 1: month, 2: year)
+ * @brief Get active field on date selection page (0: year, 1: month, 2: day)
  */
 uint8_t DateTimePresenter_GetDateActiveField(DateTimePresenter_t *presenter);
 

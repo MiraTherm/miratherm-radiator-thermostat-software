@@ -125,13 +125,12 @@ DateTimeView_t* DateTimeView_Init(void)
     create_year_options(view->year_options, sizeof(view->year_options));
 
     /* Page 0: Date selection - 3 compact rollers (reduced height) */
-    view->roller_day = lv_roller_create(view->screen);
-    lv_roller_set_options(view->roller_day, view->day_options, LV_ROLLER_MODE_NORMAL);
-    lv_roller_set_selected(view->roller_day, 0, LV_ANIM_OFF);
-    lv_obj_set_pos(view->roller_day, 2, 16);
-    lv_obj_set_size(view->roller_day, 42, 31);
-    lv_obj_set_style_bg_color(view->roller_day, lv_color_white(), 0);
-    lv_obj_set_style_text_color(view->roller_day, lv_color_black(), LV_PART_SELECTED);
+    view->roller_year = lv_roller_create(view->screen);
+    lv_roller_set_options(view->roller_year, view->year_options, LV_ROLLER_MODE_NORMAL);
+    lv_roller_set_selected(view->roller_year, 5, LV_ANIM_OFF);  /* Default to 2025 */
+    lv_obj_set_pos(view->roller_year, 2, 16);
+    lv_obj_set_size(view->roller_year, 42, 31);
+    lv_obj_set_style_text_color(view->roller_year, lv_color_black(), LV_PART_SELECTED);
 
     view->roller_month = lv_roller_create(view->screen);
     lv_roller_set_options(view->roller_month, view->month_options, LV_ROLLER_MODE_NORMAL);
@@ -141,12 +140,13 @@ DateTimeView_t* DateTimeView_Init(void)
     lv_obj_set_style_bg_color(view->roller_month, lv_color_white(), 0);
     lv_obj_set_style_text_color(view->roller_month, lv_color_black(), LV_PART_SELECTED);
 
-    view->roller_year = lv_roller_create(view->screen);
-    lv_roller_set_options(view->roller_year, view->year_options, LV_ROLLER_MODE_NORMAL);
-    lv_roller_set_selected(view->roller_year, 5, LV_ANIM_OFF);  /* Default to 2025 */
-    lv_obj_set_pos(view->roller_year, 88, 16);
-    lv_obj_set_size(view->roller_year, 42, 31);
-    lv_obj_set_style_text_color(view->roller_year, lv_color_black(), LV_PART_SELECTED);
+    view->roller_day = lv_roller_create(view->screen);
+    lv_roller_set_options(view->roller_day, view->day_options, LV_ROLLER_MODE_NORMAL);
+    lv_roller_set_selected(view->roller_day, 0, LV_ANIM_OFF);
+    lv_obj_set_pos(view->roller_day, 88, 16);
+    lv_obj_set_size(view->roller_day, 42, 31);
+    lv_obj_set_style_bg_color(view->roller_day, lv_color_white(), 0);
+    lv_obj_set_style_text_color(view->roller_day, lv_color_black(), LV_PART_SELECTED);
 
     /* Page 1: Time selection - 2 compact rollers (reduced height) */
     view->roller_hour = lv_roller_create(view->screen);
@@ -238,13 +238,13 @@ static void update_date_roller_borders(DateTimeView_t *view, uint8_t active_fiel
         view->last_active_field = active_field;
         
         /* Reset all borders first */
-        lv_obj_set_style_border_width(view->roller_day, 0, 0);
-        lv_obj_set_style_border_width(view->roller_month, 0, 0);
         lv_obj_set_style_border_width(view->roller_year, 0, 0);
+        lv_obj_set_style_border_width(view->roller_month, 0, 0);
+        lv_obj_set_style_border_width(view->roller_day, 0, 0);
         
-        /* Set border only on active field */
-        lv_obj_t *active_roller = (active_field == 0) ? view->roller_day : 
-                                   (active_field == 1) ? view->roller_month : view->roller_year;
+        /* Set border only on active field (0: year, 1: month, 2: day) */
+        lv_obj_t *active_roller = (active_field == 0) ? view->roller_year : 
+                                   (active_field == 1) ? view->roller_month : view->roller_day;
         lv_obj_set_style_border_color(active_roller, lv_color_black(), 0);
         lv_obj_set_style_border_width(active_roller, 2, 0);
     }

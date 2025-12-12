@@ -30,12 +30,11 @@ typedef struct DateTimePresenter
     uint8_t time_minute_index;   /* Index in minute values (0-59) */
     
     /* Wheel focus tracking */
-    uint8_t date_active_field;   /* 0: day, 1: month, 2: year */
+    uint8_t date_active_field;   /* 0: year, 1: month, 2: day */
     uint8_t time_active_field;   /* 0: hour, 1: minute */
 } DateTimePresenter_t;
 
 /* Helper functions for roller value management */
-static const uint8_t DAYS_COUNT = 31;
 static const uint8_t MONTHS_COUNT = 12;
 static const uint8_t YEARS_COUNT = 30; /* e.g., 2020-2049 */
 static const uint8_t HOURS_COUNT = 24;
@@ -47,6 +46,77 @@ static const uint8_t DEFAULT_MONTH = 1;
 static const uint16_t DEFAULT_YEAR = 2025;
 static const uint8_t DEFAULT_HOUR = 12;
 static const uint8_t DEFAULT_MINUTE = 0;
+
+/**
+ * @brief Check if a year is a leap year
+ */
+static bool is_leap_year(uint16_t year)
+{
+    /* A year is a leap year if:
+     * - It is divisible by 4 AND
+     * - (It is not divisible by 100 OR it is divisible by 400)
+     */
+    if ((year % 4) != 0)
+        return false;
+    if ((year % 100) != 0)
+        return true;
+    if ((year % 400) == 0)
+        return true;
+    return false;
+}
+
+/**
+ * @brief Get the maximum number of days in a given month/year
+ */
+static uint8_t get_max_days_in_month(uint8_t month, uint16_t year)
+{
+    /* Month should be 1-12 */
+    if (month < 1 || month > 12)
+        return 31;
+
+    switch (month)
+    {
+        case 1:  /* January */
+        case 3:  /* March */
+        case 5:  /* May */
+        case 7:  /* July */
+        case 8:  /* August */
+        case 10: /* October */
+        case 12: /* December */
+            return 31;
+
+        case 4:  /* April */
+        case 6:  /* June */
+        case 9:  /* September */
+        case 11: /* November */
+            return 30;
+
+        case 2:  /* February */
+            return is_leap_year(year) ? 29 : 28;
+
+        default:
+            return 31;
+    }
+}
+
+/**
+ * @brief Validate and adjust day if it exceeds the maximum for the given month/year
+ */
+static void validate_and_adjust_day(DateTimePresenter_t *presenter)
+{
+    if (!presenter)
+        return;
+
+    uint8_t max_days = get_max_days_in_month(presenter->data.month, presenter->data.year);
+
+    if (presenter->data.day > max_days)
+    {
+        /* Adjust day to maximum valid day for this month */
+        presenter->data.day = max_days;
+        /* Also update the index (day is 1-31, index is 0-30) */
+        presenter->date_day_index = max_days - 1;
+    }
+}
 
 /**
  * @brief Set the RTC with the configured date and time
@@ -147,7 +217,7 @@ void DateTimePresenter_HandleEvent(DateTimePresenter_t *presenter, const Input2V
 
     if (presenter->current_page == 0)
     {
-        /* Date selection page - 3 rollers: day, month, year */
+        /* Date selection page - 3 rollers: year, month, day */
         if (event->type == EVT_CTRL_WHEEL_DELTA)
         {
             /* Adjust the currently focused roller */
@@ -155,14 +225,17 @@ void DateTimePresenter_HandleEvent(DateTimePresenter_t *presenter, const Input2V
             
             if (presenter->date_active_field == 0)
             {
-                /* Day adjustment */
-                int16_t new_day = (int16_t)presenter->date_day_index + delta;
-                if (new_day < 0)
-                    new_day = DAYS_COUNT - 1;
-                else if (new_day >= DAYS_COUNT)
-                    new_day = 0;
-                presenter->date_day_index = (uint8_t)new_day;
-                presenter->data.day = presenter->date_day_index + 1;
+                /* Year adjustment */
+                int16_t new_year = (int16_t)presenter->date_year_index + delta;
+                if (new_year < 0)
+                    new_year = YEARS_COUNT - 1;
+                else if (new_year >= YEARS_COUNT)
+                    new_year = 0;
+                presenter->date_year_index = (uint8_t)new_year;
+                presenter->data.year = BASE_YEAR + presenter->date_year_index;
+                
+                /* Validate and adjust day if leap year status changed (affects February) */
+                validate_and_adjust_day(presenter);
             }
             else if (presenter->date_active_field == 1)
             {
@@ -174,31 +247,35 @@ void DateTimePresenter_HandleEvent(DateTimePresenter_t *presenter, const Input2V
                     new_month = 0;
                 presenter->date_month_index = (uint8_t)new_month;
                 presenter->data.month = presenter->date_month_index + 1;
+                
+                /* Validate and adjust day if it exceeds max days in the new month */
+                validate_and_adjust_day(presenter);
             }
             else if (presenter->date_active_field == 2)
             {
-                /* Year adjustment */
-                int16_t new_year = (int16_t)presenter->date_year_index + delta;
-                if (new_year < 0)
-                    new_year = YEARS_COUNT - 1;
-                else if (new_year >= YEARS_COUNT)
-                    new_year = 0;
-                presenter->date_year_index = (uint8_t)new_year;
-                presenter->data.year = BASE_YEAR + presenter->date_year_index;
+                /* Day adjustment */
+                uint8_t max_days = get_max_days_in_month(presenter->data.month, presenter->data.year);
+                int16_t new_day = (int16_t)presenter->date_day_index + delta;
+                if (new_day < 0)
+                    new_day = max_days - 1;
+                else if (new_day >= max_days)
+                    new_day = 0;
+                presenter->date_day_index = (uint8_t)new_day;
+                presenter->data.day = presenter->date_day_index + 1;
             }
             state_changed = true;
         }
         else if (event->type == EVT_CENTRAL_BTN && event->button_action == BUTTON_ACTION_PRESSED)
         {
-            /* Central button moves to next field: Day -> Month -> Year -> next page */
+            /* Central button moves to next field: Year -> Month -> Day -> next page */
             if (presenter->date_active_field < 2)
             {
-                /* Move to next field (Day -> Month or Month -> Year) */
+                /* Move to next field (Year -> Month or Month -> Day) */
                 presenter->date_active_field++;
             }
             else
             {
-                /* Year confirmed, move to time page */
+                /* Day confirmed, move to time page */
                 presenter->current_page = 1;
                 presenter->date_active_field = 0;  /* Reset to first field on new page */
             }
