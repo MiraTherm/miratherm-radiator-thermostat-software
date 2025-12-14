@@ -3,6 +3,7 @@
 ## Hardware
 
 > ⚠️ If you are going to use P-NUCLEO-WB55 board (MB1355 revision C or D), make sure that solder bridge SB35 is removed to disconnect $V_{ref}$ from $V_{DD}$.
+
 > ⚠️ If you are using a breadboard setup, ensure that the motor current shunt resistor connections have stable resistance to avoid inaccurate ADC calibration and current measurements. (Soldering the shunt and/or wires can help make resistance more stable.)
 
 ## Build Instructions
