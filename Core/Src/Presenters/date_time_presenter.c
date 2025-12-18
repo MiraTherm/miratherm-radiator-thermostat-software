@@ -126,6 +126,12 @@ void set_rtc(DateTimePresenter_t *presenter)
     if (!presenter)
         return;
 
+    /* Check if RTC is initialized */
+    if (hrtc.Instance == NULL)
+    {
+        return;
+    }
+
     /* Initialize RTC structures */
     RTC_TimeTypeDef sTime = {0};
     RTC_DateTypeDef sDate = {0};
