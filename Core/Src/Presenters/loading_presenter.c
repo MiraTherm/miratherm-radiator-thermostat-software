@@ -1,5 +1,5 @@
-#include "intallation_presenter.h"
-#include "installation_view.h"
+#include "loading_presenter.h"
+#include "loading_view.h"
 #include "cmsis_os2.h"
 #include "FreeRTOS.h"
 #include <stdlib.h>
@@ -11,19 +11,19 @@
 /**
  * @brief Internal presenter structure
  */
-typedef struct InstallationPresenter
+typedef struct LoadingPresenter
 {
-    InstallationView_t *view;    /* Reference to the view */
-    Installation_ViewModelData_t data;
+    LoadingView_t *view;    /* Reference to the view */
+    Loading_ViewModelData_t data;
     uint32_t last_animation_time;  /* Timestamp of last animation frame change */
-} InstallationPresenter_t;
+} LoadingPresenter_t;
 
 /**
- * @brief Initialize the installation presenter
+ * @brief Initialize the loading presenter
  */
-InstallationPresenter_t* InstallationPresenter_Init(InstallationView_t *view)
+LoadingPresenter_t* LoadingPresenter_Init(LoadingView_t *view)
 {
-    InstallationPresenter_t *presenter = (InstallationPresenter_t *)malloc(sizeof(InstallationPresenter_t));
+    LoadingPresenter_t *presenter = (LoadingPresenter_t *)malloc(sizeof(LoadingPresenter_t));
     if (!presenter)
         return NULL;
 
@@ -38,9 +38,9 @@ InstallationPresenter_t* InstallationPresenter_Init(InstallationView_t *view)
 }
 
 /**
- * @brief Deinitialize the installation presenter
+ * @brief Deinitialize the loading presenter
  */
-void InstallationPresenter_Deinit(InstallationPresenter_t *presenter)
+void LoadingPresenter_Deinit(LoadingPresenter_t *presenter)
 {
     if (presenter)
         free(presenter);
@@ -49,7 +49,7 @@ void InstallationPresenter_Deinit(InstallationPresenter_t *presenter)
 /**
  * @brief Get the current data
  */
-const Installation_ViewModelData_t* InstallationPresenter_GetData(InstallationPresenter_t *presenter)
+const Loading_ViewModelData_t* LoadingPresenter_GetData(LoadingPresenter_t *presenter)
 {
     if (!presenter)
         return NULL;
@@ -59,7 +59,7 @@ const Installation_ViewModelData_t* InstallationPresenter_GetData(InstallationPr
 /**
  * @brief Periodic run/tick for presenter updates
  */
-void InstallationPresenter_Run(InstallationPresenter_t *presenter, uint32_t current_tick)
+void LoadingPresenter_Run(LoadingPresenter_t *presenter, uint32_t current_tick)
 {
     if (!presenter || !presenter->view)
         return;
@@ -72,5 +72,5 @@ void InstallationPresenter_Run(InstallationPresenter_t *presenter, uint32_t curr
     }
 
     /* Render the current state to the view */
-    InstallationView_Render(presenter->view, &presenter->data);
+    LoadingView_Render(presenter->view, &presenter->data);
 }

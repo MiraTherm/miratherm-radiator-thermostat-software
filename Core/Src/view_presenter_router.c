@@ -1,8 +1,8 @@
 #include "view_presenter_router.h"
 #include "date_time_presenter.h"
 #include "date_time_view.h"
-#include "intallation_presenter.h"
-#include "installation_view.h"
+#include "loading_presenter.h"
+#include "loading_view.h"
 #include "task_debug.h"
 #include "cmsis_os2.h"
 #if VIEW_PRESENTER_TASK_DEBUG_LEDS
@@ -23,8 +23,8 @@ typedef struct
     DateTimeView_t *dt_view;
     
     /* Installation route */
-    InstallationPresenter_t *inst_presenter;
-    InstallationView_t *inst_view;
+    LoadingPresenter_t *inst_presenter;
+    LoadingView_t *inst_view;
 } Router_State_t;
 
 static Router_State_t g_router_state = {
@@ -111,13 +111,13 @@ void Router_Deinit(void)
 
     if (g_router_state.inst_view)
     {
-        InstallationView_Deinit(g_router_state.inst_view);
+        LoadingView_Deinit(g_router_state.inst_view);
         g_router_state.inst_view = NULL;
     }
 
     if (g_router_state.inst_presenter)
     {
-        InstallationPresenter_Deinit(g_router_state.inst_presenter);
+        LoadingPresenter_Deinit(g_router_state.inst_presenter);
         g_router_state.inst_presenter = NULL;
     }
 }
@@ -172,7 +172,7 @@ void Router_OnTick(uint32_t current_tick)
         /* Call presenter's run method to update view */
         if (g_router_state.inst_presenter)
         {
-            InstallationPresenter_Run(g_router_state.inst_presenter, current_tick);
+            LoadingPresenter_Run(g_router_state.inst_presenter, current_tick);
         }
     }
 }
@@ -203,13 +203,13 @@ void Router_GoToRoute(RouteTypeDef route)
     {
         if (!g_router_state.inst_view)
         {
-            g_router_state.inst_view = InstallationView_Init();
+            g_router_state.inst_view = LoadingView_Init("Installation", LV_ALIGN_LEFT_MID, 20);
         }
         if (g_router_state.inst_view && !g_router_state.inst_presenter)
         {
-            g_router_state.inst_presenter = InstallationPresenter_Init(g_router_state.inst_view);
+            g_router_state.inst_presenter = LoadingPresenter_Init(g_router_state.inst_view);
             /* Run immediately after initializing to ensure screen is displayed */
-            InstallationPresenter_Run(g_router_state.inst_presenter, osKernelGetTickCount());
+            LoadingPresenter_Run(g_router_state.inst_presenter, osKernelGetTickCount());
         }
     }
 
@@ -231,12 +231,12 @@ void Router_GoToRoute(RouteTypeDef route)
     {
         if (g_router_state.inst_presenter)
         {
-            InstallationPresenter_Deinit(g_router_state.inst_presenter);
+            LoadingPresenter_Deinit(g_router_state.inst_presenter);
             g_router_state.inst_presenter = NULL;
         }
         if (g_router_state.inst_view)
         {
-            InstallationView_Deinit(g_router_state.inst_view);
+            LoadingView_Deinit(g_router_state.inst_view);
             g_router_state.inst_view = NULL;
         }
     }
