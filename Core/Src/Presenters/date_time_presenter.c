@@ -382,6 +382,7 @@ void DateTimePresenter_HandleEvent(DateTimePresenter_t *presenter, const Input2V
             /* Central button confirms and completes the wizard */
             set_rtc(presenter);
             presenter->is_complete = 1;
+            state_changed = true;
         }
         else if (event->type == EVT_MODE_BTN && event->button_action == BUTTON_ACTION_PRESSED)
         {
