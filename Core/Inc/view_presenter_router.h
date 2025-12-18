@@ -2,6 +2,7 @@
 #define CORE_INC_VIEW_PRESENTER_ROUTER_H
 
 #include "input_task.h"
+#include "system_task.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -13,14 +14,20 @@ extern "C" {
 
 typedef enum
 {
-    ROUTE_DATE_TIME = 0,
-    ROUTE_INSTALLATION = 1,
+    ROUTE_INIT = 0,
+    ROUTE_DATE_TIME,
+    ROUTE_NOT_INST,
+    ROUTE_ADAPT,
+    ROUTE_ADAPT_FAIL,
+    ROUTE_RUNNING,
 } RouteTypeDef;
 
 /**
  * @brief Initialize the router and activate initial route (DATE_TIME)
+ * @param vp2system_queue Queue to send events to System Task
+ * @param system_context Shared system context
  */
-void Router_Init(void);
+void Router_Init(osMessageQueueId_t vp2system_queue, SystemContextAccessTypeDef *system_context);
 
 /**
  * @brief Deinitialize the router

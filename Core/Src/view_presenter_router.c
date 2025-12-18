@@ -3,6 +3,8 @@
 #include "date_time_view.h"
 #include "loading_presenter.h"
 #include "loading_view.h"
+#include "waiting_presenter.h"
+#include "waiting_view.h"
 #include "task_debug.h"
 #include "cmsis_os2.h"
 #if VIEW_PRESENTER_TASK_DEBUG_LEDS
@@ -22,17 +24,41 @@ typedef struct
     DateTimePresenter_t *dt_presenter;
     DateTimeView_t *dt_view;
     
-    /* Installation route */
-    LoadingPresenter_t *inst_presenter;
-    LoadingView_t *inst_view;
+    /* Loading route (used for INIT, RUNNING) */
+    LoadingPresenter_t *loading_presenter;
+    LoadingView_t *loading_view;
+
+    /* Waiting route (Begin installation?) */
+    WaitingPresenter_t *waiting_presenter;
+    WaitingView_t *waiting_view;
+
+    /* Adaptation route */
+    LoadingPresenter_t *adapt_presenter;
+    LoadingView_t *adapt_view;
+
+    /* Adaptation failed route (uses waiting view) */
+    WaitingPresenter_t *adapt_fail_presenter;
+    WaitingView_t *adapt_fail_view;
+
+    /* System Interface */
+    osMessageQueueId_t vp2system_queue;
+    SystemContextAccessTypeDef *system_context;
 } Router_State_t;
 
 static Router_State_t g_router_state = {
-    .current_route = ROUTE_DATE_TIME,
+    .current_route = ROUTE_INIT, /* Default start state */
     .dt_presenter = NULL,
     .dt_view = NULL,
-    .inst_presenter = NULL,
-    .inst_view = NULL,
+    .loading_presenter = NULL,
+    .loading_view = NULL,
+    .waiting_presenter = NULL,
+    .waiting_view = NULL,
+    .adapt_presenter = NULL,
+    .adapt_view = NULL,
+    .adapt_fail_presenter = NULL,
+    .adapt_fail_view = NULL,
+    .vp2system_queue = NULL,
+    .system_context = NULL
 };
 
 static void Router_UpdateDebugLeds(const Input2VPEvent_t *event)
@@ -72,22 +98,55 @@ static void Router_UpdateDebugLeds(const Input2VPEvent_t *event)
 #endif
 }
 
-/**
- * @brief Initialize the router and activate initial route (DATE_TIME)
- */
-void Router_Init(void)
+static SystemState_t Router_GetSystemState(void)
 {
-    /* Set initial route */
-    g_router_state.current_route = ROUTE_DATE_TIME;
-    /* Initialize date/time view first, then presenter with view */
-    g_router_state.dt_view = DateTimeView_Init();
-    if (g_router_state.dt_view)
+    SystemState_t state = STATE_INIT;
+    if (g_router_state.system_context && g_router_state.system_context->mutex)
     {
-        g_router_state.dt_presenter = DateTimePresenter_Init(g_router_state.dt_view);
-        if (g_router_state.dt_presenter)
+        if (osMutexAcquire(g_router_state.system_context->mutex, osWaitForever) == osOK)
         {
-            /* Render initial state */
-            DateTimePresenter_Run(g_router_state.dt_presenter);
+            state = g_router_state.system_context->data.state;
+            osMutexRelease(g_router_state.system_context->mutex);
+        }
+        else
+        {
+            printf("Router: Failed to acquire system context mutex\n");
+        }
+    }
+    else
+    {
+        printf("Router: system_context or mutex is NULL\n");
+    }
+    return state;
+}
+
+static void Router_SendSystemEvent(VP2SystemEventTypeDef event)
+{
+    if (g_router_state.vp2system_queue)
+    {
+        osMessageQueuePut(g_router_state.vp2system_queue, &event, 0, 0);
+    }
+}
+
+/**
+ * @brief Initialize the router and activate initial route
+ */
+void Router_Init(osMessageQueueId_t vp2system_queue, SystemContextAccessTypeDef *system_context)
+{
+    g_router_state.vp2system_queue = vp2system_queue;
+    g_router_state.system_context = system_context;
+
+    /* Start in INIT route */
+    g_router_state.current_route = ROUTE_INIT;
+    
+    /* Initialize loading view for INIT */
+    g_router_state.loading_view = LoadingView_Init("Initialize", LV_ALIGN_CENTER, 0);
+    if (g_router_state.loading_view)
+    {
+        g_router_state.loading_presenter = LoadingPresenter_Init(g_router_state.loading_view);
+        if (g_router_state.loading_presenter)
+        {
+            LoadingPresenter_Run(g_router_state.loading_presenter, osKernelGetTickCount());
         }
     }
 }
@@ -109,16 +168,52 @@ void Router_Deinit(void)
         g_router_state.dt_presenter = NULL;
     }
 
-    if (g_router_state.inst_view)
+    if (g_router_state.loading_view)
     {
-        LoadingView_Deinit(g_router_state.inst_view);
-        g_router_state.inst_view = NULL;
+        LoadingView_Deinit(g_router_state.loading_view);
+        g_router_state.loading_view = NULL;
     }
 
-    if (g_router_state.inst_presenter)
+    if (g_router_state.loading_presenter)
     {
-        LoadingPresenter_Deinit(g_router_state.inst_presenter);
-        g_router_state.inst_presenter = NULL;
+        LoadingPresenter_Deinit(g_router_state.loading_presenter);
+        g_router_state.loading_presenter = NULL;
+    }
+
+    if (g_router_state.waiting_view)
+    {
+        WaitingView_Deinit(g_router_state.waiting_view);
+        g_router_state.waiting_view = NULL;
+    }
+
+    if (g_router_state.waiting_presenter)
+    {
+        WaitingPresenter_Deinit(g_router_state.waiting_presenter);
+        g_router_state.waiting_presenter = NULL;
+    }
+
+    if (g_router_state.adapt_view)
+    {
+        LoadingView_Deinit(g_router_state.adapt_view);
+        g_router_state.adapt_view = NULL;
+    }
+
+    if (g_router_state.adapt_presenter)
+    {
+        LoadingPresenter_Deinit(g_router_state.adapt_presenter);
+        g_router_state.adapt_presenter = NULL;
+    }
+
+    if (g_router_state.adapt_fail_view)
+    {
+        WaitingView_Deinit(g_router_state.adapt_fail_view);
+        g_router_state.adapt_fail_view = NULL;
+    }
+
+    if (g_router_state.adapt_fail_presenter)
+    {
+        WaitingPresenter_Deinit(g_router_state.adapt_fail_presenter);
+        g_router_state.adapt_fail_presenter = NULL;
     }
 }
 
@@ -139,19 +234,33 @@ void Router_HandleEvent(const Input2VPEvent_t *event)
             /* Presenter handles the event and updates itself, which triggers view updates */
             DateTimePresenter_HandleEvent(g_router_state.dt_presenter, event);
             
-            /* Check if date/time setup is complete and transition to installation */
+            /* Check if date/time setup is complete */
             if (DateTimePresenter_IsComplete(g_router_state.dt_presenter))
             {
-                Router_GoToRoute(ROUTE_INSTALLATION);
+                /* Signal System that COD is done (moves to NOT_INST) */
+                Router_SendSystemEvent(EVT_INST_REQ);
+                /* Router_OnTick will handle the transition to ROUTE_NOT_INST when system state changes */
                 return;
             }
         }
     }
-    else if (g_router_state.current_route == ROUTE_INSTALLATION)
+    else if (g_router_state.current_route == ROUTE_NOT_INST)
     {
-        /* Installation view is read-only, no input handling needed */
-        (void)event;
+        /* User confirms installation -> Start Adaptation */
+        if (event->type == EVT_CENTRAL_BTN && event->button_action == BUTTON_ACTION_PRESSED)
+        {
+            Router_SendSystemEvent(EVT_INST_REQ); /* Moves to STATE_ADAPT */
+        }
     }
+    else if (g_router_state.current_route == ROUTE_ADAPT_FAIL)
+    {
+        /* User acknowledges failure -> Retry */
+        if (event->type == EVT_CENTRAL_BTN && event->button_action == BUTTON_ACTION_PRESSED)
+        {
+            Router_SendSystemEvent(EVT_ADAPT_RST); /* Moves to STATE_NOT_INST */
+        }
+    }
+    /* Other routes (INIT, RUNNING) have no specific interactions yet */
 }
 
 /**
@@ -159,20 +268,91 @@ void Router_HandleEvent(const Input2VPEvent_t *event)
  */
 void Router_OnTick(uint32_t current_tick)
 {
+    SystemState_t sysState = Router_GetSystemState();
+
+    /* State Machine Driven Routing */
+    RouteTypeDef targetRoute = g_router_state.current_route;
+    
+    /* Debug: Print state transitions */
+    static SystemState_t prev_state = STATE_INIT;
+    if (sysState != prev_state)
+    {
+        printf("Router: System state changed from %d to %d\n", prev_state, sysState);
+        prev_state = sysState;
+    }
+
+    switch (sysState)
+    {
+        case STATE_INIT:
+            targetRoute = ROUTE_INIT;
+            break;
+        case STATE_COD_DATE_TIME:
+            targetRoute = ROUTE_DATE_TIME;
+            break;
+        case STATE_NOT_INST:
+            targetRoute = ROUTE_NOT_INST;
+            break;
+        case STATE_ADAPT:
+            targetRoute = ROUTE_ADAPT;
+            break;
+        case STATE_ADAPT_FAIL:
+            targetRoute = ROUTE_ADAPT_FAIL;
+            break;
+        case STATE_RUNNING:
+            targetRoute = ROUTE_RUNNING;
+            break;
+        default:
+            break;
+    }
+
+    /* Perform route transition if needed */
+    if (targetRoute != g_router_state.current_route)
+    {
+        printf("Router: Route transition from %d to %d\n", g_router_state.current_route, targetRoute);
+        Router_GoToRoute(targetRoute);
+    }
+
+    /* Update current view based on route */
     if (g_router_state.current_route == ROUTE_DATE_TIME)
     {
-        /* Call presenter's run method to update view */
         if (g_router_state.dt_presenter)
         {
             DateTimePresenter_Run(g_router_state.dt_presenter);
         }
     }
-    else if (g_router_state.current_route == ROUTE_INSTALLATION)
+    else if (g_router_state.current_route == ROUTE_INIT)
     {
-        /* Call presenter's run method to update view */
-        if (g_router_state.inst_presenter)
+        if (g_router_state.loading_presenter)
         {
-            LoadingPresenter_Run(g_router_state.inst_presenter, current_tick);
+            LoadingPresenter_Run(g_router_state.loading_presenter, current_tick);
+        }
+    }
+    else if (g_router_state.current_route == ROUTE_NOT_INST)
+    {
+        if (g_router_state.waiting_presenter)
+        {
+            WaitingPresenter_Run(g_router_state.waiting_presenter);
+        }
+    }
+    else if (g_router_state.current_route == ROUTE_ADAPT)
+    {
+        if (g_router_state.adapt_presenter)
+        {
+            LoadingPresenter_Run(g_router_state.adapt_presenter, current_tick);
+        }
+    }
+    else if (g_router_state.current_route == ROUTE_ADAPT_FAIL)
+    {
+        if (g_router_state.adapt_fail_presenter)
+        {
+            WaitingPresenter_Run(g_router_state.adapt_fail_presenter);
+        }
+    }
+    else if (g_router_state.current_route == ROUTE_RUNNING)
+    {
+        if (g_router_state.loading_presenter)
+        {
+            LoadingPresenter_Run(g_router_state.loading_presenter, current_tick);
         }
     }
 }
@@ -185,7 +365,8 @@ void Router_GoToRoute(RouteTypeDef route)
     if (g_router_state.current_route == route)
         return;
 
-    /* Initialize new route first (view first, then presenter with view) */
+
+    /* Initialize new route */
     if (route == ROUTE_DATE_TIME)
     {
         if (!g_router_state.dt_view)
@@ -199,47 +380,135 @@ void Router_GoToRoute(RouteTypeDef route)
             DateTimePresenter_Run(g_router_state.dt_presenter);
         }
     }
-    else if (route == ROUTE_INSTALLATION)
+    else if (route == ROUTE_INIT)
     {
-        if (!g_router_state.inst_view)
+        if (!g_router_state.loading_view)
         {
-            g_router_state.inst_view = LoadingView_Init("Installation", LV_ALIGN_LEFT_MID, 20);
+            g_router_state.loading_view = LoadingView_Init("Initialization", LV_ALIGN_LEFT_MID, 10);
         }
-        if (g_router_state.inst_view && !g_router_state.inst_presenter)
+        if (g_router_state.loading_view && !g_router_state.loading_presenter)
         {
-            g_router_state.inst_presenter = LoadingPresenter_Init(g_router_state.inst_view);
-            /* Run immediately after initializing to ensure screen is displayed */
-            LoadingPresenter_Run(g_router_state.inst_presenter, osKernelGetTickCount());
+            g_router_state.loading_presenter = LoadingPresenter_Init(g_router_state.loading_view);
+            LoadingPresenter_Run(g_router_state.loading_presenter, osKernelGetTickCount());
+        }
+    }
+    else if (route == ROUTE_NOT_INST)
+    {
+        if (!g_router_state.waiting_view)
+        {
+            g_router_state.waiting_view = WaitingView_Init("Begin\nInstallation?", -5);
+        }
+        if (g_router_state.waiting_view && !g_router_state.waiting_presenter)
+        {
+            g_router_state.waiting_presenter = WaitingPresenter_Init(g_router_state.waiting_view);
+            WaitingPresenter_Run(g_router_state.waiting_presenter);
+        }
+    }
+    else if (route == ROUTE_ADAPT)
+    {
+        if (!g_router_state.adapt_view)
+        {
+            g_router_state.adapt_view = LoadingView_Init("Adaptation", LV_ALIGN_LEFT_MID, 20);
+        }
+        if (g_router_state.adapt_view && !g_router_state.adapt_presenter)
+        {
+            g_router_state.adapt_presenter = LoadingPresenter_Init(g_router_state.adapt_view);
+            LoadingPresenter_Run(g_router_state.adapt_presenter, osKernelGetTickCount());
+        }
+    }
+    else if (route == ROUTE_ADAPT_FAIL)
+    {
+        if (!g_router_state.adapt_fail_view)
+        {
+            g_router_state.adapt_fail_view = WaitingView_Init("Adaptation\nFailed!", -5);
+        }
+        if (g_router_state.adapt_fail_view && !g_router_state.adapt_fail_presenter)
+        {
+            g_router_state.adapt_fail_presenter = WaitingPresenter_Init(g_router_state.adapt_fail_view);
+            WaitingPresenter_Run(g_router_state.adapt_fail_presenter);
+        }
+    }
+    else if (route == ROUTE_RUNNING)
+    {
+        if (!g_router_state.loading_view)
+        {
+            g_router_state.loading_view = LoadingView_Init("Running", LV_ALIGN_LEFT_MID, 25);
+        }
+        if (g_router_state.loading_view && !g_router_state.loading_presenter)
+        {
+            g_router_state.loading_presenter = LoadingPresenter_Init(g_router_state.loading_view);
+            LoadingPresenter_Run(g_router_state.loading_presenter, osKernelGetTickCount());
         }
     }
 
     /* Cleanup old route */
-    if (g_router_state.current_route == ROUTE_DATE_TIME)
+    switch (g_router_state.current_route)
     {
-        if (g_router_state.dt_presenter)
-        {
-            DateTimePresenter_Deinit(g_router_state.dt_presenter);
-            g_router_state.dt_presenter = NULL;
-        }
-        if (g_router_state.dt_view)
-        {
-            DateTimeView_Deinit(g_router_state.dt_view);
-            g_router_state.dt_view = NULL;
-        }
+        case ROUTE_DATE_TIME:
+            if (g_router_state.dt_presenter)
+            {
+                DateTimePresenter_Deinit(g_router_state.dt_presenter);
+                g_router_state.dt_presenter = NULL;
+            }
+            if (g_router_state.dt_view)
+            {
+                DateTimeView_Deinit(g_router_state.dt_view);
+                g_router_state.dt_view = NULL;
+            }
+            break;
+        case ROUTE_INIT:
+        case ROUTE_RUNNING:
+            if (g_router_state.loading_presenter)
+            {
+                LoadingPresenter_Deinit(g_router_state.loading_presenter);
+                g_router_state.loading_presenter = NULL;
+            }
+            if (g_router_state.loading_view)
+            {
+                LoadingView_Deinit(g_router_state.loading_view);
+                g_router_state.loading_view = NULL;
+            }
+            break;
+        case ROUTE_NOT_INST:
+            if (g_router_state.waiting_presenter)
+            {
+                WaitingPresenter_Deinit(g_router_state.waiting_presenter);
+                g_router_state.waiting_presenter = NULL;
+            }
+            if (g_router_state.waiting_view)
+            {
+                WaitingView_Deinit(g_router_state.waiting_view);
+                g_router_state.waiting_view = NULL;
+            }
+            break;
+        case ROUTE_ADAPT:
+            if (g_router_state.adapt_presenter)
+            {
+                LoadingPresenter_Deinit(g_router_state.adapt_presenter);
+                g_router_state.adapt_presenter = NULL;
+            }
+            if (g_router_state.adapt_view)
+            {
+                LoadingView_Deinit(g_router_state.adapt_view);
+                g_router_state.adapt_view = NULL;
+            }
+            break;
+        case ROUTE_ADAPT_FAIL:
+            if (g_router_state.adapt_fail_presenter)
+            {
+                WaitingPresenter_Deinit(g_router_state.adapt_fail_presenter);
+                g_router_state.adapt_fail_presenter = NULL;
+            }
+            if (g_router_state.adapt_fail_view)
+            {
+                WaitingView_Deinit(g_router_state.adapt_fail_view);
+                g_router_state.adapt_fail_view = NULL;
+            }
+            break;
+        default:
+            break;
     }
-    else if (g_router_state.current_route == ROUTE_INSTALLATION)
-    {
-        if (g_router_state.inst_presenter)
-        {
-            LoadingPresenter_Deinit(g_router_state.inst_presenter);
-            g_router_state.inst_presenter = NULL;
-        }
-        if (g_router_state.inst_view)
-        {
-            LoadingView_Deinit(g_router_state.inst_view);
-            g_router_state.inst_view = NULL;
-        }
-    }
+
 
     /* Switch to new route */
     g_router_state.current_route = route;

@@ -17,31 +17,59 @@ void StartViewPresenterTask(void *argument)
         Error_Handler();
     }
 
-    osMessageQueueId_t input2vp_queue = args->input2vp_event_queue;
-    if (input2vp_queue == NULL)
+    osMessageQueueId_t input2vp_event_queue = args->input2vp_event_queue;
+    if (input2vp_event_queue == NULL)
     {
         Error_Handler();
     }
+
+    osMessageQueueId_t system2vp_event_queue = args->system2vp_event_queue;
+    if (system2vp_event_queue == NULL)
+    {
+        Error_Handler();
+    }
+
+    /* Optional: pointer to shared system context for UI reading */
+    SystemContextAccessTypeDef *sys_ctx = args->system_context_access;
+    (void)sys_ctx; /* currently unused; provided for UI read access */
 
 #if OS_TASKS_DEBUG
     printf("ViewPresenterTask running (heap=%lu)\n", (unsigned long)xPortGetFreeHeapSize());
 #endif
     
-    Router_Init();
+    Router_Init(args->vp2system_event_queue, args->system_context_access);
 
     Input2VPEvent_t event;
+    System2VPEventTypeDef sys_event;
+    uint8_t init_complete = 0;
 
-    printf("ViewPresenter task init OK. Running loop...\n");
+    printf("ViewPresenter task waiting for system init...\n");
+
+    /* Wait for system initialization to complete */
+    while (!init_complete)
+    {
+        if (osMessageQueueGet(system2vp_event_queue, &sys_event, NULL, osWaitForever) == osOK)
+        {
+            if (sys_event == EVT_SYS_INIT_END)
+            {
+                init_complete = 1;
+                printf("ViewPresenter received EVT_SYS_INIT_END. Starting main loop...\n");
+            }
+        }
+    }
 
     for(;;)
     {
         // Wait for event with timeout to allow periodic updates
         // Use the timeout to pace the loop when idle, but process immediately when busy
-        if (osMessageQueueGet(input2vp_queue, &event, NULL, pdMS_TO_TICKS(VIEW_DELAY_MS)) == osOK) {
+        osStatus_t queue_status = osMessageQueueGet(input2vp_event_queue, &event, NULL, pdMS_TO_TICKS(VIEW_DELAY_MS));
+        if (queue_status == osOK) {
+            printf("ViewPresenterTask: Received event type=%d\n", event.type);
             Router_HandleEvent(&event);
             
             // Drain remaining events in the queue without blocking
-            while (osMessageQueueGet(input2vp_queue, &event, NULL, 0) == osOK) {
+            while (osMessageQueueGet(input2vp_event_queue, &event, NULL, 0) == osOK) {
+                printf("ViewPresenterTask: Received event (drained) type=%d\n", event.type);
                 Router_HandleEvent(&event);
             }
         }

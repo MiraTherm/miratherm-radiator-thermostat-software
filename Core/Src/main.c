@@ -29,6 +29,8 @@
 #include "sensor_task.h"
 #include "storage_task.h"
 #include "view_presenter_task.h"
+#include "system_task.h"
+#include "maintenance_task.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -104,14 +106,40 @@ osMessageQueueId_t storage2SystemEventQueueHandle;
 /* Input to ViewPresenter event queue */
 osMessageQueueId_t input2VPEventQueueHandle;
 
+/* ViewPresenter -> System queue */
+osMessageQueueId_t vp2SystemEventQueueHandle;
+
 #if !TESTS
 /*Definitions for ViewPresenterTask*/
 osThreadId_t viewPresenterTaskHandle;
 const osThreadAttr_t viewPresenterTask_attributes = {
   .name = "viewPresenterTask",
-  .priority = (osPriority_t) osPriorityNormal1,
+  .priority = (osPriority_t) osPriorityNormal3,
   .stack_size = VP_TASK_STACK_SIZE
 };
+
+/* Definitions for SystemTask */
+osThreadId_t systemTaskHandle;
+const osThreadAttr_t systemTask_attributes = {
+  .name = "systemTask",
+  .priority = (osPriority_t) osPriorityNormal1,
+  .stack_size = SYSTEM_TASK_STACK_SIZE
+};
+
+/* Definitions for MaintTask */
+osThreadId_t maintenanceTaskHandle;
+const osThreadAttr_t maintenanceTask_attributes = {
+  .name = "maintenanceTask",
+  .priority = (osPriority_t) osPriorityNormal2,
+  .stack_size = MAINT_TASK_STACK_SIZE
+};
+
+/* System -> ViewPresenter queue */
+osMessageQueueId_t system2VPEventQueueHandle;
+
+/* System <-> Maint queues */
+osMessageQueueId_t system2MaintEventQueueHandle;
+osMessageQueueId_t maint2SystemEventQueueHandle;
 #endif
 /* USER CODE END PV */
 
@@ -190,7 +218,21 @@ int main(void)
   };
 #if !TESTS
   static ViewPresenterTaskArgsTypeDef viewPresenterTaskArgs = {
-    .input2vp_event_queue = NULL
+    .input2vp_event_queue = NULL,
+    .vp2system_event_queue = NULL,
+    .system2vp_event_queue = NULL,
+    .system_context_access = NULL
+  };
+  static SystemTaskArgsTypeDef systemTaskArgs = {
+    .vp2_system_queue = NULL,
+    .system2_vp_queue = NULL,
+    .system2_maint_queue = NULL,
+    .maint2_system_queue = NULL,
+    .system_context_access = NULL
+  };
+  static MaintenanceTaskArgsTypeDef maintenanceTaskArgs = {
+    .system2_maint_queue = NULL,
+    .maint2_system_queue = NULL
   };
 #endif
   /* USER CODE END Init */
@@ -263,6 +305,30 @@ int main(void)
   }
   defaultTaskArgs.sensor_values_access = &sensorValuesAccess;
   sensorTaskArgs.sensor_values_access = &sensorValuesAccess;
+
+#if !TESTS
+  static SystemContextAccessTypeDef systemContextAccess = { 
+    .mutex = NULL, 
+    .data = { 
+      .state = STATE_INIT, 
+      .adapt_result = -1 
+    } 
+  };
+
+  
+  /* Create system context mutex */
+  const osMutexAttr_t sysCtxMutexAttr = {
+    .name = "SysCtxMutex",
+    .attr_bits = osMutexPrioInherit,
+  };
+  systemContextAccess.mutex = osMutexNew(&sysCtxMutexAttr);
+  if (systemContextAccess.mutex == NULL) {
+    Error_Handler();
+  }
+  systemTaskArgs.system_context_access = &systemContextAccess;
+  viewPresenterTaskArgs.system_context_access = &systemContextAccess;
+#endif
+
   /* USER CODE END RTOS_MUTEX */
 
   /* USER CODE BEGIN RTOS_SEMAPHORES */
@@ -293,6 +359,36 @@ int main(void)
   inputTaskArgs.input2vp_event_queue = input2VPEventQueueHandle;
 #if !TESTS
   viewPresenterTaskArgs.input2vp_event_queue = input2VPEventQueueHandle;
+  /* Create ViewPresenter -> System event queue */
+  vp2SystemEventQueueHandle = osMessageQueueNew(4U, sizeof(VP2SystemEventTypeDef), NULL);
+  if (vp2SystemEventQueueHandle == NULL) {
+    Error_Handler();
+  }
+  systemTaskArgs.vp2_system_queue = vp2SystemEventQueueHandle;
+  viewPresenterTaskArgs.vp2system_event_queue = vp2SystemEventQueueHandle;
+
+  /* Create System -> ViewPresenter event queue */
+  system2VPEventQueueHandle = osMessageQueueNew(2U, sizeof(System2VPEventTypeDef), NULL);
+  if (system2VPEventQueueHandle == NULL) {
+    Error_Handler();
+  }
+  systemTaskArgs.system2_vp_queue = system2VPEventQueueHandle;
+  viewPresenterTaskArgs.system2vp_event_queue = system2VPEventQueueHandle;
+
+  /* Create System <-> Maint queues */
+  system2MaintEventQueueHandle = osMessageQueueNew(4U, sizeof(System2MaintEventTypeDef), NULL);
+  if (system2MaintEventQueueHandle == NULL) {
+    Error_Handler();
+  }
+  systemTaskArgs.system2_maint_queue = system2MaintEventQueueHandle;
+  maintenanceTaskArgs.system2_maint_queue = system2MaintEventQueueHandle;
+
+  maint2SystemEventQueueHandle = osMessageQueueNew(4U, sizeof(Maint2SystemEventTypeDef), NULL);
+  if (maint2SystemEventQueueHandle == NULL) {
+    Error_Handler();
+  }
+  systemTaskArgs.maint2_system_queue = maint2SystemEventQueueHandle;
+  maintenanceTaskArgs.maint2_system_queue = maint2SystemEventQueueHandle;
 #endif
   /* USER CODE END RTOS_QUEUES */
 
@@ -307,6 +403,8 @@ int main(void)
   inputTaskHandle = osThreadNew(StartInputTask, (void *)&inputTaskArgs, &inputTask_attributes);
 #if !TESTS
   viewPresenterTaskHandle = osThreadNew(StartViewPresenterTask, (void *)&viewPresenterTaskArgs, &viewPresenterTask_attributes);
+  systemTaskHandle = osThreadNew(StartSystemTask, (void *)&systemTaskArgs, &systemTask_attributes);
+  maintenanceTaskHandle = osThreadNew(StartMaintenanceTask, (void *)&maintenanceTaskArgs, &maintenanceTask_attributes);
 #endif
   /* USER CODE END RTOS_THREADS */
 
@@ -343,6 +441,8 @@ int main(void)
   DebugReportTaskCreation("inputTask", inputTaskHandle);
 #if !TESTS
   DebugReportTaskCreation("viewPresenterTask", viewPresenterTaskHandle);
+  DebugReportTaskCreation("systemTask", systemTaskHandle);
+  DebugReportTaskCreation("maintenanceTask", maintenanceTaskHandle);
 #endif
 #endif
 
