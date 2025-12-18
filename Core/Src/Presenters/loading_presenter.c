@@ -74,3 +74,14 @@ void LoadingPresenter_Run(LoadingPresenter_t *presenter, uint32_t current_tick)
     /* Render the current state to the view */
     LoadingView_Render(presenter->view, &presenter->data);
 }
+
+/**
+ * @brief Update the message displayed
+ */
+void LoadingPresenter_SetMessage(LoadingPresenter_t *presenter, const char *message)
+{
+    if (!presenter || !presenter->view)
+        return;
+    
+    LoadingView_SetMessage(presenter->view, message);
+}

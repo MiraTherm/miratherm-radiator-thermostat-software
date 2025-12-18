@@ -80,6 +80,21 @@ LoadingView_t* LoadingView_Init(const char *message, lv_align_t alignment, int16
 }
 
 /**
+ * @brief Update the message displayed
+ */
+void LoadingView_SetMessage(LoadingView_t *view, const char *message)
+{
+    if (!view || !message)
+        return;
+
+    strncpy(view->base_message, message, MAX_MESSAGE_LEN - 1);
+    view->base_message[MAX_MESSAGE_LEN - 1] = '\0';
+    
+    /* Force re-render on next cycle or immediately if needed, 
+       but Render() handles the text construction so it will pick it up. */
+}
+
+/**
  * @brief Deinitialize the loading view
  */
 void LoadingView_Deinit(LoadingView_t *view)

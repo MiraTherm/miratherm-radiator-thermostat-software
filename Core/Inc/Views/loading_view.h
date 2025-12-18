@@ -33,6 +33,10 @@ void LoadingView_Deinit(LoadingView_t *view);
  */
 void LoadingView_Render(LoadingView_t *view, const Loading_ViewModelData_t *data);
 
+/**
+ * @brief Update the message displayed
+ */
+void LoadingView_SetMessage(LoadingView_t *view, const char *message);
 
 #ifdef __cplusplus
 }

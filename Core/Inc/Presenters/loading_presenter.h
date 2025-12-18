@@ -34,6 +34,11 @@ const Loading_ViewModelData_t* LoadingPresenter_GetData(LoadingPresenter_t *pres
  */
 void LoadingPresenter_Run(LoadingPresenter_t *presenter, uint32_t current_tick);
 
+/**
+ * @brief Update the message displayed
+ */
+void LoadingPresenter_SetMessage(LoadingPresenter_t *presenter, const char *message);
+
 #ifdef __cplusplus
 }
 #endif
