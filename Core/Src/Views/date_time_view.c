@@ -33,7 +33,6 @@ typedef struct DateTimeView
     /* Button hints (lower line) */
     lv_obj_t *label_hint_left;
     lv_obj_t *label_hint_center;
-    lv_obj_t *label_hint_right;
     
     /* Pre-allocated strings for rollers */
     char day_options[256];
@@ -279,9 +278,6 @@ static void DateTimeView_RenderInternal(DateTimeView_t *view, const DateTime_Vie
     if (!view || !data)
         return;
 
-    if (!lv_port_lock())
-        return;
-
     uint8_t current_page = data->current_page;
     uint8_t date_active_field = data->date_active_field;
     uint8_t time_active_field = data->time_active_field;
@@ -384,8 +380,6 @@ static void DateTimeView_RenderInternal(DateTimeView_t *view, const DateTime_Vie
             }
         }
     }
-
-    lv_port_unlock();
 }
 
 /**
