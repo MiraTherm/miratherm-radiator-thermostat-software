@@ -22,12 +22,14 @@ typedef struct SetTimeView
     uint8_t last_hour;
     uint8_t last_minute;
     uint8_t last_active_field;
+
+    bool show_back_hint_on_first_field;
 } SetTimeView_t;
 
 static const char HOUR_OPTIONS[] = "00\n01\n02\n03\n04\n05\n06\n07\n08\n09\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n22\n23\n";
 static const char MINUTE_OPTIONS[] = "00\n01\n02\n03\n04\n05\n06\n07\n08\n09\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n22\n23\n24\n25\n26\n27\n28\n29\n30\n31\n32\n33\n34\n35\n36\n37\n38\n39\n40\n41\n42\n43\n44\n45\n46\n47\n48\n49\n50\n51\n52\n53\n54\n55\n56\n57\n58\n59\n";
 
-SetTimeView_t* SetTimeView_Init(void)
+SetTimeView_t* SetTimeView_Init(const char *title, bool show_back_hint_on_first_field)
 {
     SetTimeView_t *view = (SetTimeView_t *)malloc(sizeof(SetTimeView_t));
     if (!view)
@@ -35,6 +37,8 @@ SetTimeView_t* SetTimeView_Init(void)
 
     if (!lv_port_lock())
         return NULL;
+
+    view->show_back_hint_on_first_field = show_back_hint_on_first_field;
 
     view->screen = lv_obj_create(NULL);
     if (!view->screen)
@@ -47,7 +51,7 @@ SetTimeView_t* SetTimeView_Init(void)
     lv_obj_set_size(view->screen, LV_HOR_RES, LV_VER_RES);
 
     view->label_step_caption = lv_label_create(view->screen);
-    lv_label_set_text(view->label_step_caption, "Set time:");
+    lv_label_set_text(view->label_step_caption, title ? title : "Set time:");
     lv_obj_set_pos(view->label_step_caption, 0, 0);
     lv_obj_set_size(view->label_step_caption, 128, 10);
     lv_obj_set_style_text_color(view->label_step_caption, lv_color_white(), 0);
@@ -138,6 +142,15 @@ void SetTimeView_Render(SetTimeView_t *view, const SetTime_ViewModelData_t *data
     }
     
     update_time_roller_borders(view, data->active_field);
+
+    if (data->active_field > 0 || view->show_back_hint_on_first_field)
+    {
+        lv_obj_clear_flag(view->label_hint_left, LV_OBJ_FLAG_HIDDEN);
+    }
+    else
+    {
+        lv_obj_add_flag(view->label_hint_left, LV_OBJ_FLAG_HIDDEN);
+    }
 
     lv_port_unlock();
 }

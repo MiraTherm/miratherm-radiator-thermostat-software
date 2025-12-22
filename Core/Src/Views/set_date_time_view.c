@@ -8,14 +8,14 @@ typedef struct SetDateTimeView
     SetDstView_t *dst_view;
 } SetDateTimeView_t;
 
-SetDateTimeView_t* SetDateTimeView_Init(void)
+SetDateTimeView_t* SetDateTimeView_Init(bool show_back_hint_on_first_field)
 {
     SetDateTimeView_t *view = (SetDateTimeView_t *)malloc(sizeof(SetDateTimeView_t));
     if (!view)
         return NULL;
 
-    view->date_view = SetDateView_Init();
-    view->time_view = SetTimeView_Init();
+    view->date_view = SetDateView_Init("Set date:", show_back_hint_on_first_field);
+    view->time_view = SetTimeView_Init("Set time:", true);
     view->dst_view = SetDstView_Init();
 
     if (!view->date_view || !view->time_view || !view->dst_view)

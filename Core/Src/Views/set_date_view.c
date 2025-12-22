@@ -25,6 +25,8 @@ typedef struct SetDateView
     uint8_t last_month;
     uint16_t last_year;
     uint8_t last_active_field;
+    
+    bool show_back_hint_on_first_field;
 } SetDateView_t;
 
 static const char DAY_OPTIONS[] = "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n22\n23\n24\n25\n26\n27\n28\n29\n30\n31\n";
@@ -42,7 +44,7 @@ static void create_year_options(char *buf, size_t size)
     }
 }
 
-SetDateView_t* SetDateView_Init(void)
+SetDateView_t* SetDateView_Init(const char *title, bool show_back_hint_on_first_field)
 {
     SetDateView_t *view = (SetDateView_t *)malloc(sizeof(SetDateView_t));
     if (!view)
@@ -50,6 +52,8 @@ SetDateView_t* SetDateView_Init(void)
 
     if (!lv_port_lock())
         return NULL;
+
+    view->show_back_hint_on_first_field = show_back_hint_on_first_field;
 
     view->screen = lv_obj_create(NULL);
     if (!view->screen)
@@ -62,7 +66,7 @@ SetDateView_t* SetDateView_Init(void)
     lv_obj_set_size(view->screen, LV_HOR_RES, LV_VER_RES);
 
     view->label_step_caption = lv_label_create(view->screen);
-    lv_label_set_text(view->label_step_caption, "Set date:");
+    lv_label_set_text(view->label_step_caption, title ? title : "Set date:");
     lv_obj_set_pos(view->label_step_caption, 0, 0);
     lv_obj_set_size(view->label_step_caption, 128, 10);
     lv_obj_set_style_text_color(view->label_step_caption, lv_color_white(), 0);
@@ -171,6 +175,15 @@ void SetDateView_Render(SetDateView_t *view, const SetDate_ViewModelData_t *data
     }
     
     update_date_roller_borders(view, data->active_field);
+
+    if (data->active_field > 0 || view->show_back_hint_on_first_field)
+    {
+        lv_obj_clear_flag(view->label_hint_left, LV_OBJ_FLAG_HIDDEN);
+    }
+    else
+    {
+        lv_obj_add_flag(view->label_hint_left, LV_OBJ_FLAG_HIDDEN);
+    }
 
     lv_port_unlock();
 }

@@ -371,7 +371,7 @@ void Router_GoToRoute(RouteTypeDef route)
     {
         if (!g_router_state.dt_view)
         {
-            g_router_state.dt_view = SetDateTimeView_Init();
+            g_router_state.dt_view = SetDateTimeView_Init(false);
         }
         if (g_router_state.dt_view && !g_router_state.dt_presenter)
         {

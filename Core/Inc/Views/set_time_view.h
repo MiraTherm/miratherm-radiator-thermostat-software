@@ -1,6 +1,7 @@
 #ifndef CORE_INC_VIEWS_SET_TIME_VIEW_H
 #define CORE_INC_VIEWS_SET_TIME_VIEW_H
 
+#include <stdbool.h>
 #include "set_time_viewmodel.h"
 
 #ifdef __cplusplus
@@ -9,7 +10,7 @@ extern "C" {
 
 typedef struct SetTimeView SetTimeView_t;
 
-SetTimeView_t* SetTimeView_Init(void);
+SetTimeView_t* SetTimeView_Init(const char *title, bool show_back_hint_on_first_field);
 void SetTimeView_Deinit(SetTimeView_t *view);
 void SetTimeView_Render(SetTimeView_t *view, const SetTime_ViewModelData_t *data);
 void SetTimeView_Show(SetTimeView_t *view);
