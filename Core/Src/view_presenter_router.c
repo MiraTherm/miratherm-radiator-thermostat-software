@@ -1,6 +1,6 @@
 #include "view_presenter_router.h"
-#include "date_time_presenter.h"
-#include "date_time_view.h"
+#include "set_date_time_presenter.h"
+#include "set_date_time_view.h"
 #include "loading_presenter.h"
 #include "loading_view.h"
 #include "waiting_presenter.h"
@@ -21,8 +21,8 @@ typedef struct
     RouteTypeDef current_route;
     
     /* Date/Time route */
-    DateTimePresenter_t *dt_presenter;
-    DateTimeView_t *dt_view;
+    SetDateTimePresenter_t *dt_presenter;
+    SetDateTimeView_t *dt_view;
     
     /* Loading route (used for INIT, RUNNING) */
     LoadingPresenter_t *loading_presenter;
@@ -158,13 +158,13 @@ void Router_Deinit(void)
 {
     if (g_router_state.dt_view)
     {
-        DateTimeView_Deinit(g_router_state.dt_view);
+        SetDateTimeView_Deinit(g_router_state.dt_view);
         g_router_state.dt_view = NULL;
     }
 
     if (g_router_state.dt_presenter)
     {
-        DateTimePresenter_Deinit(g_router_state.dt_presenter);
+        SetDateTimePresenter_Deinit(g_router_state.dt_presenter);
         g_router_state.dt_presenter = NULL;
     }
 
@@ -232,10 +232,10 @@ void Router_HandleEvent(const Input2VPEvent_t *event)
         if (g_router_state.dt_presenter)
         {
             /* Presenter handles the event and updates itself, which triggers view updates */
-            DateTimePresenter_HandleEvent(g_router_state.dt_presenter, event);
+            SetDateTimePresenter_HandleEvent(g_router_state.dt_presenter, event);
             
             /* Check if date/time setup is complete */
-            if (DateTimePresenter_IsComplete(g_router_state.dt_presenter))
+            if (SetDateTimePresenter_IsComplete(g_router_state.dt_presenter))
             {
                 /* Signal System that COD is done (moves to NOT_INST) */
                 Router_SendSystemEvent(EVT_INST_REQ);
@@ -317,7 +317,7 @@ void Router_OnTick(uint32_t current_tick)
     {
         if (g_router_state.dt_presenter)
         {
-            DateTimePresenter_Run(g_router_state.dt_presenter);
+            // SetDateTimePresenter_Run(g_router_state.dt_presenter);
         }
     }
     else if (g_router_state.current_route == ROUTE_INIT)
@@ -371,13 +371,13 @@ void Router_GoToRoute(RouteTypeDef route)
     {
         if (!g_router_state.dt_view)
         {
-            g_router_state.dt_view = DateTimeView_Init();
+            g_router_state.dt_view = SetDateTimeView_Init();
         }
         if (g_router_state.dt_view && !g_router_state.dt_presenter)
         {
-            g_router_state.dt_presenter = DateTimePresenter_Init(g_router_state.dt_view);
+            g_router_state.dt_presenter = SetDateTimePresenter_Init(g_router_state.dt_view);
             /* Run immediately after initializing to ensure screen is displayed */
-            DateTimePresenter_Run(g_router_state.dt_presenter);
+            // SetDateTimePresenter_Run(g_router_state.dt_presenter);
         }
     }
     else if (route == ROUTE_INIT)
@@ -447,12 +447,12 @@ void Router_GoToRoute(RouteTypeDef route)
         case ROUTE_DATE_TIME:
             if (g_router_state.dt_presenter)
             {
-                DateTimePresenter_Deinit(g_router_state.dt_presenter);
+                SetDateTimePresenter_Deinit(g_router_state.dt_presenter);
                 g_router_state.dt_presenter = NULL;
             }
             if (g_router_state.dt_view)
             {
-                DateTimeView_Deinit(g_router_state.dt_view);
+                SetDateTimeView_Deinit(g_router_state.dt_view);
                 g_router_state.dt_view = NULL;
             }
             break;
