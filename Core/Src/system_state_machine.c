@@ -28,6 +28,7 @@ static SystemTaskArgsTypeDef *smArgs = NULL;
 /* - state handler functions */
 static SystemState_t doInitState(void);
 static SystemState_t doCodDateTimeState(void);
+static SystemState_t doCodScheduleState(void);
 static SystemState_t doNotInstState(void);
 static SystemState_t doAdaptState(void);
 static SystemState_t doAdaptFailState(void);
@@ -83,6 +84,7 @@ void SystemSM_Run(void)
                 }
                 break;
             case STATE_COD_DATE_TIME:
+            case STATE_COD_SCHEDULE:
             case STATE_NOT_INST:
             case STATE_ADAPT:
             case STATE_ADAPT_FAIL:
@@ -100,6 +102,9 @@ void SystemSM_Run(void)
                 break;
             case STATE_COD_DATE_TIME:
                 printf("SystemSM: Entering COD_DATE_TIME state...\n");
+                break;
+            case STATE_COD_SCHEDULE:
+                printf("SystemSM: Entering COD_SCHEDULE state...\n");
                 break;
             case STATE_NOT_INST:
                 printf("SystemSM: Entering NOT_INST state...\n");
@@ -153,6 +158,9 @@ static SystemState_t getNextState(SystemState_t state)
             break;
         case STATE_COD_DATE_TIME:
             nextState = doCodDateTimeState();
+            break;
+        case STATE_COD_SCHEDULE:
+            nextState = doCodScheduleState();
             break;
         case STATE_NOT_INST:
             nextState = doNotInstState();
@@ -209,7 +217,24 @@ static SystemState_t doCodDateTimeState(void)
     if (smArgs->vp2_system_queue != NULL && 
         osMessageQueueGet(smArgs->vp2_system_queue, &vpEvt, NULL, 0) == osOK)
     {
-        if (vpEvt == EVT_INST_REQ)
+        if (vpEvt == EVT_COD_DT_DONE)
+        {
+            nextState = STATE_COD_SCHEDULE;
+        }
+    }
+
+    return nextState;
+}
+
+static SystemState_t doCodScheduleState(void)
+{
+    SystemState_t nextState = STATE_COD_SCHEDULE;
+    VP2SystemEventTypeDef vpEvt;
+
+    if (smArgs->vp2_system_queue != NULL && 
+        osMessageQueueGet(smArgs->vp2_system_queue, &vpEvt, NULL, 0) == osOK)
+    {
+        if (vpEvt == EVT_COD_SCH_DONE)
         {
             nextState = STATE_NOT_INST;
         }

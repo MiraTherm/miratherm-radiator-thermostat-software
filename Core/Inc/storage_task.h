@@ -17,7 +17,23 @@ typedef enum
 
 typedef struct
 {
+    uint8_t StartHour;
+    uint8_t StartMinute;
+    uint8_t EndHour;
+    uint8_t EndMinute;
+    float Temperature;
+} TimeSlotTypeDef;
+
+typedef struct
+{
+    uint8_t NumTimeSlots;
+    TimeSlotTypeDef TimeSlots[5];
+} DailyScheduleTypeDef;
+
+typedef struct
+{
   float TemperatureOffsetC;
+  DailyScheduleTypeDef DailySchedule;
 } ConfigTypeDef;
 
 /**

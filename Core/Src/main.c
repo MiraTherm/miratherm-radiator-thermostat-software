@@ -374,6 +374,7 @@ int main(void)
   }
   systemTaskArgs.system2_vp_queue = system2VPEventQueueHandle;
   viewPresenterTaskArgs.system2vp_event_queue = system2VPEventQueueHandle;
+  viewPresenterTaskArgs.config_access = &configAccess;
 
   /* Create System <-> Maint queues */
   system2MaintEventQueueHandle = osMessageQueueNew(4U, sizeof(System2MaintEventTypeDef), NULL);

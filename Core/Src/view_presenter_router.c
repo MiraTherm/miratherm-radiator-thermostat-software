@@ -1,6 +1,8 @@
 #include "view_presenter_router.h"
 #include "set_date_time_presenter.h"
 #include "set_date_time_view.h"
+#include "change_schedule_presenter.h"
+#include "change_schedule_view.h"
 #include "loading_presenter.h"
 #include "loading_view.h"
 #include "waiting_presenter.h"
@@ -24,6 +26,10 @@ typedef struct
     SetDateTimePresenter_t *dt_presenter;
     SetDateTimeView_t *dt_view;
     
+    /* Change Schedule route */
+    ChangeSchedulePresenter_t *sch_presenter;
+    ChangeScheduleView_t *sch_view;
+    
     /* Loading route (used for INIT, RUNNING) */
     LoadingPresenter_t *loading_presenter;
     LoadingView_t *loading_view;
@@ -43,12 +49,15 @@ typedef struct
     /* System Interface */
     osMessageQueueId_t vp2system_queue;
     SystemContextAccessTypeDef *system_context;
+    ConfigAccessTypeDef *config_access;
 } Router_State_t;
 
 static Router_State_t g_router_state = {
     .current_route = ROUTE_INIT, /* Default start state */
     .dt_presenter = NULL,
     .dt_view = NULL,
+    .sch_presenter = NULL,
+    .sch_view = NULL,
     .loading_presenter = NULL,
     .loading_view = NULL,
     .waiting_presenter = NULL,
@@ -58,7 +67,8 @@ static Router_State_t g_router_state = {
     .adapt_fail_presenter = NULL,
     .adapt_fail_view = NULL,
     .vp2system_queue = NULL,
-    .system_context = NULL
+    .system_context = NULL,
+    .config_access = NULL
 };
 
 static void Router_UpdateDebugLeds(const Input2VPEvent_t *event)
@@ -131,10 +141,11 @@ static void Router_SendSystemEvent(VP2SystemEventTypeDef event)
 /**
  * @brief Initialize the router and activate initial route
  */
-void Router_Init(osMessageQueueId_t vp2system_queue, SystemContextAccessTypeDef *system_context)
+void Router_Init(osMessageQueueId_t vp2system_queue, SystemContextAccessTypeDef *system_context, ConfigAccessTypeDef *config_access)
 {
     g_router_state.vp2system_queue = vp2system_queue;
     g_router_state.system_context = system_context;
+    g_router_state.config_access = config_access;
 
     /* Start in INIT route */
     g_router_state.current_route = ROUTE_INIT;
@@ -237,9 +248,23 @@ void Router_HandleEvent(const Input2VPEvent_t *event)
             /* Check if date/time setup is complete */
             if (SetDateTimePresenter_IsComplete(g_router_state.dt_presenter))
             {
-                /* Signal System that COD is done (moves to NOT_INST) */
-                Router_SendSystemEvent(EVT_INST_REQ);
-                /* Router_OnTick will handle the transition to ROUTE_NOT_INST when system state changes */
+                /* Signal System that COD is done (moves to COD_SCHEDULE) */
+                Router_SendSystemEvent(EVT_COD_DT_DONE);
+                /* Router_OnTick will handle the transition to ROUTE_CHANGE_SCHEDULE when system state changes */
+                return;
+            }
+        }
+    }
+    else if (g_router_state.current_route == ROUTE_CHANGE_SCHEDULE)
+    {
+        if (g_router_state.sch_presenter)
+        {
+            ChangeSchedulePresenter_HandleEvent(g_router_state.sch_presenter, event);
+            
+            if (ChangeSchedulePresenter_IsComplete(g_router_state.sch_presenter))
+            {
+                /* Signal System that Schedule setup is done (moves to NOT_INST) */
+                Router_SendSystemEvent(EVT_COD_SCH_DONE);
                 return;
             }
         }
@@ -289,6 +314,9 @@ void Router_OnTick(uint32_t current_tick)
         case STATE_COD_DATE_TIME:
             targetRoute = ROUTE_DATE_TIME;
             break;
+        case STATE_COD_SCHEDULE:
+            targetRoute = ROUTE_CHANGE_SCHEDULE;
+            break;
         case STATE_NOT_INST:
             targetRoute = ROUTE_NOT_INST;
             break;
@@ -319,8 +347,10 @@ void Router_OnTick(uint32_t current_tick)
         {
             // SetDateTimePresenter_Run(g_router_state.dt_presenter);
         }
-    }
-    else if (g_router_state.current_route == ROUTE_INIT)
+    }    else if (g_router_state.current_route == ROUTE_CHANGE_SCHEDULE)
+    {
+        /* No periodic run needed for now */
+    }    else if (g_router_state.current_route == ROUTE_INIT)
     {
         if (g_router_state.loading_presenter)
         {
@@ -379,8 +409,17 @@ void Router_GoToRoute(RouteTypeDef route)
             /* Run immediately after initializing to ensure screen is displayed */
             // SetDateTimePresenter_Run(g_router_state.dt_presenter);
         }
-    }
-    else if (route == ROUTE_INIT)
+    }    else if (route == ROUTE_CHANGE_SCHEDULE)
+    {
+        if (!g_router_state.sch_view)
+        {
+            g_router_state.sch_view = ChangeScheduleView_Init();
+        }
+        if (g_router_state.sch_view && !g_router_state.sch_presenter)
+        {
+            g_router_state.sch_presenter = ChangeSchedulePresenter_Init(g_router_state.sch_view, g_router_state.config_access);
+        }
+    }    else if (route == ROUTE_INIT)
     {
         if (!g_router_state.loading_view)
         {
@@ -454,6 +493,18 @@ void Router_GoToRoute(RouteTypeDef route)
             {
                 SetDateTimeView_Deinit(g_router_state.dt_view);
                 g_router_state.dt_view = NULL;
+            }
+            break;
+        case ROUTE_CHANGE_SCHEDULE:
+            if (g_router_state.sch_presenter)
+            {
+                ChangeSchedulePresenter_Deinit(g_router_state.sch_presenter);
+                g_router_state.sch_presenter = NULL;
+            }
+            if (g_router_state.sch_view)
+            {
+                ChangeScheduleView_Deinit(g_router_state.sch_view);
+                g_router_state.sch_view = NULL;
             }
             break;
         case ROUTE_INIT:

@@ -13,6 +13,7 @@ extern "C" {
 typedef enum {
   STATE_INIT = 0,
   STATE_COD_DATE_TIME,
+  STATE_COD_SCHEDULE,
   STATE_NOT_INST,
   STATE_ADAPT,
   STATE_ADAPT_FAIL,
@@ -42,6 +43,8 @@ typedef struct {
  ************************************************/
 typedef enum {
   EVT_NO_EVENT = 0,
+  EVT_COD_DT_DONE, /* Date/Time setup done */
+  EVT_COD_SCH_DONE, /* Schedule setup done */
   EVT_INST_REQ,    /* start adaptation */
   EVT_ADAPT_RST    /* user accepts adapt fail and requests retry */
 } VP2SystemEventTypeDef;

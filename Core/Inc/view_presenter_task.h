@@ -10,6 +10,7 @@ extern "C" {
 #define VP_TASK_STACK_SIZE (1024U * 4U) // Important: Too small stack will cause hard faults!
 
 #include "system_task.h"
+#include "storage_task.h"
 
 typedef struct
 {
@@ -17,6 +18,7 @@ typedef struct
 	osMessageQueueId_t vp2system_event_queue; /* For sending user actions to System task */
 	osMessageQueueId_t system2vp_event_queue; /* For receiving events from System task */
 	SystemContextAccessTypeDef *system_context_access; /* Pointer to system context for UI updates */
+    ConfigAccessTypeDef *config_access; /* Pointer to config access */
 } ViewPresenterTaskArgsTypeDef;
 
 void StartViewPresenterTask(void *argument);
