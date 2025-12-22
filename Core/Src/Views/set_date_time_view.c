@@ -5,7 +5,7 @@ typedef struct SetDateTimeView
 {
     SetDateView_t *date_view;
     SetTimeView_t *time_view;
-    SetDstView_t *dst_view;
+    SetBoolView_t *dst_view;
 } SetDateTimeView_t;
 
 SetDateTimeView_t* SetDateTimeView_Init(bool show_back_hint_on_first_field)
@@ -16,7 +16,7 @@ SetDateTimeView_t* SetDateTimeView_Init(bool show_back_hint_on_first_field)
 
     view->date_view = SetDateView_Init("Set date:", show_back_hint_on_first_field);
     view->time_view = SetTimeView_Init("Set time:", true);
-    view->dst_view = SetDstView_Init();
+    view->dst_view = SetBoolView_Init("Summer time", "On", "Off", true);
 
     if (!view->date_view || !view->time_view || !view->dst_view)
     {
@@ -33,7 +33,7 @@ void SetDateTimeView_Deinit(SetDateTimeView_t *view)
     {
         if (view->date_view) SetDateView_Deinit(view->date_view);
         if (view->time_view) SetTimeView_Deinit(view->time_view);
-        if (view->dst_view) SetDstView_Deinit(view->dst_view);
+        if (view->dst_view) SetBoolView_Deinit(view->dst_view);
         free(view);
     }
 }
@@ -48,7 +48,7 @@ SetTimeView_t* SetDateTimeView_GetTimeView(SetDateTimeView_t *view)
     return view ? view->time_view : NULL;
 }
 
-SetDstView_t* SetDateTimeView_GetDstView(SetDateTimeView_t *view)
+SetBoolView_t* SetDateTimeView_GetDstView(SetDateTimeView_t *view)
 {
     return view ? view->dst_view : NULL;
 }

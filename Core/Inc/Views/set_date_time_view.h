@@ -3,7 +3,7 @@
 
 #include "set_date_view.h"
 #include "set_time_view.h"
-#include "set_dst_view.h"
+#include "set_bool_view.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -16,7 +16,7 @@ void SetDateTimeView_Deinit(SetDateTimeView_t *view);
 
 SetDateView_t* SetDateTimeView_GetDateView(SetDateTimeView_t *view);
 SetTimeView_t* SetDateTimeView_GetTimeView(SetDateTimeView_t *view);
-SetDstView_t* SetDateTimeView_GetDstView(SetDateTimeView_t *view);
+SetBoolView_t* SetDateTimeView_GetDstView(SetDateTimeView_t *view);
 
 #ifdef __cplusplus
 }

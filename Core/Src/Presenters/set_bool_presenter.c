@@ -1,36 +1,36 @@
-#include "set_dst_presenter.h"
-#include "set_dst_view.h"
+#include "set_bool_presenter.h"
+#include "set_bool_view.h"
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdbool.h>
 
-typedef struct SetDstPresenter
+typedef struct SetBoolPresenter
 {
-    SetDstView_t *view;
-    SetDst_ViewModelData_t data;
+    SetBoolView_t *view;
+    SetBool_ViewModelData_t data;
     bool is_complete;
-} SetDstPresenter_t;
+} SetBoolPresenter_t;
 
-SetDstPresenter_t* SetDstPresenter_Init(SetDstView_t *view)
+SetBoolPresenter_t* SetBoolPresenter_Init(SetBoolView_t *view)
 {
-    SetDstPresenter_t *presenter = (SetDstPresenter_t *)malloc(sizeof(SetDstPresenter_t));
+    SetBoolPresenter_t *presenter = (SetBoolPresenter_t *)malloc(sizeof(SetBoolPresenter_t));
     if (!presenter)
         return NULL;
 
     presenter->view = view;
     presenter->is_complete = false;
-    presenter->data.is_summer_time = false;
+    presenter->data.value = false;
 
     return presenter;
 }
 
-void SetDstPresenter_Deinit(SetDstPresenter_t *presenter)
+void SetBoolPresenter_Deinit(SetBoolPresenter_t *presenter)
 {
     if (presenter)
         free(presenter);
 }
 
-void SetDstPresenter_HandleEvent(SetDstPresenter_t *presenter, const Input2VPEvent_t *event)
+void SetBoolPresenter_HandleEvent(SetBoolPresenter_t *presenter, const Input2VPEvent_t *event)
 {
     if (!presenter || !event)
         return;
@@ -41,11 +41,11 @@ void SetDstPresenter_HandleEvent(SetDstPresenter_t *presenter, const Input2VPEve
     {
         if (event->delta < 0)
         {
-            presenter->data.is_summer_time = false;
+            presenter->data.value = false;
         }
         else if (event->delta > 0)
         {
-            presenter->data.is_summer_time = true;
+            presenter->data.value = true;
         }
         state_changed = true;
     }
@@ -57,11 +57,11 @@ void SetDstPresenter_HandleEvent(SetDstPresenter_t *presenter, const Input2VPEve
 
     if (state_changed && presenter->view)
     {
-        SetDstView_Render(presenter->view, &presenter->data);
+        SetBoolView_Render(presenter->view, &presenter->data);
     }
 }
 
-void SetDstPresenter_Reset(SetDstPresenter_t *presenter)
+void SetBoolPresenter_Reset(SetBoolPresenter_t *presenter)
 {
     if (presenter)
     {
@@ -69,14 +69,14 @@ void SetDstPresenter_Reset(SetDstPresenter_t *presenter)
     }
 }
 
-bool SetDstPresenter_IsComplete(SetDstPresenter_t *presenter)
+bool SetBoolPresenter_IsComplete(SetBoolPresenter_t *presenter)
 {
     if (!presenter)
         return false;
     return presenter->is_complete;
 }
 
-const SetDst_ViewModelData_t* SetDstPresenter_GetData(SetDstPresenter_t *presenter)
+const SetBool_ViewModelData_t* SetBoolPresenter_GetData(SetBoolPresenter_t *presenter)
 {
     if (!presenter)
         return NULL;

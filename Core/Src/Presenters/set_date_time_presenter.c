@@ -1,7 +1,7 @@
 #include "set_date_time_presenter.h"
 #include "set_date_presenter.h"
 #include "set_time_presenter.h"
-#include "set_dst_presenter.h"
+#include "set_bool_presenter.h"
 #include "stm32wbxx_hal.h"
 #include <stdlib.h>
 
@@ -13,7 +13,7 @@ typedef struct SetDateTimePresenter
     
     SetDatePresenter_t *date_presenter;
     SetTimePresenter_t *time_presenter;
-    SetDstPresenter_t *dst_presenter;
+    SetBoolPresenter_t *dst_presenter;
     
     uint8_t current_step; /* 0: Date, 1: Time, 2: DST */
     bool is_complete;
@@ -26,7 +26,7 @@ static void set_rtc(SetDateTimePresenter_t *presenter)
 
     const SetDate_ViewModelData_t *date_data = SetDatePresenter_GetData(presenter->date_presenter);
     const SetTime_ViewModelData_t *time_data = SetTimePresenter_GetData(presenter->time_presenter);
-    const SetDst_ViewModelData_t *dst_data = SetDstPresenter_GetData(presenter->dst_presenter);
+    const SetBool_ViewModelData_t *dst_data = SetBoolPresenter_GetData(presenter->dst_presenter);
 
     if (!date_data || !time_data || !dst_data) return;
 
@@ -42,7 +42,7 @@ static void set_rtc(SetDateTimePresenter_t *presenter)
     sTime.Minutes = time_data->minute;
     sTime.Seconds = 0;
     sTime.TimeFormat = RTC_HOURFORMAT_24;
-    sTime.DayLightSaving = (dst_data->is_summer_time) ? RTC_DAYLIGHTSAVING_ADD1H : RTC_DAYLIGHTSAVING_NONE;
+    sTime.DayLightSaving = (dst_data->value) ? RTC_DAYLIGHTSAVING_ADD1H : RTC_DAYLIGHTSAVING_NONE;
     sTime.StoreOperation = RTC_STOREOPERATION_RESET;
 
     HAL_RTC_SetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
@@ -60,7 +60,7 @@ SetDateTimePresenter_t* SetDateTimePresenter_Init(SetDateTimeView_t *view)
 
     presenter->date_presenter = SetDatePresenter_Init(SetDateTimeView_GetDateView(view));
     presenter->time_presenter = SetTimePresenter_Init(SetDateTimeView_GetTimeView(view));
-    presenter->dst_presenter = SetDstPresenter_Init(SetDateTimeView_GetDstView(view));
+    presenter->dst_presenter = SetBoolPresenter_Init(SetDateTimeView_GetDstView(view));
 
     if (!presenter->date_presenter || !presenter->time_presenter || !presenter->dst_presenter)
     {
@@ -82,7 +82,7 @@ void SetDateTimePresenter_Deinit(SetDateTimePresenter_t *presenter)
     {
         if (presenter->date_presenter) SetDatePresenter_Deinit(presenter->date_presenter);
         if (presenter->time_presenter) SetTimePresenter_Deinit(presenter->time_presenter);
-        if (presenter->dst_presenter) SetDstPresenter_Deinit(presenter->dst_presenter);
+        if (presenter->dst_presenter) SetBoolPresenter_Deinit(presenter->dst_presenter);
         free(presenter);
     }
 }
@@ -122,9 +122,9 @@ void SetDateTimePresenter_HandleEvent(SetDateTimePresenter_t *presenter, const I
         if (SetTimePresenter_IsComplete(presenter->time_presenter))
         {
             presenter->current_step = 2;
-            SetDstView_Show(SetDateTimeView_GetDstView(presenter->view));
+            SetBoolView_Show(SetDateTimeView_GetDstView(presenter->view));
             /* Force render */
-            SetDstPresenter_HandleEvent(presenter->dst_presenter, NULL);
+            SetBoolPresenter_HandleEvent(presenter->dst_presenter, NULL);
         }
     }
     else if (presenter->current_step == 2)
@@ -139,8 +139,8 @@ void SetDateTimePresenter_HandleEvent(SetDateTimePresenter_t *presenter, const I
             return;
         }
 
-        SetDstPresenter_HandleEvent(presenter->dst_presenter, event);
-        if (SetDstPresenter_IsComplete(presenter->dst_presenter))
+        SetBoolPresenter_HandleEvent(presenter->dst_presenter, event);
+        if (SetBoolPresenter_IsComplete(presenter->dst_presenter))
         {
             set_rtc(presenter);
             presenter->is_complete = true;
