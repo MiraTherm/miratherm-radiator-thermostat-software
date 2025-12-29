@@ -41,7 +41,7 @@ SetValueView_t* SetValueView_Init(const char *title, const char *unit, const cha
     view->label_title = lv_label_create(view->screen);
     lv_label_set_text(view->label_title, title ? title : "Set value:");
     lv_obj_set_pos(view->label_title, 0, 0);
-    lv_obj_set_size(view->label_title, 128, 10);
+    lv_obj_set_size(view->label_title, 128, 14);
     lv_obj_set_style_text_color(view->label_title, lv_color_white(), 0);
     lv_obj_set_style_text_align(view->label_title, LV_TEXT_ALIGN_CENTER, 0);
 
