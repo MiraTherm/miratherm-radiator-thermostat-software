@@ -7,16 +7,6 @@
 #include <stdio.h>
 #include <string.h>
 
-/* 
- * Steps:
- * 0: Ask "Change schedule?" (Yes/No)
- * 1: If Yes: "Time slots per day:" (3, 4, 5)
- * 2..N: Loop for each slot:
- *    - Set Time Slot (Start/End)
- *    - Set Temperature
- * If No: Load default/existing config and finish.
- */
-
 typedef enum
 {
     STEP_ASK_CHANGE = 0,
@@ -46,6 +36,8 @@ typedef struct ChangeSchedulePresenter
     char temp_options[512];
     
 } ChangeSchedulePresenter_t;
+
+static void load_schedule(ChangeSchedulePresenter_t *presenter);
 
 static void generate_temp_options(char *buffer, size_t size)
 {
@@ -114,6 +106,9 @@ ChangeSchedulePresenter_t* ChangeSchedulePresenter_Init(ChangeScheduleView_t *vi
     /* Start with "Change schedule?" */
     SetBoolView_Show(ChangeScheduleView_GetBoolView(view));
 
+    /* Load initial schedule from config */
+    load_schedule(presenter);
+
     return presenter;
 }
 
@@ -139,6 +134,128 @@ static void save_schedule(ChangeSchedulePresenter_t *presenter)
     }
 }
 
+static bool is_time_less(uint8_t h1, uint8_t m1, uint8_t h2, uint8_t m2)
+{
+    if (h1 < h2) return true;
+    if (h1 == h2 && m1 < m2) return true;
+    return false;
+}
+
+static bool is_schedule_valid(const DailyScheduleTypeDef *schedule)
+{
+    if (schedule->NumTimeSlots < 3 || schedule->NumTimeSlots > 5) return false;
+
+    /* First slot must start at 00:00 */
+    if (schedule->TimeSlots[0].StartHour != 0 || schedule->TimeSlots[0].StartMinute != 0) return false;
+
+    /* Last slot must end at 23:59 */
+    if (schedule->TimeSlots[schedule->NumTimeSlots - 1].EndHour != 23 || 
+        schedule->TimeSlots[schedule->NumTimeSlots - 1].EndMinute != 59) return false;
+
+    for (int i = 0; i < schedule->NumTimeSlots; i++)
+    {
+        /* Start < End */
+        if (!is_time_less(schedule->TimeSlots[i].StartHour, schedule->TimeSlots[i].StartMinute,
+                          schedule->TimeSlots[i].EndHour, schedule->TimeSlots[i].EndMinute))
+        {
+            return false;
+        }
+
+        /* Contiguity */
+        if (i > 0)
+        {
+            if (schedule->TimeSlots[i].StartHour != schedule->TimeSlots[i-1].EndHour ||
+                schedule->TimeSlots[i].StartMinute != schedule->TimeSlots[i-1].EndMinute)
+            {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+static void load_default_schedule(DailyScheduleTypeDef *schedule, uint8_t num_slots)
+{
+    schedule->NumTimeSlots = num_slots;
+    
+    /* Common: Slot 0 is 00:00 - 05:30, 18C */
+    schedule->TimeSlots[0].StartHour = 0;
+    schedule->TimeSlots[0].StartMinute = 0;
+    schedule->TimeSlots[0].EndHour = 5;
+    schedule->TimeSlots[0].EndMinute = 30;
+    schedule->TimeSlots[0].Temperature = 18.0f;
+
+    if (num_slots == 3)
+    {
+        /* Slot 1: 05:30 - 22:00, 20C */
+        schedule->TimeSlots[1].StartHour = 5;
+        schedule->TimeSlots[1].StartMinute = 30;
+        schedule->TimeSlots[1].EndHour = 22;
+        schedule->TimeSlots[1].EndMinute = 0;
+        schedule->TimeSlots[1].Temperature = 20.0f;
+
+        /* Slot 2: 22:00 - 23:59, 18C */
+        schedule->TimeSlots[2].StartHour = 22;
+        schedule->TimeSlots[2].StartMinute = 0;
+        schedule->TimeSlots[2].EndHour = 23;
+        schedule->TimeSlots[2].EndMinute = 59;
+        schedule->TimeSlots[2].Temperature = 18.0f;
+    }
+    else if (num_slots == 4)
+    {
+        /* Slot 1: 05:30 - 15:00, 20C */
+        schedule->TimeSlots[1].StartHour = 5;
+        schedule->TimeSlots[1].StartMinute = 30;
+        schedule->TimeSlots[1].EndHour = 15;
+        schedule->TimeSlots[1].EndMinute = 0;
+        schedule->TimeSlots[1].Temperature = 20.0f;
+
+        /* Slot 2: 15:00 - 22:00, 19C */
+        schedule->TimeSlots[2].StartHour = 15;
+        schedule->TimeSlots[2].StartMinute = 0;
+        schedule->TimeSlots[2].EndHour = 22;
+        schedule->TimeSlots[2].EndMinute = 0;
+        schedule->TimeSlots[2].Temperature = 19.0f;
+
+        /* Slot 3: 22:00 - 23:59, 18C */
+        schedule->TimeSlots[3].StartHour = 22;
+        schedule->TimeSlots[3].StartMinute = 0;
+        schedule->TimeSlots[3].EndHour = 23;
+        schedule->TimeSlots[3].EndMinute = 59;
+        schedule->TimeSlots[3].Temperature = 18.0f;
+    }
+    else if (num_slots == 5)
+    {
+        /* Slot 1: 05:30 - 07:00, 20C */
+        schedule->TimeSlots[1].StartHour = 5;
+        schedule->TimeSlots[1].StartMinute = 30;
+        schedule->TimeSlots[1].EndHour = 7;
+        schedule->TimeSlots[1].EndMinute = 0;
+        schedule->TimeSlots[1].Temperature = 20.0f;
+
+        /* Slot 2: 07:00 - 15:00, 18C */
+        schedule->TimeSlots[2].StartHour = 7;
+        schedule->TimeSlots[2].StartMinute = 0;
+        schedule->TimeSlots[2].EndHour = 15;
+        schedule->TimeSlots[2].EndMinute = 0;
+        schedule->TimeSlots[2].Temperature = 18.0f;
+
+        /* Slot 3: 15:00 - 22:00, 20C */
+        schedule->TimeSlots[3].StartHour = 15;
+        schedule->TimeSlots[3].StartMinute = 0;
+        schedule->TimeSlots[3].EndHour = 22;
+        schedule->TimeSlots[3].EndMinute = 0;
+        schedule->TimeSlots[3].Temperature = 20.0f;
+
+        /* Slot 4: 22:00 - 23:59, 18C */
+        schedule->TimeSlots[4].StartHour = 22;
+        schedule->TimeSlots[4].StartMinute = 0;
+        schedule->TimeSlots[4].EndHour = 23;
+        schedule->TimeSlots[4].EndMinute = 59;
+        schedule->TimeSlots[4].Temperature = 18.0f;
+    }
+}
+
 static void load_schedule(ChangeSchedulePresenter_t *presenter)
 {
     if (!presenter || !presenter->config_access) return;
@@ -149,31 +266,10 @@ static void load_schedule(ChangeSchedulePresenter_t *presenter)
         osMutexRelease(presenter->config_access->mutex);
     }
     
-    /* If invalid (num slots 0), load default */
-    if (presenter->schedule.NumTimeSlots == 0)
+    /* If invalid, load default */
+    if (!is_schedule_valid(&presenter->schedule))
     {
-        presenter->schedule.NumTimeSlots = 3;
-        
-        /* 00:00 - 5:30: 18°C */
-        presenter->schedule.TimeSlots[0].StartHour = 0;
-        presenter->schedule.TimeSlots[0].StartMinute = 0;
-        presenter->schedule.TimeSlots[0].EndHour = 5;
-        presenter->schedule.TimeSlots[0].EndMinute = 30;
-        presenter->schedule.TimeSlots[0].Temperature = 18.0f;
-        
-        /* 5:30 - 22:00: 20°C */
-        presenter->schedule.TimeSlots[1].StartHour = 5;
-        presenter->schedule.TimeSlots[1].StartMinute = 30;
-        presenter->schedule.TimeSlots[1].EndHour = 22;
-        presenter->schedule.TimeSlots[1].EndMinute = 0;
-        presenter->schedule.TimeSlots[1].Temperature = 20.0f;
-        
-        /* 22:00 - 23:59: 18°C */
-        presenter->schedule.TimeSlots[2].StartHour = 22;
-        presenter->schedule.TimeSlots[2].StartMinute = 0;
-        presenter->schedule.TimeSlots[2].EndHour = 23;
-        presenter->schedule.TimeSlots[2].EndMinute = 59;
-        presenter->schedule.TimeSlots[2].Temperature = 18.0f;
+        load_default_schedule(&presenter->schedule, 3);
     }
 }
 
@@ -184,14 +280,6 @@ static void setup_slot_time_view(ChangeSchedulePresenter_t *presenter)
     SetTimeSlotView_SetTitle(ChangeScheduleView_GetTimeSlotView(presenter->view), title);
     
     SetTimeSlot_ViewModelData_t data = {0};
-    
-    /* Initialize with current values if available, or defaults */
-    /* If it's a new slot (not in previous config), we might need logic. 
-       But we loaded config or defaults, so we should have something. 
-       If user increased slots, we need to handle that. */
-       
-    /* For simplicity, use what's in schedule structure (which might be garbage if we increased slots) */
-    /* But we should have initialized it properly when changing num slots? */
     
     data.start_hour = presenter->schedule.TimeSlots[presenter->current_slot_index].StartHour;
     data.start_minute = presenter->schedule.TimeSlots[presenter->current_slot_index].StartMinute;
@@ -277,9 +365,7 @@ void ChangeSchedulePresenter_HandleEvent(ChangeSchedulePresenter_t *presenter, c
                 }
                 else /* No */
                 {
-                    /* Load default/existing config and finish */
-                    load_schedule(presenter);
-                    save_schedule(presenter); /* Ensure defaults are saved if they were loaded */
+                    /* Skip changing */
                     presenter->is_complete = true;
                 }
             }
@@ -302,16 +388,12 @@ void ChangeSchedulePresenter_HandleEvent(ChangeSchedulePresenter_t *presenter, c
                 uint16_t idx = SetValuePresenter_GetSelectedIndex(presenter->value_presenter);
                 uint8_t new_num_slots = idx + 3;
                 
-                /* If num slots changed, we might need to adjust schedule array */
-                /* For now, just update the count. The logic to fill times will happen in loop */
-                /* If we increased slots, we should probably initialize new ones? */
-                /* Requirement: "If 3 time slots were chosen, calculate the others automatically" - this likely means if we REDUCE slots? 
-                   Or "calculate the others automatically" means fill the gaps?
-                   "2x2 time slots have the same temperature" - vague.
-                   Let's just keep existing values where possible.
-                */
+                /* If num slots changed, use defaults */
+                if (new_num_slots != presenter->schedule.NumTimeSlots)
+                {
+                    load_default_schedule(&presenter->schedule, new_num_slots);
+                }
                 
-                presenter->schedule.NumTimeSlots = new_num_slots;
                 presenter->current_slot_index = 0;
                 
                 presenter->current_step = STEP_SLOT_TIME;

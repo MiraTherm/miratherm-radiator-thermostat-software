@@ -16,7 +16,7 @@ ChangeScheduleView_t* ChangeScheduleView_Init(void)
     /* Initialize sub-views. They are created but not shown yet. */
     /* Note: We initialize them with default/placeholder values, they will be updated by presenter */
     
-    view->bool_view = SetBoolView_Init("Change schedule?", "Yes", "No", true);
+    view->bool_view = SetBoolView_Init("Edit schedule?", "Yes", "No", true);
     view->value_view = SetValueView_Init("Set value", "", NULL);
     view->time_slot_view = SetTimeSlotView_Init("Set time slot");
 
