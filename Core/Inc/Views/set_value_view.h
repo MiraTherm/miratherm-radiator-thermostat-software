@@ -16,6 +16,7 @@ void SetValueView_Render(SetValueView_t *view, const SetValue_ViewModelData_t *d
 void SetValueView_Show(SetValueView_t *view);
 void SetValueView_Hide(SetValueView_t *view);
 void SetValueView_SetTitle(SetValueView_t *view, const char *title);
+void SetValueView_SetUnit(SetValueView_t *view, const char *unit);
 void SetValueView_SetOptions(SetValueView_t *view, const char *options);
 
 #ifdef __cplusplus

@@ -59,9 +59,10 @@ SetValueView_t* SetValueView_Init(const char *title, const char *unit, const cha
     {
         view->label_unit = lv_label_create(view->screen);
         lv_label_set_text(view->label_unit, unit);
-        lv_obj_set_pos(view->label_unit, 95, 25);
+        lv_obj_set_pos(view->label_unit, 92, 25);
         lv_obj_set_size(view->label_unit, 20, 10);
         lv_obj_set_style_text_color(view->label_unit, lv_color_white(), 0);
+        lv_obj_set_style_text_font(view->label_unit, &lv_font_montserrat_16, 0);
     }
     else
     {
@@ -139,6 +140,32 @@ void SetValueView_SetTitle(SetValueView_t *view, const char *title)
     if (lv_port_lock())
     {
         lv_label_set_text(view->label_title, title);
+        lv_port_unlock();
+    }
+}
+
+void SetValueView_SetUnit(SetValueView_t *view, const char *unit)
+{
+    if (!view) return;
+    if (lv_port_lock())
+    {
+        if (unit)
+        {
+            if (!view->label_unit)
+            {
+                view->label_unit = lv_label_create(view->screen);
+                lv_obj_set_pos(view->label_unit, 92, 25);
+                lv_obj_set_size(view->label_unit, 20, 10);
+                lv_obj_set_style_text_color(view->label_unit, lv_color_white(), 0);
+                lv_obj_set_style_text_font(view->label_unit, &lv_font_montserrat_16, 0);
+            }
+            lv_label_set_text(view->label_unit, unit);
+        }
+        else if (view->label_unit)
+        {
+            lv_obj_del(view->label_unit);
+            view->label_unit = NULL;
+        }
         lv_port_unlock();
     }
 }
