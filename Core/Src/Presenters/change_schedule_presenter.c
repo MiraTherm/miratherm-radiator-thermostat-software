@@ -317,8 +317,9 @@ static void setup_slot_time_view(ChangeSchedulePresenter_t *presenter)
 static void setup_slot_temp_view(ChangeSchedulePresenter_t *presenter)
 {
     char title[32];
-    snprintf(title, sizeof(title), "Set %d/%d temp °C:", presenter->current_slot_index + 1, presenter->schedule.NumTimeSlots);
+    snprintf(title, sizeof(title), "Set %d/%d temp:", presenter->current_slot_index + 1, presenter->schedule.NumTimeSlots);
     SetValueView_SetTitle(ChangeScheduleView_GetValueView(presenter->view), title);
+    SetValueView_SetUnit(ChangeScheduleView_GetValueView(presenter->view), "°C");
     
     /* Set options for temperature */
     SetValueView_SetOptions(ChangeScheduleView_GetValueView(presenter->view), presenter->temp_options);
