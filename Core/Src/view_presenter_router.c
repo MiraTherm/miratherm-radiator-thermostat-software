@@ -9,6 +9,10 @@
 #include "waiting_view.h"
 #include "home_presenter.h"
 #include "home_view.h"
+#include "menu_presenter.h"
+#include "menu_view.h"
+#include "set_temp_offset_presenter.h"
+#include "set_value_view.h"
 #include "task_debug.h"
 #include "cmsis_os2.h"
 #if VIEW_PRESENTER_TASK_DEBUG_LEDS
@@ -52,6 +56,14 @@ typedef struct
     HomePresenter_t *home_presenter;
     HomeView_t *home_view;
 
+    /* Menu route */
+    MenuPresenter_t *menu_presenter;
+    MenuView_t *menu_view;
+
+    /* Edit Temp Offset route */
+    SetTempOffsetPresenter_t *temp_offset_presenter;
+    SetValueView_t *temp_offset_view;
+
     /* System Interface */
     osMessageQueueId_t vp2system_queue;
     SystemContextAccessTypeDef *system_context;
@@ -75,6 +87,10 @@ static Router_State_t g_router_state = {
     .adapt_fail_view = NULL,
     .home_presenter = NULL,
     .home_view = NULL,
+    .menu_presenter = NULL,
+    .menu_view = NULL,
+    .temp_offset_presenter = NULL,
+    .temp_offset_view = NULL,
     .vp2system_queue = NULL,
     .system_context = NULL,
     .config_access = NULL,
@@ -249,6 +265,30 @@ void Router_Deinit(void)
         HomePresenter_Deinit(g_router_state.home_presenter);
         g_router_state.home_presenter = NULL;
     }
+
+    if (g_router_state.menu_view)
+    {
+        MenuView_Deinit(g_router_state.menu_view);
+        g_router_state.menu_view = NULL;
+    }
+
+    if (g_router_state.menu_presenter)
+    {
+        MenuPresenter_Deinit(g_router_state.menu_presenter);
+        g_router_state.menu_presenter = NULL;
+    }
+
+    if (g_router_state.temp_offset_view)
+    {
+        SetValueView_Deinit(g_router_state.temp_offset_view);
+        g_router_state.temp_offset_view = NULL;
+    }
+
+    if (g_router_state.temp_offset_presenter)
+    {
+        SetTempOffsetPresenter_Deinit(g_router_state.temp_offset_presenter);
+        g_router_state.temp_offset_presenter = NULL;
+    }
 }
 
 /**
@@ -284,10 +324,31 @@ void Router_HandleEvent(const Input2VPEvent_t *event)
         {
             ChangeSchedulePresenter_HandleEvent(g_router_state.sch_presenter, event);
             
+            if (ChangeSchedulePresenter_IsCancelled(g_router_state.sch_presenter))
+            {
+                SystemState_t state = Router_GetSystemState();
+                if (state == STATE_RUNNING)
+                {
+                    Router_GoToRoute(ROUTE_MENU);
+                }
+                /* If not running (setup), we probably shouldn't be able to cancel back to menu, 
+                   but maybe back to previous step? For now, assume only Menu uses cancel. */
+                return;
+            }
+
             if (ChangeSchedulePresenter_IsComplete(g_router_state.sch_presenter))
             {
-                /* Signal System that Schedule setup is done (moves to NOT_INST) */
-                Router_SendSystemEvent(EVT_COD_SCH_DONE);
+                SystemState_t state = Router_GetSystemState();
+                if (state == STATE_RUNNING)
+                {
+                    /* In running mode, go back to Menu */
+                    Router_GoToRoute(ROUTE_MENU);
+                }
+                else
+                {
+                    /* In setup mode, signal System that Schedule setup is done */
+                    Router_SendSystemEvent(EVT_COD_SCH_DONE);
+                }
                 return;
             }
         }
@@ -313,6 +374,31 @@ void Router_HandleEvent(const Input2VPEvent_t *event)
         if (g_router_state.home_presenter)
         {
             HomePresenter_HandleEvent(g_router_state.home_presenter, event);
+        }
+    }
+    else if (g_router_state.current_route == ROUTE_MENU)
+    {
+        if (g_router_state.menu_presenter)
+        {
+            MenuPresenter_HandleEvent(g_router_state.menu_presenter, event);
+        }
+    }
+    else if (g_router_state.current_route == ROUTE_EDIT_TEMP_OFFSET)
+    {
+        if (g_router_state.temp_offset_presenter)
+        {
+            SetTempOffsetPresenter_HandleEvent(g_router_state.temp_offset_presenter, event);
+            
+            if (SetTempOffsetPresenter_IsCancelled(g_router_state.temp_offset_presenter))
+            {
+                Router_GoToRoute(ROUTE_MENU);
+                return;
+            }
+
+            if (SetTempOffsetPresenter_IsComplete(g_router_state.temp_offset_presenter))
+            {
+                Router_GoToRoute(ROUTE_MENU);
+            }
         }
     }
     /* Other routes (INIT, RUNNING) have no specific interactions yet */
@@ -357,7 +443,13 @@ void Router_OnTick(uint32_t current_tick)
             targetRoute = ROUTE_ADAPT_FAIL;
             break;
         case STATE_RUNNING:
-            targetRoute = ROUTE_HOME;
+            /* Allow Menu and sub-menus in Running state */
+            if (g_router_state.current_route != ROUTE_MENU && 
+                g_router_state.current_route != ROUTE_EDIT_TEMP_OFFSET &&
+                g_router_state.current_route != ROUTE_CHANGE_SCHEDULE)
+            {
+                targetRoute = ROUTE_HOME;
+            }
             break;
         default:
             break;
@@ -422,6 +514,17 @@ void Router_OnTick(uint32_t current_tick)
             HomePresenter_Run(g_router_state.home_presenter, current_tick);
         }
     }
+    else if (g_router_state.current_route == ROUTE_MENU)
+    {
+        if (g_router_state.menu_presenter)
+        {
+            MenuPresenter_Run(g_router_state.menu_presenter, current_tick);
+        }
+    }
+    else if (g_router_state.current_route == ROUTE_EDIT_TEMP_OFFSET)
+    {
+        /* SetTempOffsetPresenter doesn't have Run, it updates on event */
+    }
 }
 
 /**
@@ -454,7 +557,9 @@ void Router_GoToRoute(RouteTypeDef route)
         }
         if (g_router_state.sch_view && !g_router_state.sch_presenter)
         {
-            g_router_state.sch_presenter = ChangeSchedulePresenter_Init(g_router_state.sch_view, g_router_state.config_access);
+            /* If coming from Menu (Running state), skip confirmation */
+            bool skip_confirmation = (Router_GetSystemState() == STATE_RUNNING);
+            g_router_state.sch_presenter = ChangeSchedulePresenter_Init(g_router_state.sch_view, g_router_state.config_access, skip_confirmation);
         }
     }    else if (route == ROUTE_INIT)
     {
@@ -525,6 +630,30 @@ void Router_GoToRoute(RouteTypeDef route)
         if (g_router_state.home_view && !g_router_state.home_presenter)
         {
             g_router_state.home_presenter = HomePresenter_Init(g_router_state.home_view, g_router_state.system_context, g_router_state.config_access, g_router_state.sensor_values_access);
+        }
+    }
+    else if (route == ROUTE_MENU)
+    {
+        if (!g_router_state.menu_view)
+        {
+            g_router_state.menu_view = MenuView_Init("Edit temp offset\nEdit schedule");
+        }
+        if (g_router_state.menu_view && !g_router_state.menu_presenter)
+        {
+            g_router_state.menu_presenter = MenuPresenter_Init(g_router_state.menu_view, g_router_state.system_context, g_router_state.config_access, g_router_state.sensor_values_access);
+        }
+    }
+    else if (route == ROUTE_EDIT_TEMP_OFFSET)
+    {
+        if (!g_router_state.temp_offset_view)
+        {
+            /* View is initialized by presenter, but we need to create it first */
+            /* We pass NULL options here, presenter will set them */
+            g_router_state.temp_offset_view = SetValueView_Init(NULL, NULL, NULL);
+        }
+        if (g_router_state.temp_offset_view && !g_router_state.temp_offset_presenter)
+        {
+            g_router_state.temp_offset_presenter = SetTempOffsetPresenter_Init(g_router_state.temp_offset_view, g_router_state.config_access);
         }
     }
 
@@ -614,6 +743,30 @@ void Router_GoToRoute(RouteTypeDef route)
             {
                 HomeView_Deinit(g_router_state.home_view);
                 g_router_state.home_view = NULL;
+            }
+            break;
+        case ROUTE_MENU:
+            if (g_router_state.menu_presenter)
+            {
+                MenuPresenter_Deinit(g_router_state.menu_presenter);
+                g_router_state.menu_presenter = NULL;
+            }
+            if (g_router_state.menu_view)
+            {
+                MenuView_Deinit(g_router_state.menu_view);
+                g_router_state.menu_view = NULL;
+            }
+            break;
+        case ROUTE_EDIT_TEMP_OFFSET:
+            if (g_router_state.temp_offset_presenter)
+            {
+                SetTempOffsetPresenter_Deinit(g_router_state.temp_offset_presenter);
+                g_router_state.temp_offset_presenter = NULL;
+            }
+            if (g_router_state.temp_offset_view)
+            {
+                SetValueView_Deinit(g_router_state.temp_offset_view);
+                g_router_state.temp_offset_view = NULL;
             }
             break;
         default:

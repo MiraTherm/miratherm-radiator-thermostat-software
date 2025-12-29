@@ -24,6 +24,8 @@ typedef enum
     ROUTE_ADAPT_FAIL,
     ROUTE_RUNNING,
     ROUTE_HOME,
+    ROUTE_MENU,
+    ROUTE_EDIT_TEMP_OFFSET,
 } RouteTypeDef;
 
 /**

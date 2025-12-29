@@ -12,10 +12,11 @@ extern "C" {
 
 typedef struct ChangeSchedulePresenter ChangeSchedulePresenter_t;
 
-ChangeSchedulePresenter_t* ChangeSchedulePresenter_Init(ChangeScheduleView_t *view, ConfigAccessTypeDef *config_access);
+ChangeSchedulePresenter_t* ChangeSchedulePresenter_Init(ChangeScheduleView_t *view, ConfigAccessTypeDef *config_access, bool skip_confirmation);
 void ChangeSchedulePresenter_Deinit(ChangeSchedulePresenter_t *presenter);
 void ChangeSchedulePresenter_HandleEvent(ChangeSchedulePresenter_t *presenter, const Input2VPEvent_t *event);
 bool ChangeSchedulePresenter_IsComplete(ChangeSchedulePresenter_t *presenter);
+bool ChangeSchedulePresenter_IsCancelled(ChangeSchedulePresenter_t *presenter);
 
 #ifdef __cplusplus
 }

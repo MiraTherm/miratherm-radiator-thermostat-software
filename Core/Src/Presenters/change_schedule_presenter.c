@@ -27,6 +27,7 @@ typedef struct ChangeSchedulePresenter
     
     ScheduleStep_t current_step;
     bool is_complete;
+    bool is_cancelled;
     
     /* Temporary schedule data */
     DailyScheduleTypeDef schedule;
@@ -78,15 +79,16 @@ static uint16_t temp_to_index(float temp)
     return (uint16_t)((temp - 5.0f) * 2.0f) + 1;
 }
 
-ChangeSchedulePresenter_t* ChangeSchedulePresenter_Init(ChangeScheduleView_t *view, ConfigAccessTypeDef *config_access)
+ChangeSchedulePresenter_t* ChangeSchedulePresenter_Init(ChangeScheduleView_t *view, ConfigAccessTypeDef *config_access, bool skip_confirmation)
 {
     ChangeSchedulePresenter_t *presenter = (ChangeSchedulePresenter_t *)malloc(sizeof(ChangeSchedulePresenter_t));
     if (!presenter) return NULL;
 
     presenter->view = view;
     presenter->config_access = config_access;
-    presenter->current_step = STEP_ASK_CHANGE;
+    presenter->current_step = skip_confirmation ? STEP_NUM_SLOTS : STEP_ASK_CHANGE;
     presenter->is_complete = false;
+    presenter->is_cancelled = false;
     presenter->current_slot_index = 0;
 
     /* Initialize sub-presenters */
@@ -103,11 +105,24 @@ ChangeSchedulePresenter_t* ChangeSchedulePresenter_Init(ChangeScheduleView_t *vi
     generate_temp_options(presenter->temp_options, sizeof(presenter->temp_options));
     SetValueView_SetOptions(ChangeScheduleView_GetValueView(view), presenter->temp_options);
 
-    /* Start with "Change schedule?" */
-    SetBoolView_Show(ChangeScheduleView_GetBoolView(view));
-
     /* Load initial schedule from config */
     load_schedule(presenter);
+
+    if (skip_confirmation)
+    {
+        /* Skip directly to asking number of slots */
+        SetValueView_SetTitle(ChangeScheduleView_GetValueView(view), "Num time slots");
+        SetValueView_SetUnit(ChangeScheduleView_GetValueView(view), NULL);
+        SetValueView_SetOptions(ChangeScheduleView_GetValueView(view), "3\n4\n5");
+        SetValuePresenter_SetMaxIndex(presenter->value_presenter, 2);
+        SetValuePresenter_SetSelectedIndex(presenter->value_presenter, presenter->schedule.NumTimeSlots - 3);
+        SetValueView_Show(ChangeScheduleView_GetValueView(view));
+    }
+    else
+    {
+        /* Start with "Change schedule?" */
+        SetBoolView_Show(ChangeScheduleView_GetBoolView(view));
+    }
 
     return presenter;
 }
@@ -121,6 +136,12 @@ void ChangeSchedulePresenter_Deinit(ChangeSchedulePresenter_t *presenter)
         if (presenter->time_slot_presenter) SetTimeSlotPresenter_Deinit(presenter->time_slot_presenter);
         free(presenter);
     }
+}
+
+bool ChangeSchedulePresenter_IsCancelled(ChangeSchedulePresenter_t *presenter)
+{
+    if (!presenter) return false;
+    return presenter->is_cancelled;
 }
 
 static void save_schedule(ChangeSchedulePresenter_t *presenter)
@@ -375,11 +396,8 @@ void ChangeSchedulePresenter_HandleEvent(ChangeSchedulePresenter_t *presenter, c
         case STEP_NUM_SLOTS:
             /* Handle Back */
             if (event->type == EVT_MODE_BTN && event->button_action == BUTTON_ACTION_PRESSED)
-            {
-                /* Go back to Ask Change */
-                presenter->current_step = STEP_ASK_CHANGE;
-                SetBoolPresenter_Reset(presenter->bool_presenter);
-                SetBoolView_Show(ChangeScheduleView_GetBoolView(presenter->view));
+            {                
+                presenter->is_cancelled = true;
                 return;
             }
 

@@ -1,4 +1,5 @@
 #include "home_presenter.h"
+#include "view_presenter_router.h"
 #include "main.h"
 #include <stdlib.h>
 #include <stdio.h>
@@ -57,8 +58,9 @@ void HomePresenter_HandleEvent(HomePresenter_t *presenter, const Input2VPEvent_t
                 printf("Home: Boost button pressed\n");
                 break;
             case EVT_MENU_BTN:
-                /* TODO: Handle Menu button */
+                /* Handle Menu button */
                 printf("Home: Menu button pressed\n");
+                Router_GoToRoute(ROUTE_MENU);
                 break;
             default:
                 break;
