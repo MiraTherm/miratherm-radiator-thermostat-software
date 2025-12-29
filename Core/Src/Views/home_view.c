@@ -52,28 +52,33 @@ HomeView_t* HomeView_Init(void)
     lv_obj_align(view->label_time, LV_ALIGN_TOP_LEFT, 2, 2);
     lv_obj_set_style_text_color(view->label_time, lv_color_white(), 0);
     lv_obj_set_style_text_font(view->label_time, &lv_font_montserrat_12, 0);
+    lv_label_set_text(view->label_time, "--:--");
 
     /* Battery: Top Right */
     view->label_battery = lv_label_create(view->screen);
     lv_obj_align(view->label_battery, LV_ALIGN_TOP_RIGHT, -2, 2);
     lv_obj_set_style_text_color(view->label_battery, lv_color_white(), 0);
     lv_obj_set_style_text_font(view->label_battery, &lv_font_montserrat_12, 0);
+    lv_label_set_text(view->label_battery, "Bat: --%");
 
-    /* Target Temp: Big Middle */
+    /* Target Temp: Big Middle Left */
     view->label_target_temp = lv_label_create(view->screen);
     lv_obj_align(view->label_target_temp, LV_ALIGN_LEFT_MID, 0, 0);
     lv_obj_set_style_text_color(view->label_target_temp, lv_color_white(), 0);
     lv_obj_set_style_text_font(view->label_target_temp, &lv_font_montserrat_28, 0);
+    lv_label_set_text(view->label_target_temp, "--.-°");
 
     /* Current Temp: Small Middle Right */
     view->label_current_temp = lv_label_create(view->screen);
     lv_obj_align(view->label_current_temp, LV_ALIGN_LEFT_MID, 74, -7);
     lv_obj_set_style_text_color(view->label_current_temp, lv_color_white(), 0);
+    lv_label_set_text(view->label_current_temp, "<- --.-°");
 
     /* Time Slot: Small Middle Right (below current temp) */
     view->label_time_slot = lv_label_create(view->screen);
     lv_obj_align(view->label_time_slot, LV_ALIGN_LEFT_MID, 74, 5);
     lv_obj_set_style_text_color(view->label_time_slot, lv_color_white(), 0);
+    lv_label_set_text(view->label_time_slot, "-> --:--");
 
     /* Button Hints */
     view->label_hint_left = lv_label_create(view->screen);
