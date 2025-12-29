@@ -108,13 +108,22 @@ static bool write_config_to_flash(const ConfigTypeDef *config)
   }
 
   /* Program the new data (64-bit words) */
-  uint64_t *src = (uint64_t *)&block;
+  /* Ensure we write all bytes, padding with 0 if necessary */
+  uint8_t *src_bytes = (uint8_t *)&block;
   uint64_t *dst = (uint64_t *)EEPROM_START_ADDR;
-  size_t words = sizeof(StorageBlockTypeDef) / sizeof(uint64_t);
+  size_t total_bytes = sizeof(StorageBlockTypeDef);
+  size_t words = (total_bytes + 7) / 8;
 
   for (size_t i = 0; i < words; i++)
   {
-    if (HAL_FLASH_Program(FLASH_TYPEPROGRAM_DOUBLEWORD, (uint32_t)(dst + i), src[i]) != HAL_OK)
+    uint64_t data = 0;
+    /* Construct 64-bit word safely */
+    size_t copy_len = (total_bytes - i * 8);
+    if (copy_len > 8) copy_len = 8;
+    
+    memcpy(&data, src_bytes + i * 8, copy_len);
+
+    if (HAL_FLASH_Program(FLASH_TYPEPROGRAM_DOUBLEWORD, (uint32_t)(dst + i), data) != HAL_OK)
     {
       HAL_FLASH_Lock();
       return false;
