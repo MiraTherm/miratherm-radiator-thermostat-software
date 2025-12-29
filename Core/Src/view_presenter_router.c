@@ -7,6 +7,8 @@
 #include "loading_view.h"
 #include "waiting_presenter.h"
 #include "waiting_view.h"
+#include "home_presenter.h"
+#include "home_view.h"
 #include "task_debug.h"
 #include "cmsis_os2.h"
 #if VIEW_PRESENTER_TASK_DEBUG_LEDS
@@ -46,10 +48,15 @@ typedef struct
     WaitingPresenter_t *adapt_fail_presenter;
     WaitingView_t *adapt_fail_view;
 
+    /* Home route */
+    HomePresenter_t *home_presenter;
+    HomeView_t *home_view;
+
     /* System Interface */
     osMessageQueueId_t vp2system_queue;
     SystemContextAccessTypeDef *system_context;
     ConfigAccessTypeDef *config_access;
+    SensorValuesAccessTypeDef *sensor_values_access;
 } Router_State_t;
 
 static Router_State_t g_router_state = {
@@ -66,9 +73,12 @@ static Router_State_t g_router_state = {
     .adapt_view = NULL,
     .adapt_fail_presenter = NULL,
     .adapt_fail_view = NULL,
+    .home_presenter = NULL,
+    .home_view = NULL,
     .vp2system_queue = NULL,
     .system_context = NULL,
-    .config_access = NULL
+    .config_access = NULL,
+    .sensor_values_access = NULL
 };
 
 static void Router_UpdateDebugLeds(const Input2VPEvent_t *event)
@@ -141,11 +151,12 @@ static void Router_SendSystemEvent(VP2SystemEventTypeDef event)
 /**
  * @brief Initialize the router and activate initial route
  */
-void Router_Init(osMessageQueueId_t vp2system_queue, SystemContextAccessTypeDef *system_context, ConfigAccessTypeDef *config_access)
+void Router_Init(osMessageQueueId_t vp2system_queue, SystemContextAccessTypeDef *system_context, ConfigAccessTypeDef *config_access, SensorValuesAccessTypeDef *sensor_values_access)
 {
     g_router_state.vp2system_queue = vp2system_queue;
     g_router_state.system_context = system_context;
     g_router_state.config_access = config_access;
+    g_router_state.sensor_values_access = sensor_values_access;
 
     /* Start in INIT route */
     g_router_state.current_route = ROUTE_INIT;
@@ -226,6 +237,18 @@ void Router_Deinit(void)
         WaitingPresenter_Deinit(g_router_state.adapt_fail_presenter);
         g_router_state.adapt_fail_presenter = NULL;
     }
+
+    if (g_router_state.home_view)
+    {
+        HomeView_Deinit(g_router_state.home_view);
+        g_router_state.home_view = NULL;
+    }
+
+    if (g_router_state.home_presenter)
+    {
+        HomePresenter_Deinit(g_router_state.home_presenter);
+        g_router_state.home_presenter = NULL;
+    }
 }
 
 /**
@@ -285,6 +308,13 @@ void Router_HandleEvent(const Input2VPEvent_t *event)
             Router_SendSystemEvent(EVT_ADAPT_RST); /* Moves to STATE_NOT_INST */
         }
     }
+    else if (g_router_state.current_route == ROUTE_HOME)
+    {
+        if (g_router_state.home_presenter)
+        {
+            HomePresenter_HandleEvent(g_router_state.home_presenter, event);
+        }
+    }
     /* Other routes (INIT, RUNNING) have no specific interactions yet */
 }
 
@@ -327,7 +357,7 @@ void Router_OnTick(uint32_t current_tick)
             targetRoute = ROUTE_ADAPT_FAIL;
             break;
         case STATE_RUNNING:
-            targetRoute = ROUTE_RUNNING;
+            targetRoute = ROUTE_HOME;
             break;
         default:
             break;
@@ -383,6 +413,13 @@ void Router_OnTick(uint32_t current_tick)
         if (g_router_state.loading_presenter)
         {
             LoadingPresenter_Run(g_router_state.loading_presenter, current_tick);
+        }
+    }
+    else if (g_router_state.current_route == ROUTE_HOME)
+    {
+        if (g_router_state.home_presenter)
+        {
+            HomePresenter_Run(g_router_state.home_presenter, current_tick);
         }
     }
 }
@@ -479,6 +516,17 @@ void Router_GoToRoute(RouteTypeDef route)
             LoadingPresenter_Run(g_router_state.loading_presenter, osKernelGetTickCount());
         }
     }
+    else if (route == ROUTE_HOME)
+    {
+        if (!g_router_state.home_view)
+        {
+            g_router_state.home_view = HomeView_Init();
+        }
+        if (g_router_state.home_view && !g_router_state.home_presenter)
+        {
+            g_router_state.home_presenter = HomePresenter_Init(g_router_state.home_view, g_router_state.system_context, g_router_state.config_access, g_router_state.sensor_values_access);
+        }
+    }
 
     /* Cleanup old route */
     switch (g_router_state.current_route)
@@ -554,6 +602,18 @@ void Router_GoToRoute(RouteTypeDef route)
             {
                 WaitingView_Deinit(g_router_state.adapt_fail_view);
                 g_router_state.adapt_fail_view = NULL;
+            }
+            break;
+        case ROUTE_HOME:
+            if (g_router_state.home_presenter)
+            {
+                HomePresenter_Deinit(g_router_state.home_presenter);
+                g_router_state.home_presenter = NULL;
+            }
+            if (g_router_state.home_view)
+            {
+                HomeView_Deinit(g_router_state.home_view);
+                g_router_state.home_view = NULL;
             }
             break;
         default:

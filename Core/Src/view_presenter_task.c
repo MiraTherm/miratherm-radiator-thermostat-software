@@ -37,7 +37,7 @@ void StartViewPresenterTask(void *argument)
     printf("ViewPresenterTask running (heap=%lu)\n", (unsigned long)xPortGetFreeHeapSize());
 #endif
     
-    Router_Init(args->vp2system_event_queue, args->system_context_access, args->config_access);
+    Router_Init(args->vp2system_event_queue, args->system_context_access, args->config_access, args->sensor_values_access);
 
     Input2VPEvent_t event;
     System2VPEventTypeDef sys_event;

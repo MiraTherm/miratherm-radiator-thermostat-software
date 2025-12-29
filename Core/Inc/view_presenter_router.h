@@ -4,6 +4,7 @@
 #include "input_task.h"
 #include "system_task.h"
 #include "storage_task.h"
+#include "sensor_task.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -22,6 +23,7 @@ typedef enum
     ROUTE_ADAPT,
     ROUTE_ADAPT_FAIL,
     ROUTE_RUNNING,
+    ROUTE_HOME,
 } RouteTypeDef;
 
 /**
@@ -29,8 +31,9 @@ typedef enum
  * @param vp2system_queue Queue to send events to System Task
  * @param system_context Shared system context
  * @param config_access Shared config access
+ * @param sensor_values_access Shared sensor values access
  */
-void Router_Init(osMessageQueueId_t vp2system_queue, SystemContextAccessTypeDef *system_context, ConfigAccessTypeDef *config_access);
+void Router_Init(osMessageQueueId_t vp2system_queue, SystemContextAccessTypeDef *system_context, ConfigAccessTypeDef *config_access, SensorValuesAccessTypeDef *sensor_values_access);
 
 /**
  * @brief Deinitialize the router
