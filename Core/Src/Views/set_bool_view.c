@@ -1,5 +1,6 @@
 #include "set_bool_view.h"
 #include "lvgl_port_display.h"
+#include <src/misc/lv_area.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -53,8 +54,8 @@ SetBoolView_t* SetBoolView_Init(const char *title, const char *option_true, cons
     /* Option 1 (False) */
     view->checkbox_false = lv_checkbox_create(view->screen);
     lv_checkbox_set_text(view->checkbox_false, option_false ? option_false : "Off");
-    lv_obj_set_pos(view->checkbox_false, 10, 16);
-    lv_obj_set_size(view->checkbox_false, 100, 20);
+    lv_obj_align(view->checkbox_false, LV_ALIGN_LEFT_MID, 8, -7);
+    lv_obj_set_size(view->checkbox_false, LV_HOR_RES - 8, 20);
     lv_obj_set_style_text_color(view->checkbox_false, lv_color_white(), 0);
     
     /* Radio button style */
@@ -76,8 +77,8 @@ SetBoolView_t* SetBoolView_Init(const char *title, const char *option_true, cons
     /* Option 2 (True) */
     view->checkbox_true = lv_checkbox_create(view->screen);
     lv_checkbox_set_text(view->checkbox_true, option_true ? option_true : "On");
-    lv_obj_set_pos(view->checkbox_true, 10, 35);
-    lv_obj_set_size(view->checkbox_true, 100, 20);
+    lv_obj_align(view->checkbox_true, LV_ALIGN_LEFT_MID, 8, 10);
+    lv_obj_set_size(view->checkbox_true, LV_HOR_RES - 8, 20);
     lv_obj_set_style_text_color(view->checkbox_true, lv_color_white(), 0);
     
     /* Radio button style */

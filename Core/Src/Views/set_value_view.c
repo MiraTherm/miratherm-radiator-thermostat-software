@@ -51,7 +51,7 @@ SetValueView_t* SetValueView_Init(const char *title, const char *unit, const cha
         lv_roller_set_options(view->roller_value, options, LV_ROLLER_MODE_NORMAL);
     }
     lv_roller_set_selected(view->roller_value, 0, LV_ANIM_OFF);
-    lv_obj_set_pos(view->roller_value, 40, 16);
+    lv_obj_align(view->roller_value, LV_ALIGN_CENTER, 0, 0);
     lv_obj_set_size(view->roller_value, 48, 31);
     lv_obj_set_style_text_color(view->roller_value, lv_color_black(), LV_PART_SELECTED);
 
@@ -59,8 +59,7 @@ SetValueView_t* SetValueView_Init(const char *title, const char *unit, const cha
     {
         view->label_unit = lv_label_create(view->screen);
         lv_label_set_text(view->label_unit, unit);
-        lv_obj_set_pos(view->label_unit, 92, 25);
-        lv_obj_set_size(view->label_unit, 20, 10);
+        lv_obj_align(view->label_unit, LV_ALIGN_CENTER, 42, 0);
         lv_obj_set_style_text_color(view->label_unit, lv_color_white(), 0);
         lv_obj_set_style_text_font(view->label_unit, &lv_font_montserrat_16, 0);
     }

@@ -1,6 +1,7 @@
 #include "set_time_slot_view.h"
 #include "lvgl_port_display.h"
 #include <src/misc/lv_anim.h>
+#include <src/misc/lv_area.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -80,33 +81,29 @@ SetTimeSlotView_t* SetTimeSlotView_Init(const char *title)
 
     view->label_start_time = lv_label_create(view->screen);
     lv_label_set_text(view->label_start_time, "00:00");
-    lv_obj_set_pos(view->label_start_time, 8, 25);
-    lv_obj_set_size(view->label_start_time, 44, 23);
+    lv_obj_align(view->label_start_time, LV_ALIGN_LEFT_MID, 5, 0);
     lv_obj_set_style_text_color(view->label_start_time, lv_color_white(), 0);
-    lv_obj_set_style_text_align(view->label_start_time, LV_TEXT_ALIGN_CENTER, 0);
 
     view->label_dash = lv_label_create(view->screen);
     lv_label_set_text(view->label_dash, "-");
-    lv_obj_set_pos(view->label_dash, 52, 25);
+    lv_obj_align(view->label_dash, LV_ALIGN_CENTER, -10, 0);
     lv_obj_set_style_text_color(view->label_dash, lv_color_white(), 0);
 
     view->roller_end_hour = lv_roller_create(view->screen);
     lv_roller_set_options(view->roller_end_hour, view->hour_options, LV_ROLLER_MODE_NORMAL);
-    lv_obj_set_pos(view->roller_end_hour, 60, 16);
+    lv_obj_align(view->roller_end_hour, LV_ALIGN_CENTER, 14, 0);
     lv_obj_set_size(view->roller_end_hour, 32, 31);
     lv_obj_set_style_text_color(view->roller_end_hour, lv_color_black(), LV_PART_SELECTED);
 
     view->label_end_time = lv_label_create(view->screen);
     lv_label_set_text(view->label_end_time, "00:00");
-    lv_obj_set_pos(view->label_end_time, 76, 25);
-    lv_obj_set_size(view->label_end_time, 44, 23);
+    lv_obj_align(view->label_end_time, LV_ALIGN_RIGHT_MID, -5, 0);
     lv_obj_set_style_text_color(view->label_end_time, lv_color_white(), 0);
-    lv_obj_set_style_text_align(view->label_end_time, LV_TEXT_ALIGN_CENTER, 0);
     lv_obj_add_flag(view->label_end_time, LV_OBJ_FLAG_HIDDEN);
 
     view->roller_end_minute = lv_roller_create(view->screen);
     lv_roller_set_options(view->roller_end_minute, view->minute_options, LV_ROLLER_MODE_NORMAL);
-    lv_obj_set_pos(view->roller_end_minute, 94, 16);
+    lv_obj_align(view->roller_end_minute, LV_ALIGN_CENTER, 48, 0);
     lv_obj_set_size(view->roller_end_minute, 32, 31);
     lv_obj_set_style_text_color(view->roller_end_minute, lv_color_black(), LV_PART_SELECTED);
 
@@ -153,7 +150,17 @@ void SetTimeSlotView_Render(SetTimeSlotView_t *view, const SetTimeSlot_ViewModel
         {
             lv_obj_add_flag(view->label_start_time, LV_OBJ_FLAG_HIDDEN);
         }
+
         view->last_start_time_locked = data->start_time_locked;
+    }
+
+    if(data->start_time_locked && data->end_time_locked)
+    {
+        lv_obj_align(view->label_start_time, LV_ALIGN_CENTER, -25, 0);
+    }
+    else
+    {
+        lv_obj_align(view->label_start_time, LV_ALIGN_LEFT_MID, 5, 0);
     }
 
     /* Handle end time lock state change */
@@ -164,8 +171,8 @@ void SetTimeSlotView_Render(SetTimeSlotView_t *view, const SetTimeSlot_ViewModel
             lv_obj_add_flag(view->roller_end_hour, LV_OBJ_FLAG_HIDDEN);
             lv_obj_add_flag(view->roller_end_minute, LV_OBJ_FLAG_HIDDEN);
             lv_obj_clear_flag(view->label_end_time, LV_OBJ_FLAG_HIDDEN);
-            /* Move dash label 10 pixels to the right when end time is locked */
-            lv_obj_set_pos(view->label_dash, 62, 25);
+            /* Move dash label some pixels to the right when end time is locked */
+            lv_obj_align(view->label_dash, LV_ALIGN_CENTER, -1, 0);
         }
         else
         {
@@ -173,8 +180,18 @@ void SetTimeSlotView_Render(SetTimeSlotView_t *view, const SetTimeSlot_ViewModel
             lv_obj_clear_flag(view->roller_end_minute, LV_OBJ_FLAG_HIDDEN);
             lv_obj_add_flag(view->label_end_time, LV_OBJ_FLAG_HIDDEN);
             /* Reset dash label position when end time is unlocked */
-            lv_obj_set_pos(view->label_dash, 52, 25);
+            lv_obj_align(view->label_dash, LV_ALIGN_CENTER, -10, 0);
         }
+
+        if(data->start_time_locked)
+        {
+            lv_obj_align(view->label_end_time, LV_ALIGN_CENTER, 24, 0);
+        }
+        else
+        {
+            lv_obj_align(view->label_end_time, LV_ALIGN_LEFT_MID, -5, 0);
+        }
+
         view->last_end_time_locked = data->end_time_locked;
     }
 

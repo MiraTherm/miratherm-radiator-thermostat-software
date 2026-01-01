@@ -84,14 +84,14 @@ SetDateView_t* SetDateView_Init(const char *title, bool show_back_hint_on_first_
     view->roller_year = lv_roller_create(view->screen);
     lv_roller_set_options(view->roller_year, view->year_options, LV_ROLLER_MODE_NORMAL);
     lv_roller_set_selected(view->roller_year, 5, LV_ANIM_OFF);
-    lv_obj_set_pos(view->roller_year, 0, 16);
+    lv_obj_align(view->roller_year, LV_ALIGN_CENTER, -43, 0);
     lv_obj_set_size(view->roller_year, 42, 31);
     lv_obj_set_style_text_color(view->roller_year, lv_color_black(), LV_PART_SELECTED);
 
     view->roller_month = lv_roller_create(view->screen);
     lv_roller_set_options(view->roller_month, view->month_options, LV_ROLLER_MODE_NORMAL);
     lv_roller_set_selected(view->roller_month, 0, LV_ANIM_OFF);
-    lv_obj_set_pos(view->roller_month, 43, 16);
+    lv_obj_align(view->roller_month, LV_ALIGN_CENTER, 0, 0);
     lv_obj_set_size(view->roller_month, 42, 31);
     lv_obj_set_style_bg_color(view->roller_month, lv_color_white(), 0);
     lv_obj_set_style_text_color(view->roller_month, lv_color_black(), LV_PART_SELECTED);
@@ -99,7 +99,7 @@ SetDateView_t* SetDateView_Init(const char *title, bool show_back_hint_on_first_
     view->roller_day = lv_roller_create(view->screen);
     lv_roller_set_options(view->roller_day, view->day_options, LV_ROLLER_MODE_NORMAL);
     lv_roller_set_selected(view->roller_day, 0, LV_ANIM_OFF);
-    lv_obj_set_pos(view->roller_day, 86, 16);
+    lv_obj_align(view->roller_day, LV_ALIGN_CENTER, 43, 0);
     lv_obj_set_size(view->roller_day, 42, 31);
     lv_obj_set_style_bg_color(view->roller_day, lv_color_white(), 0);
     lv_obj_set_style_text_color(view->roller_day, lv_color_black(), LV_PART_SELECTED);

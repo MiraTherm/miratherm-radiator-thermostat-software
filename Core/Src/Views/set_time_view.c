@@ -67,14 +67,14 @@ SetTimeView_t* SetTimeView_Init(const char *title, bool show_back_hint_on_first_
     view->roller_hour = lv_roller_create(view->screen);
     lv_roller_set_options(view->roller_hour, view->hour_options, LV_ROLLER_MODE_NORMAL);
     lv_roller_set_selected(view->roller_hour, 12, LV_ANIM_OFF);
-    lv_obj_set_pos(view->roller_hour, 30, 16);
+    lv_obj_align(view->roller_hour, LV_ALIGN_CENTER, -17, 0);
     lv_obj_set_size(view->roller_hour, 32, 31);
     lv_obj_set_style_text_color(view->roller_hour, lv_color_black(), LV_PART_SELECTED);
 
     view->roller_minute = lv_roller_create(view->screen);
     lv_roller_set_options(view->roller_minute, view->minute_options, LV_ROLLER_MODE_NORMAL);
     lv_roller_set_selected(view->roller_minute, 0, LV_ANIM_OFF);
-    lv_obj_set_pos(view->roller_minute, 64, 16);
+    lv_obj_align(view->roller_minute, LV_ALIGN_CENTER, 17, 0);
     lv_obj_set_size(view->roller_minute, 32, 31);
     lv_obj_set_style_text_color(view->roller_minute, lv_color_black(), LV_PART_SELECTED);
 

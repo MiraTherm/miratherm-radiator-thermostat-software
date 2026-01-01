@@ -70,13 +70,13 @@ HomeView_t* HomeView_Init(void)
 
     /* Current Temp: Small Middle Right */
     view->label_current_temp = lv_label_create(view->screen);
-    lv_obj_align(view->label_current_temp, LV_ALIGN_LEFT_MID, 74, -7);
+    lv_obj_align(view->label_current_temp, LV_ALIGN_LEFT_MID, 73, -7);
     lv_obj_set_style_text_color(view->label_current_temp, lv_color_white(), 0);
     lv_label_set_text(view->label_current_temp, "<- --.-°");
 
     /* Time Slot: Small Middle Right (below current temp) */
     view->label_time_slot = lv_label_create(view->screen);
-    lv_obj_align(view->label_time_slot, LV_ALIGN_LEFT_MID, 74, 5);
+    lv_obj_align(view->label_time_slot, LV_ALIGN_LEFT_MID, 73, 5);
     lv_obj_set_style_text_color(view->label_time_slot, lv_color_white(), 0);
     lv_label_set_text(view->label_time_slot, "-> --:--");
 
