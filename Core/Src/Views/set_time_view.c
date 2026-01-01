@@ -53,7 +53,7 @@ SetTimeView_t* SetTimeView_Init(const char *title, bool show_back_hint_on_first_
     view->label_title = lv_label_create(view->screen);
     lv_label_set_text(view->label_title, title ? title : "Set time:");
     lv_obj_align(view->label_title, LV_ALIGN_TOP_MID, 0, 0);
-    lv_obj_set_size(view->label_title, 128, 14);
+    lv_obj_set_size(view->label_title, LV_HOR_RES, 14);
     lv_obj_set_style_text_color(view->label_title, lv_color_white(), 0);
     lv_obj_set_style_text_align(view->label_title, LV_TEXT_ALIGN_CENTER, 0);
 

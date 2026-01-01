@@ -42,7 +42,7 @@ MenuView_t* MenuView_Init(const char *options)
 
     /* Create List */
     view->list = lv_list_create(view->screen);
-    lv_obj_set_size(view->list, 125, 47); /* Leave space for hints */
+    lv_obj_set_size(view->list, LV_HOR_RES - 3, LV_VER_RES - 17); /* Leave space for hints */
     lv_obj_align(view->list, LV_ALIGN_TOP_MID, 0, 0);
     lv_obj_set_style_bg_color(view->list, lv_color_black(), 0);
     lv_obj_set_style_border_width(view->list, 0, 0);
