@@ -18,12 +18,15 @@
 /* Display buffer configuration */
 #define PARTIAL_BUF_SIZE (SSD1306_WIDTH * 8)  /* 128 * 8 = 1024 bytes */
 
-/* SSD1306 command constants */
+/* SSD1306/SH1106 command constants */
 #define SSD1306_PAGE_START_ADDR 0xB0
 #define SSD1306_LOWER_COL_ADDR 0x00
 #define SSD1306_LOWER_COL_MASK 0x0F
 #define SSD1306_UPPER_COL_ADDR 0x10
 #define SSD1306_UPPER_COL_MASK 0x0F
+
+/* SH1106 column offset - RAM columns 2-129 map to display columns 0-127 */
+#define SH1106_COL_OFFSET 2
 
 /* Bit manipulation macros - optimized for speed */
 #define BIT_SET(a, b)   ((a) |= (1U << (b)))
@@ -89,8 +92,11 @@ static inline void flush_cb(lv_disp_drv_t *disp_drv, const lv_area_t *area,
 	
 	/* Calculate column addresses for the area width */
 	uint16_t col_width = area->x2 - area->x1 + 1;
-	uint8_t lower_col = SSD1306_LOWER_COL_ADDR | (area->x1 & SSD1306_LOWER_COL_MASK);
-	uint8_t upper_col = SSD1306_UPPER_COL_ADDR | ((area->x1 >> COL_SHIFT) & SSD1306_UPPER_COL_MASK);
+	
+	/* Add SH1106 column offset to starting column */
+	uint16_t col_start = area->x1 + SH1106_COL_OFFSET;
+	uint8_t lower_col = SSD1306_LOWER_COL_ADDR | (col_start & SSD1306_LOWER_COL_MASK);
+	uint8_t upper_col = SSD1306_UPPER_COL_ADDR | ((col_start >> COL_SHIFT) & SSD1306_UPPER_COL_MASK);
 
 	/* Batch command writes to reduce I2C overhead */
 	for (uint8_t row = row_start; row <= row_end; row++) {

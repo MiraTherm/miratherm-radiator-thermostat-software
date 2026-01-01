@@ -62,7 +62,7 @@ SetTimeSlotView_t* SetTimeSlotView_Init(const char *title)
 
     view->label_title = lv_label_create(view->screen);
     lv_label_set_text(view->label_title, title ? title : "Set time slot:");
-    lv_obj_align(view->label_title, LV_ALIGN_TOP_MID, 2, 0);
+    lv_obj_align(view->label_title, LV_ALIGN_TOP_MID, 0, 0);
     lv_obj_set_size(view->label_title, 128, 14);
     lv_obj_set_style_text_color(view->label_title, lv_color_white(), 0);
     lv_obj_set_style_text_align(view->label_title, LV_TEXT_ALIGN_CENTER, 0);
@@ -112,12 +112,12 @@ SetTimeSlotView_t* SetTimeSlotView_Init(const char *title)
 
     view->label_hint_left = lv_label_create(view->screen);
     lv_label_set_text(view->label_hint_left, "<");
-    lv_obj_align(view->label_hint_left, LV_ALIGN_BOTTOM_LEFT, 2, 0);
+    lv_obj_align(view->label_hint_left, LV_ALIGN_BOTTOM_LEFT, 0, 0);
     lv_obj_set_style_text_color(view->label_hint_left, lv_color_white(), 0);
 
     view->label_hint_center = lv_label_create(view->screen);
     lv_label_set_text(view->label_hint_center, "O");
-    lv_obj_align(view->label_hint_center, LV_ALIGN_BOTTOM_MID, 2, 0);
+    lv_obj_align(view->label_hint_center, LV_ALIGN_BOTTOM_MID, 0, 0);
     lv_obj_set_style_text_color(view->label_hint_center, lv_color_white(), 0);
 
     lv_port_unlock();

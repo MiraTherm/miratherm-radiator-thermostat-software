@@ -43,7 +43,7 @@ MenuView_t* MenuView_Init(const char *options)
     /* Create List */
     view->list = lv_list_create(view->screen);
     lv_obj_set_size(view->list, 125, 47); /* Leave space for hints */
-    lv_obj_align(view->list, LV_ALIGN_TOP_MID, 2, 0);
+    lv_obj_align(view->list, LV_ALIGN_TOP_MID, 0, 0);
     lv_obj_set_style_bg_color(view->list, lv_color_black(), 0);
     lv_obj_set_style_border_width(view->list, 0, 0);
     lv_obj_set_style_pad_all(view->list, 0, 0);
@@ -70,12 +70,12 @@ MenuView_t* MenuView_Init(const char *options)
     /* Hints */
     view->label_hint_left = lv_label_create(view->screen);
     lv_label_set_text(view->label_hint_left, "<" LV_SYMBOL_HOME);
-    lv_obj_align(view->label_hint_left, LV_ALIGN_BOTTOM_LEFT, 2, 0);
+    lv_obj_align(view->label_hint_left, LV_ALIGN_BOTTOM_LEFT, 0, 0);
     lv_obj_set_style_text_color(view->label_hint_left, lv_color_white(), 0);
 
     view->label_hint_center = lv_label_create(view->screen);
     lv_label_set_text(view->label_hint_center, "O");
-    lv_obj_align(view->label_hint_center, LV_ALIGN_BOTTOM_MID, 2, 0);
+    lv_obj_align(view->label_hint_center, LV_ALIGN_BOTTOM_MID, 0, 0);
     lv_obj_set_style_text_color(view->label_hint_center, lv_color_white(), 0);
 
     view->last_selected_index = 0xFFFF;

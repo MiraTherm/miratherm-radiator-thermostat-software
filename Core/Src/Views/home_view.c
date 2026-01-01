@@ -49,14 +49,14 @@ HomeView_t* HomeView_Init(void)
 
     /* Time: Top Left */
     view->label_time = lv_label_create(view->screen);
-    lv_obj_align(view->label_time, LV_ALIGN_TOP_LEFT, 2, 2);
+    lv_obj_align(view->label_time, LV_ALIGN_TOP_LEFT, 0, 2);
     lv_obj_set_style_text_color(view->label_time, lv_color_white(), 0);
     lv_obj_set_style_text_font(view->label_time, &lv_font_montserrat_12, 0);
     lv_label_set_text(view->label_time, "--:--");
 
     /* Battery: Top Right */
     view->label_battery = lv_label_create(view->screen);
-    lv_obj_align(view->label_battery, LV_ALIGN_TOP_RIGHT, -2, 2);
+    lv_obj_align(view->label_battery, LV_ALIGN_TOP_RIGHT, 0, 2);
     lv_obj_set_style_text_color(view->label_battery, lv_color_white(), 0);
     lv_obj_set_style_text_font(view->label_battery, &lv_font_montserrat_12, 0);
     lv_label_set_text(view->label_battery, "Bat: --%");
@@ -83,19 +83,19 @@ HomeView_t* HomeView_Init(void)
     /* Button Hints */
     view->label_hint_left = lv_label_create(view->screen);
     lv_label_set_text(view->label_hint_left, "Auto");
-    lv_obj_align(view->label_hint_left, LV_ALIGN_BOTTOM_LEFT, 2, 0);
+    lv_obj_align(view->label_hint_left, LV_ALIGN_BOTTOM_LEFT, 0, 0);
     lv_obj_set_style_text_color(view->label_hint_left, lv_color_white(), 0);
     lv_obj_set_style_text_font(view->label_hint_left, &lv_font_montserrat_14, 0);
 
     view->label_hint_center = lv_label_create(view->screen);
     lv_label_set_text(view->label_hint_center, "O");
-    lv_obj_align(view->label_hint_center, LV_ALIGN_BOTTOM_MID, 1, 0);
+    lv_obj_align(view->label_hint_center, LV_ALIGN_BOTTOM_MID, -1, 0);
     lv_obj_set_style_text_color(view->label_hint_center, lv_color_white(), 0);
     lv_obj_set_style_text_font(view->label_hint_center, &lv_font_montserrat_16, 0);
 
     view->label_hint_right = lv_label_create(view->screen);
     lv_label_set_text(view->label_hint_right, LV_SYMBOL_BARS);
-    lv_obj_align(view->label_hint_right, LV_ALIGN_BOTTOM_RIGHT, -1, 0);
+    lv_obj_align(view->label_hint_right, LV_ALIGN_BOTTOM_RIGHT, 0, 0);
     lv_obj_set_style_text_color(view->label_hint_right, lv_color_white(), 0);
     lv_obj_set_style_text_font(view->label_hint_right, &lv_font_montserrat_16, 0);
 

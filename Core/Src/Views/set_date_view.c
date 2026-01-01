@@ -67,7 +67,7 @@ SetDateView_t* SetDateView_Init(const char *title, bool show_back_hint_on_first_
 
     view->label_title = lv_label_create(view->screen);
     lv_label_set_text(view->label_title, title ? title : "Set date:");
-    lv_obj_align(view->label_title, LV_ALIGN_TOP_MID, 2, 0);
+    lv_obj_align(view->label_title, LV_ALIGN_TOP_MID, 0, 0);
     lv_obj_set_size(view->label_title, 128, 14);
     lv_obj_set_style_text_color(view->label_title, lv_color_white(), 0);
     lv_obj_set_style_text_align(view->label_title, LV_TEXT_ALIGN_CENTER, 0);
@@ -84,14 +84,14 @@ SetDateView_t* SetDateView_Init(const char *title, bool show_back_hint_on_first_
     view->roller_year = lv_roller_create(view->screen);
     lv_roller_set_options(view->roller_year, view->year_options, LV_ROLLER_MODE_NORMAL);
     lv_roller_set_selected(view->roller_year, 5, LV_ANIM_OFF);
-    lv_obj_set_pos(view->roller_year, 2, 16);
+    lv_obj_set_pos(view->roller_year, 0, 16);
     lv_obj_set_size(view->roller_year, 42, 31);
     lv_obj_set_style_text_color(view->roller_year, lv_color_black(), LV_PART_SELECTED);
 
     view->roller_month = lv_roller_create(view->screen);
     lv_roller_set_options(view->roller_month, view->month_options, LV_ROLLER_MODE_NORMAL);
     lv_roller_set_selected(view->roller_month, 0, LV_ANIM_OFF);
-    lv_obj_set_pos(view->roller_month, 45, 16);
+    lv_obj_set_pos(view->roller_month, 43, 16);
     lv_obj_set_size(view->roller_month, 42, 31);
     lv_obj_set_style_bg_color(view->roller_month, lv_color_white(), 0);
     lv_obj_set_style_text_color(view->roller_month, lv_color_black(), LV_PART_SELECTED);
@@ -99,19 +99,19 @@ SetDateView_t* SetDateView_Init(const char *title, bool show_back_hint_on_first_
     view->roller_day = lv_roller_create(view->screen);
     lv_roller_set_options(view->roller_day, view->day_options, LV_ROLLER_MODE_NORMAL);
     lv_roller_set_selected(view->roller_day, 0, LV_ANIM_OFF);
-    lv_obj_set_pos(view->roller_day, 88, 16);
+    lv_obj_set_pos(view->roller_day, 86, 16);
     lv_obj_set_size(view->roller_day, 42, 31);
     lv_obj_set_style_bg_color(view->roller_day, lv_color_white(), 0);
     lv_obj_set_style_text_color(view->roller_day, lv_color_black(), LV_PART_SELECTED);
 
     view->label_hint_left = lv_label_create(view->screen);
     lv_label_set_text(view->label_hint_left, "<");
-    lv_obj_align(view->label_hint_left, LV_ALIGN_BOTTOM_LEFT, 2, 0);
+    lv_obj_align(view->label_hint_left, LV_ALIGN_BOTTOM_LEFT, 0, 0);
     lv_obj_set_style_text_color(view->label_hint_left, lv_color_white(), 0);
 
     view->label_hint_center = lv_label_create(view->screen);
     lv_label_set_text(view->label_hint_center, "O");
-    lv_obj_align(view->label_hint_center, LV_ALIGN_BOTTOM_MID, 2, 0);
+    lv_obj_align(view->label_hint_center, LV_ALIGN_BOTTOM_MID, 0, 0);
     lv_obj_set_style_text_color(view->label_hint_center, lv_color_white(), 0);
 
     SetDateView_Render(view, &(SetDate_ViewModelData_t){.day=1, .month=1, .year=2025, .active_field=0});

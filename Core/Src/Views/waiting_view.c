@@ -43,7 +43,7 @@ WaitingView_t* WaitingView_Init(const char *message, int16_t y_ofs)
 
     view->label_hint_center = lv_label_create(view->screen);
     lv_label_set_text(view->label_hint_center, "O");
-    lv_obj_align(view->label_hint_center, LV_ALIGN_BOTTOM_MID, 2, 0);
+    lv_obj_align(view->label_hint_center, LV_ALIGN_BOTTOM_MID, 0, 0);
     lv_obj_set_style_text_color(view->label_hint_center, lv_color_white(), 0);
 
     lv_scr_load(view->screen);
