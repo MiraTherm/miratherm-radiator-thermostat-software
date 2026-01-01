@@ -436,8 +436,9 @@ void ChangeSchedulePresenter_HandleEvent(ChangeSchedulePresenter_t *presenter, c
                     {
                         /* Back to Num Slots */
                         presenter->current_step = STEP_NUM_SLOTS;
-                        SetValueView_SetTitle(ChangeScheduleView_GetValueView(presenter->view), "Time slots per day:");
+                        SetValueView_SetTitle(ChangeScheduleView_GetValueView(presenter->view), "Time slots / day:");
                         SetValueView_SetOptions(ChangeScheduleView_GetValueView(presenter->view), "3\n4\n5");
+                        SetValueView_SetUnit(ChangeScheduleView_GetValueView(presenter->view), "");
                         SetValuePresenter_SetMaxIndex(presenter->value_presenter, 2);
                         SetValuePresenter_SetSelectedIndex(presenter->value_presenter, presenter->schedule.NumTimeSlots - 3);
                         SetValuePresenter_Reset(presenter->value_presenter);
