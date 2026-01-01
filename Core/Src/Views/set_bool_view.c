@@ -8,7 +8,7 @@ typedef struct SetBoolView
 {
     lv_obj_t *screen;
     
-    lv_obj_t *label_step_caption;
+    lv_obj_t *label_title;
     
     lv_obj_t *checkbox_false;
     lv_obj_t *checkbox_true;
@@ -41,12 +41,12 @@ SetBoolView_t* SetBoolView_Init(const char *title, const char *option_true, cons
     lv_obj_set_style_bg_color(view->screen, lv_color_black(), 0);
     lv_obj_set_size(view->screen, LV_HOR_RES, LV_VER_RES);
 
-    view->label_step_caption = lv_label_create(view->screen);
-    lv_label_set_text(view->label_step_caption, title ? title : "Set value:");
-    lv_obj_set_pos(view->label_step_caption, 0, 0);
-    lv_obj_set_size(view->label_step_caption, 128, 10);
-    lv_obj_set_style_text_color(view->label_step_caption, lv_color_white(), 0);
-    lv_obj_set_style_text_align(view->label_step_caption, LV_TEXT_ALIGN_CENTER, 0);
+    view->label_title = lv_label_create(view->screen);
+    lv_label_set_text(view->label_title, title ? title : "Set value:");
+    lv_obj_align(view->label_title, LV_ALIGN_TOP_MID, 2, 0);
+    lv_obj_set_size(view->label_title, 128, 14);
+    lv_obj_set_style_text_color(view->label_title, lv_color_white(), 0);
+    lv_obj_set_style_text_align(view->label_title, LV_TEXT_ALIGN_CENTER, 0);
 
     view->last_value = 0xFF;
 
@@ -98,18 +98,17 @@ SetBoolView_t* SetBoolView_Init(const char *title, const char *option_true, cons
 
     view->label_hint_left = lv_label_create(view->screen);
     lv_label_set_text(view->label_hint_left, "<");
-    lv_obj_set_pos(view->label_hint_left, 6, 51);
-    lv_obj_set_size(view->label_hint_left, 20, 13);
+    lv_obj_align(view->label_hint_left, LV_ALIGN_BOTTOM_LEFT, 2, 0);
     lv_obj_set_style_text_color(view->label_hint_left, lv_color_white(), 0);
+
     if (!show_back_hint)
     {
         lv_obj_add_flag(view->label_hint_left, LV_OBJ_FLAG_HIDDEN);
     }
 
     view->label_hint_center = lv_label_create(view->screen);
-    lv_label_set_text(view->label_hint_center, "OK");
-    lv_obj_set_pos(view->label_hint_center, 60, 51);
-    lv_obj_set_size(view->label_hint_center, 20, 13);
+    lv_label_set_text(view->label_hint_center, "O");
+    lv_obj_align(view->label_hint_center, LV_ALIGN_BOTTOM_MID, 2, 0);
     lv_obj_set_style_text_color(view->label_hint_center, lv_color_white(), 0);
 
     SetBoolView_Render(view, &(SetBool_ViewModelData_t){.value=false});

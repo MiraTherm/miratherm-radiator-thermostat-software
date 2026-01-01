@@ -13,7 +13,6 @@ struct MenuView
     
     lv_obj_t *label_hint_left;
     lv_obj_t *label_hint_center;
-    lv_obj_t *label_hint_right;
 
     uint16_t last_selected_index;
 };
@@ -76,13 +75,8 @@ MenuView_t* MenuView_Init(const char *options)
 
     view->label_hint_center = lv_label_create(view->screen);
     lv_label_set_text(view->label_hint_center, "O");
-    lv_obj_align(view->label_hint_center, LV_ALIGN_BOTTOM_MID, 0, 0);
+    lv_obj_align(view->label_hint_center, LV_ALIGN_BOTTOM_MID, 2, 0);
     lv_obj_set_style_text_color(view->label_hint_center, lv_color_white(), 0);
-
-    view->label_hint_right = lv_label_create(view->screen);
-    lv_label_set_text(view->label_hint_right, ""); 
-    lv_obj_align(view->label_hint_right, LV_ALIGN_BOTTOM_RIGHT, -2, 0);
-    lv_obj_set_style_text_color(view->label_hint_right, lv_color_white(), 0);
 
     view->last_selected_index = 0xFFFF;
 
