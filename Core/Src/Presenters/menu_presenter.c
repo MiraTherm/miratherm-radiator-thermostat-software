@@ -33,7 +33,7 @@ MenuPresenter_t* MenuPresenter_Init(MenuView_t *view, SystemContextAccessTypeDef
     presenter->sensor_values_access = sensor_values_access;
     
     presenter->selected_index = 0;
-    presenter->options = "Edit temp offset\nEdit schedule";
+    presenter->options = "\n"; // Empty to save flash, we hardcode buttons in view
     presenter->num_options = 2;
 
     return presenter;
@@ -60,11 +60,7 @@ void MenuPresenter_HandleEvent(MenuPresenter_t *presenter, const Input2VPEvent_t
             {
                 presenter->selected_index++;
             }
-            else
-            {
-                /* Wrap around or stop? Let's stop at bottom */
-                 presenter->selected_index = 0;
-            }
+            /* Stop at last option */
         }
         else if (event->delta < 0)
         {
@@ -72,11 +68,7 @@ void MenuPresenter_HandleEvent(MenuPresenter_t *presenter, const Input2VPEvent_t
             {
                 presenter->selected_index--;
             }
-            else
-            {
-                /* Wrap around or stop? Let's stop at top */
-                presenter->selected_index = presenter->num_options - 1;
-            }
+            /* Stop at first option */
         }
     }
     else if (event->button_action == BUTTON_ACTION_PRESSED)
