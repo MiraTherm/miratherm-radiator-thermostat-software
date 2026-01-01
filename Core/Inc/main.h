@@ -62,6 +62,7 @@ typedef struct {
  */
 typedef struct {
   osMessageQueueId_t storage2system_event_queue;  /**< Storage event queue handle */
+  osMessageQueueId_t system2storage_event_queue;  /**< System -> Storage event queue handle */
   struct ConfigAccessTypeDef *config_access;             /**< Configuration access with mutex protection */
 } StorageTaskArgsTypeDef;
 

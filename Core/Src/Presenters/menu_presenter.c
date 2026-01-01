@@ -17,6 +17,7 @@ struct MenuPresenter
 
 #define MENU_OPTION_SCHEDULE 0
 #define MENU_OPTION_OFFSET 1
+#define MENU_OPTION_FACTORY_RST 2
 
 MenuPresenter_t* MenuPresenter_Init(MenuView_t *view, SystemContextAccessTypeDef *system_context, ConfigAccessTypeDef *config_access, SensorValuesAccessTypeDef *sensor_values_access)
 {
@@ -34,7 +35,7 @@ MenuPresenter_t* MenuPresenter_Init(MenuView_t *view, SystemContextAccessTypeDef
     
     presenter->selected_index = 0;
     presenter->options = "\n"; // Empty to save flash, we hardcode buttons in view
-    presenter->num_options = 2;
+    presenter->num_options = 3;
 
     return presenter;
 }
@@ -89,6 +90,10 @@ void MenuPresenter_HandleEvent(MenuPresenter_t *presenter, const Input2VPEvent_t
                 {
                     /* TODO: Go to Change Schedule */
                     Router_GoToRoute(ROUTE_CHANGE_SCHEDULE);
+                }
+                else if (presenter->selected_index == MENU_OPTION_FACTORY_RST)
+                {
+                    Router_GoToRoute(ROUTE_FACTORY_RESET);
                 }
                 break;
             default:

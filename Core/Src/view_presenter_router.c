@@ -13,6 +13,7 @@
 #include "menu_view.h"
 #include "set_temp_offset_presenter.h"
 #include "set_value_view.h"
+#include "factory_reset_presenter.h"
 #include "task_debug.h"
 #include "cmsis_os2.h"
 #if VIEW_PRESENTER_TASK_DEBUG_LEDS
@@ -64,6 +65,9 @@ typedef struct
     SetTempOffsetPresenter_t *temp_offset_presenter;
     SetValueView_t *temp_offset_view;
 
+    /* Factory Reset route */
+    FactoryResetPresenter_t *factory_reset_presenter;
+
     /* System Interface */
     osMessageQueueId_t vp2system_queue;
     SystemContextAccessTypeDef *system_context;
@@ -91,6 +95,7 @@ static Router_State_t g_router_state = {
     .menu_view = NULL,
     .temp_offset_presenter = NULL,
     .temp_offset_view = NULL,
+    .factory_reset_presenter = NULL,
     .vp2system_queue = NULL,
     .system_context = NULL,
     .config_access = NULL,
@@ -289,6 +294,12 @@ void Router_Deinit(void)
         SetTempOffsetPresenter_Deinit(g_router_state.temp_offset_presenter);
         g_router_state.temp_offset_presenter = NULL;
     }
+
+    if (g_router_state.factory_reset_presenter)
+    {
+        FactoryResetPresenter_Deinit(g_router_state.factory_reset_presenter);
+        g_router_state.factory_reset_presenter = NULL;
+    }
 }
 
 /**
@@ -401,6 +412,17 @@ void Router_HandleEvent(const Input2VPEvent_t *event)
             }
         }
     }
+    else if (g_router_state.current_route == ROUTE_FACTORY_RESET)
+    {
+        if (g_router_state.factory_reset_presenter)
+        {
+            FactoryResetPresenter_HandleEvent(g_router_state.factory_reset_presenter, event);
+            if (FactoryResetPresenter_IsComplete(g_router_state.factory_reset_presenter))
+            {
+                Router_GoToRoute(ROUTE_MENU);
+            }
+        }
+    }
     /* Other routes (INIT, RUNNING) have no specific interactions yet */
 }
 
@@ -442,11 +464,15 @@ void Router_OnTick(uint32_t current_tick)
         case STATE_ADAPT_FAIL:
             targetRoute = ROUTE_ADAPT_FAIL;
             break;
+        case STATE_FACTORY_RST:
+            targetRoute = ROUTE_FACTORY_RESET;
+            break;
         case STATE_RUNNING:
             /* Allow Menu and sub-menus in Running state */
             if (g_router_state.current_route != ROUTE_MENU && 
                 g_router_state.current_route != ROUTE_EDIT_TEMP_OFFSET &&
-                g_router_state.current_route != ROUTE_CHANGE_SCHEDULE)
+                g_router_state.current_route != ROUTE_CHANGE_SCHEDULE &&
+                g_router_state.current_route != ROUTE_FACTORY_RESET)
             {
                 targetRoute = ROUTE_HOME;
             }
@@ -524,6 +550,13 @@ void Router_OnTick(uint32_t current_tick)
     else if (g_router_state.current_route == ROUTE_EDIT_TEMP_OFFSET)
     {
         /* SetTempOffsetPresenter doesn't have Run, it updates on event */
+    }
+    else if (g_router_state.current_route == ROUTE_FACTORY_RESET)
+    {
+        if (g_router_state.factory_reset_presenter)
+        {
+            FactoryResetPresenter_Run(g_router_state.factory_reset_presenter, current_tick);
+        }
     }
 }
 
@@ -656,6 +689,13 @@ void Router_GoToRoute(RouteTypeDef route)
             g_router_state.temp_offset_presenter = SetTempOffsetPresenter_Init(g_router_state.temp_offset_view, g_router_state.config_access);
         }
     }
+    else if (route == ROUTE_FACTORY_RESET)
+    {
+        if (!g_router_state.factory_reset_presenter)
+        {
+            g_router_state.factory_reset_presenter = FactoryResetPresenter_Init(g_router_state.vp2system_queue);
+        }
+    }
 
     /* Cleanup old route */
     switch (g_router_state.current_route)
@@ -767,6 +807,13 @@ void Router_GoToRoute(RouteTypeDef route)
             {
                 SetValueView_Deinit(g_router_state.temp_offset_view);
                 g_router_state.temp_offset_view = NULL;
+            }
+            break;
+        case ROUTE_FACTORY_RESET:
+            if (g_router_state.factory_reset_presenter)
+            {
+                FactoryResetPresenter_Deinit(g_router_state.factory_reset_presenter);
+                g_router_state.factory_reset_presenter = NULL;
             }
             break;
         default:

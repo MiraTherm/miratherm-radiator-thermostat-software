@@ -103,6 +103,9 @@ const osThreadAttr_t storageTask_attributes = {
 /* Storage event queue */
 osMessageQueueId_t storage2SystemEventQueueHandle;
 
+/* System -> Storage queue */
+osMessageQueueId_t system2StorageEventQueueHandle;
+
 /* Input to ViewPresenter event queue */
 osMessageQueueId_t input2VPEventQueueHandle;
 
@@ -349,6 +352,14 @@ int main(void)
   defaultTaskArgs.storage2system_event_queue = storage2SystemEventQueueHandle;
   storageTaskArgs.storage2system_event_queue = storage2SystemEventQueueHandle;
   
+  /* Create System -> Storage event queue */
+  system2StorageEventQueueHandle = osMessageQueueNew(4U, sizeof(System2StorageEventTypeDef), NULL);
+  if (system2StorageEventQueueHandle == NULL)
+  {
+    Error_Handler();
+  }
+  storageTaskArgs.system2storage_event_queue = system2StorageEventQueueHandle;
+  
   /* Create input to ViewPresenter event queue */
   input2VPEventQueueHandle = osMessageQueueNew(8U, sizeof(Input2VPEvent_t), NULL);
   if (input2VPEventQueueHandle == NULL)
@@ -391,6 +402,8 @@ int main(void)
   }
   systemTaskArgs.maint2_system_queue = maint2SystemEventQueueHandle;
   maintenanceTaskArgs.maint2_system_queue = maint2SystemEventQueueHandle;
+
+  systemTaskArgs.system2_storage_queue = system2StorageEventQueueHandle;
 #endif
   /* USER CODE END RTOS_QUEUES */
 

@@ -26,6 +26,7 @@ typedef enum
     ROUTE_HOME,
     ROUTE_MENU,
     ROUTE_EDIT_TEMP_OFFSET,
+    ROUTE_FACTORY_RESET,
 } RouteTypeDef;
 
 /**

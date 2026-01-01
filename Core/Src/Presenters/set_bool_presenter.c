@@ -82,3 +82,12 @@ const SetBool_ViewModelData_t* SetBoolPresenter_GetData(SetBoolPresenter_t *pres
         return NULL;
     return &presenter->data;
 }
+
+void SetBoolPresenter_Run(SetBoolPresenter_t *presenter, uint32_t current_tick)
+{
+    (void)current_tick;
+    if (presenter && presenter->view)
+    {
+        SetBoolView_Render(presenter->view, &presenter->data);
+    }
+}

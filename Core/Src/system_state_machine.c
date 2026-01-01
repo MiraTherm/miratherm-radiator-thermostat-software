@@ -33,6 +33,7 @@ static SystemState_t doNotInstState(void);
 static SystemState_t doAdaptState(void);
 static SystemState_t doAdaptFailState(void);
 static SystemState_t doRunningState(void);
+static SystemState_t doFactoryRstState(void);
 
 /* - state machine execution logic */
 static SystemState_t getNextState(SystemState_t state);
@@ -136,6 +137,14 @@ void SystemSM_Run(void)
                     }
                 }
                 break;
+            case STATE_FACTORY_RST:
+                printf("SystemSM: Entering FACTORY_RST state...\n");
+                if (smArgs->system2_storage_queue != NULL)
+                {
+                    System2StorageEventTypeDef evt = EVT_CFG_RST_REQ;
+                    osMessageQueuePut(smArgs->system2_storage_queue, &evt, 0, 0);
+                }
+                break;
             default:
                 break;
         }
@@ -173,6 +182,9 @@ static SystemState_t getNextState(SystemState_t state)
             break;
         case STATE_RUNNING:
             nextState = doRunningState();
+            break;
+        case STATE_FACTORY_RST:
+            nextState = doFactoryRstState();
             break;
         default:
             nextState = STATE_INIT; /* Default to safe state */
@@ -325,9 +337,37 @@ static SystemState_t doRunningState(void)
     if (smArgs->vp2_system_queue != NULL && 
         osMessageQueueGet(smArgs->vp2_system_queue, &vpEvt, NULL, 0) == osOK)
     {
-        /* Ignored in RUNNING */
+        if (vpEvt == EVT_FACTORY_RST_REQ)
+        {
+            nextState = STATE_FACTORY_RST;
+        }
     }
 
+    return nextState;
+}
+
+static SystemState_t doFactoryRstState(void)
+{
+    SystemState_t nextState = STATE_FACTORY_RST;
+    Storage2SystemEventTypeDef stEvt;
+
+    /* Check Storage Queue for completion */
+    if (storage2SystemEventQueueHandle != NULL && 
+        osMessageQueueGet(storage2SystemEventQueueHandle, &stEvt, NULL, 0) == osOK)
+    {
+        if (stEvt == EVT_CFG_RST_END)
+        {
+            printf("SystemSM: Factory Reset Complete. Resetting MCU...\n");
+            
+            /* Reset Backup Domain (RTC) */
+            HAL_PWR_EnableBkUpAccess();
+            __HAL_RCC_BACKUPRESET_FORCE();
+            __HAL_RCC_BACKUPRESET_RELEASE();
+            
+            /* Reset MCU */
+            NVIC_SystemReset();
+        }
+    }
     return nextState;
 }
 

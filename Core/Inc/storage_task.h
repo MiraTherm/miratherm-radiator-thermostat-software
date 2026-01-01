@@ -12,8 +12,14 @@ extern "C" {
 
 typedef enum
 {
-	EVT_CFG_LOAD_END = 0
+	EVT_CFG_LOAD_END = 0,
+  EVT_CFG_RST_END
 } Storage2SystemEventTypeDef;
+
+typedef enum
+{
+    EVT_CFG_RST_REQ = 0
+} System2StorageEventTypeDef;
 
 typedef struct
 {

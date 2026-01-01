@@ -18,6 +18,7 @@ void SetBoolPresenter_HandleEvent(SetBoolPresenter_t *presenter, const Input2VPE
 void SetBoolPresenter_Reset(SetBoolPresenter_t *presenter);
 bool SetBoolPresenter_IsComplete(SetBoolPresenter_t *presenter);
 const SetBool_ViewModelData_t* SetBoolPresenter_GetData(SetBoolPresenter_t *presenter);
+void SetBoolPresenter_Run(SetBoolPresenter_t *presenter, uint32_t current_tick);
 
 #ifdef __cplusplus
 }

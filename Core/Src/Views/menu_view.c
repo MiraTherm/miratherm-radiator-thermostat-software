@@ -10,6 +10,7 @@ struct MenuView
     lv_obj_t *list;
     lv_obj_t *btn_offset;
     lv_obj_t *btn_schedule;
+    lv_obj_t *btn_factory_rst;
     
     lv_obj_t *label_hint_left;
     lv_obj_t *label_hint_center;
@@ -67,6 +68,12 @@ MenuView_t* MenuView_Init(const char *options)
     lv_obj_set_style_bg_color(view->btn_offset, lv_color_white(), LV_STATE_FOCUS_KEY);
     lv_obj_set_style_text_color(view->btn_offset, lv_color_black(), LV_STATE_FOCUS_KEY);
 
+    view->btn_factory_rst = lv_list_add_btn(view->list, NULL, "Factory reset");
+    lv_obj_set_style_bg_color(view->btn_factory_rst, lv_color_black(), 0);
+    lv_obj_set_style_text_color(view->btn_factory_rst, lv_color_white(), 0);
+    lv_obj_set_style_bg_color(view->btn_factory_rst, lv_color_white(), LV_STATE_FOCUS_KEY);
+    lv_obj_set_style_text_color(view->btn_factory_rst, lv_color_black(), LV_STATE_FOCUS_KEY);
+
     /* Hints */
     view->label_hint_left = lv_label_create(view->screen);
     lv_label_set_text(view->label_hint_left, "<" LV_SYMBOL_HOME);
@@ -111,17 +118,24 @@ void MenuView_Render(MenuView_t *view, const MenuViewModel_t *model)
     if (view->last_selected_index != model->selected_index)
     {
         /* Manually manage focus state to simulate selection */
+        lv_obj_clear_state(view->btn_schedule, LV_STATE_FOCUS_KEY);
+        lv_obj_clear_state(view->btn_offset, LV_STATE_FOCUS_KEY);
+        lv_obj_clear_state(view->btn_factory_rst, LV_STATE_FOCUS_KEY);
+
         if (model->selected_index == 0)
         {
-            lv_obj_clear_state(view->btn_offset, LV_STATE_FOCUS_KEY);
             lv_obj_add_state(view->btn_schedule, LV_STATE_FOCUS_KEY);
             lv_obj_scroll_to_view(view->btn_schedule, LV_ANIM_OFF);
         }
         else if (model->selected_index == 1)
         {
             lv_obj_add_state(view->btn_offset, LV_STATE_FOCUS_KEY);
-            lv_obj_clear_state(view->btn_schedule, LV_STATE_FOCUS_KEY);
             lv_obj_scroll_to_view(view->btn_offset, LV_ANIM_OFF);
+        }
+        else if (model->selected_index == 2)
+        {
+            lv_obj_add_state(view->btn_factory_rst, LV_STATE_FOCUS_KEY);
+            lv_obj_scroll_to_view(view->btn_factory_rst, LV_ANIM_OFF);
         }
         
         view->last_selected_index = model->selected_index;

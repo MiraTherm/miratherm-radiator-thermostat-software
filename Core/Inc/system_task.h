@@ -18,7 +18,7 @@ typedef enum {
   STATE_ADAPT,
   STATE_ADAPT_FAIL,
   STATE_RUNNING,
-  STATE_FACTORY_RST, /* Not implemented */
+  STATE_FACTORY_RST,
   STATE_MAINT /* Not implemented */
 } SystemState_t;
 
@@ -46,7 +46,8 @@ typedef enum {
   EVT_COD_DT_DONE, /* Date/Time setup done */
   EVT_COD_SCH_DONE, /* Schedule setup done */
   EVT_INST_REQ,    /* start adaptation */
-  EVT_ADAPT_RST    /* user accepts adapt fail and requests retry */
+  EVT_ADAPT_RST,    /* user accepts adapt fail and requests retry */
+  EVT_FACTORY_RST_REQ /* Factory reset requested */
 } VP2SystemEventTypeDef;
 
 /************************************************
@@ -62,6 +63,7 @@ typedef struct {
   osMessageQueueId_t system2_vp_queue;           /* System -> ViewPresenter */
   osMessageQueueId_t system2_maint_queue;        /* System -> Maint */
   osMessageQueueId_t maint2_system_queue;        /* Maint -> System */
+  osMessageQueueId_t system2_storage_queue;      /* System -> Storage */
   SystemContextAccessTypeDef *system_context_access; /* Pointer to shared system context */
 } SystemTaskArgsTypeDef;
 

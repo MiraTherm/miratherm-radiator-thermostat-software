@@ -28,6 +28,7 @@ typedef struct
 
 static ConfigAccessTypeDef *s_config_access = NULL;
 static osMessageQueueId_t s_event_queue = NULL;
+static osMessageQueueId_t s_system2storage_queue = NULL;
 
 /**
  * Calculate a simple checksum for config validation
@@ -160,12 +161,18 @@ void StartStorageTask(void *argument)
 {
   StorageTaskArgsTypeDef *args = (StorageTaskArgsTypeDef *)argument;
   osMessageQueueId_t event_queue = args->storage2system_event_queue;
+  osMessageQueueId_t system2storage_queue = args->system2storage_event_queue;
   ConfigAccessTypeDef *config_access = args->config_access;
 
   /* Receive event queue and config access handles from main */
   if (event_queue != NULL)
   {
     s_event_queue = event_queue;
+  }
+
+  if (system2storage_queue != NULL)
+  {
+    s_system2storage_queue = system2storage_queue;
   }
 
   if (config_access != NULL)
@@ -224,7 +231,30 @@ void StartStorageTask(void *argument)
   /* Periodic write task: check every 2.5 seconds if config changed */
   for (;;)
   {
-    osDelay(pdMS_TO_TICKS(2500U));  /* Check every 2.5 seconds */
+    System2StorageEventTypeDef sysEvt;
+    osStatus_t status = osMessageQueueGet(s_system2storage_queue, &sysEvt, NULL, pdMS_TO_TICKS(2500U));
+
+    if (status == osOK)
+    {
+      if (sysEvt == EVT_CFG_RST_REQ)
+      {
+        printf("StorageTask: Factory Reset Requested\n");
+        ConfigTypeDef default_config = {.TemperatureOffsetC = 0.0f};
+        /* Reset other fields if needed, e.g. schedule */
+        
+        if (write_config_to_flash(&default_config))
+        {
+          if (osMutexAcquire(s_config_access->mutex, osWaitForever) == osOK)
+          {
+            s_config_access->data = default_config;
+            last_written_config = default_config; /* Update last written to avoid re-write */
+            osMutexRelease(s_config_access->mutex);
+          }
+          printf("StorageTask: Factory Reset Complete\n");
+          StorageTask_PostEvent(EVT_CFG_RST_END);
+        }
+      }
+    }
 
     if (osMutexAcquire(s_config_access->mutex, osWaitForever) == osOK)
     {
