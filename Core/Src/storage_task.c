@@ -192,7 +192,7 @@ void StartStorageTask(void *argument)
   }
 
   /* Attempt to load configuration from Flash */
-  ConfigTypeDef loaded_config = {.TemperatureOffsetC = 0.0f};
+  ConfigTypeDef loaded_config = {.TemperatureOffsetC = 0.0f, .ManualTargetTemp = 20.0f};
   if (read_config_from_flash(&loaded_config))
   {
     /* Store in shared config with mutex protection */
@@ -207,7 +207,7 @@ void StartStorageTask(void *argument)
   {
     printf("StorageTask: No valid configuration in Flash, using defaults\n");
     /* Save default configuration to Flash */
-    ConfigTypeDef default_config = {.TemperatureOffsetC = 0.0f};
+    ConfigTypeDef default_config = {.TemperatureOffsetC = 0.0f, .ManualTargetTemp = 20.0f};
     if (write_config_to_flash(&default_config))
     {
       printf("StorageTask: Default configuration saved to Flash\n");
@@ -239,7 +239,7 @@ void StartStorageTask(void *argument)
       if (sysEvt == EVT_CFG_RST_REQ)
       {
         printf("StorageTask: Factory Reset Requested\n");
-        ConfigTypeDef default_config = {.TemperatureOffsetC = 0.0f};
+        ConfigTypeDef default_config = {.TemperatureOffsetC = 0.0f, .ManualTargetTemp = 20.0f};
         /* Reset other fields if needed, e.g. schedule */
         
         if (write_config_to_flash(&default_config))

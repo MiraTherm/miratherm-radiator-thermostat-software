@@ -313,7 +313,8 @@ int main(void)
   static SystemContextAccessTypeDef systemContextAccess = { 
     .mutex = NULL, 
     .data = { 
-      .state = STATE_INIT, 
+      .state = STATE_INIT,
+      .mode = MODE_AUTO,
       .adapt_result = -1 
     } 
   };

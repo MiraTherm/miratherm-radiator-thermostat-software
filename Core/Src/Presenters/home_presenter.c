@@ -48,35 +48,68 @@ void HomePresenter_HandleEvent(HomePresenter_t *presenter, const Input2VPEvent_t
     /* Handle rotary encoder movement */
     if (event->type == EVT_CTRL_WHEEL_DELTA)
     {
-        if (!presenter->system_context)
+        if (!presenter->system_context || !presenter->config_access)
             return;
 
+        /* Check current mode */
+        SystemMode_t current_mode = MODE_AUTO;
         if (osMutexAcquire(presenter->system_context->mutex, 10) == osOK)
         {
-            /* Use current temporary override if set, otherwise start from scheduled target */
-            float current_temp;
-            if (presenter->system_context->data.temporary_target_temp != 0)
-            {
-                current_temp = presenter->system_context->data.temporary_target_temp;
-            }
-            else
-            {
-                current_temp = presenter->system_context->data.target_temp;
-            }
-            
-            uint16_t current_index = Utils_TempToIndex(current_temp);
-
-            /* Adjust index by delta (each encoder click = 1 step) */
-            int16_t new_index = (int16_t)current_index + event->delta;
-            if (new_index < 0) new_index = 0;
-            if (new_index > 51) new_index = 51;
-
-            float new_temp = Utils_IndexToTemp((uint16_t)new_index);
-            presenter->system_context->data.temporary_target_temp = new_temp;
-
-            printf("Home: Rotary encoder delta=%d, new temp override=%.1f°C\n", event->delta, new_temp);
-
+            current_mode = presenter->system_context->data.mode;
             osMutexRelease(presenter->system_context->mutex);
+        }
+
+        if (current_mode == MODE_AUTO)
+        {
+            /* AUTO mode: use temporary override */
+            if (osMutexAcquire(presenter->system_context->mutex, 10) == osOK)
+            {
+                /* Use current temporary override if set, otherwise start from scheduled target */
+                float current_temp;
+                if (presenter->system_context->data.temporary_target_temp != 0)
+                {
+                    current_temp = presenter->system_context->data.temporary_target_temp;
+                }
+                else
+                {
+                    current_temp = presenter->system_context->data.target_temp;
+                }
+                
+                uint16_t current_index = Utils_TempToIndex(current_temp);
+
+                /* Adjust index by delta (each encoder click = 1 step) */
+                int16_t new_index = (int16_t)current_index + event->delta;
+                if (new_index < 0) new_index = 0;
+                if (new_index > 51) new_index = 51;
+
+                float new_temp = Utils_IndexToTemp((uint16_t)new_index);
+                presenter->system_context->data.temporary_target_temp = new_temp;
+
+                printf("Home: AUTO mode - Rotary encoder delta=%d, new temp override=%.1f°C\n", event->delta, new_temp);
+
+                osMutexRelease(presenter->system_context->mutex);
+            }
+        }
+        else
+        {
+            /* MANUAL mode: adjust manual temperature directly */
+            if (osMutexAcquire(presenter->config_access->mutex, 10) == osOK)
+            {
+                float current_temp = presenter->config_access->data.ManualTargetTemp;
+                uint16_t current_index = Utils_TempToIndex(current_temp);
+
+                /* Adjust index by delta (each encoder click = 1 step) */
+                int16_t new_index = (int16_t)current_index + event->delta;
+                if (new_index < 0) new_index = 0;
+                if (new_index > 51) new_index = 51;
+
+                float new_temp = Utils_IndexToTemp((uint16_t)new_index);
+                presenter->config_access->data.ManualTargetTemp = new_temp;
+
+                printf("Home: MANUAL mode - Rotary encoder delta=%d, new manual temp=%.1f°C\n", event->delta, new_temp);
+
+                osMutexRelease(presenter->config_access->mutex);
+            }
         }
 
         return;
@@ -88,8 +121,23 @@ void HomePresenter_HandleEvent(HomePresenter_t *presenter, const Input2VPEvent_t
         switch (event->type)
         {
             case EVT_MODE_BTN:
-                /* TODO: Handle Mode button */
-                printf("Home: Mode button pressed\n");
+                /* Toggle mode between AUTO and MANUAL */
+                if (presenter->system_context)
+                {
+                    if (osMutexAcquire(presenter->system_context->mutex, 10) == osOK)
+                    {
+                        /* Toggle mode */
+                        SystemMode_t new_mode = (presenter->system_context->data.mode == MODE_AUTO) ? MODE_MANUAL : MODE_AUTO;
+                        presenter->system_context->data.mode = new_mode;
+                        
+                        /* Clear temporary override when switching modes */
+                        presenter->system_context->data.temporary_target_temp = 0;
+                        
+                        printf("Home: Mode button pressed, switching to %s mode\n", (new_mode == MODE_AUTO) ? "AUTO" : "MANUAL");
+                        
+                        osMutexRelease(presenter->system_context->mutex);
+                    }
+                }
                 break;
             case EVT_CENTRAL_BTN:
                 /* TODO: Handle Boost button */
@@ -130,10 +178,11 @@ void HomePresenter_Run(HomePresenter_t *presenter, uint32_t current_tick)
         osMutexRelease(presenter->sensor_values_access->mutex);
     }
 
-    /* Get Target Temperature from System State (calculated in RUNNING state) */
+    /* Get Target Temperature and Mode from System State */
     if (osMutexAcquire(presenter->system_context->mutex, 10) == osOK)
     {
         model.target_temp = presenter->system_context->data.target_temp;
+        model.mode = presenter->system_context->data.mode;
         
         /* Use temporary override if set, otherwise use scheduled target */
         if (presenter->system_context->data.temporary_target_temp != 0)

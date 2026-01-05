@@ -83,9 +83,9 @@ HomeView_t* HomeView_Init(void)
     /* Button Hints */
     view->label_hint_left = lv_label_create(view->screen);
     lv_label_set_text(view->label_hint_left, "Auto");
-    lv_obj_align(view->label_hint_left, LV_ALIGN_BOTTOM_LEFT, 0, 0);
+    lv_obj_align(view->label_hint_left, LV_ALIGN_BOTTOM_LEFT, 0, -1);
     lv_obj_set_style_text_color(view->label_hint_left, lv_color_white(), 0);
-    lv_obj_set_style_text_font(view->label_hint_left, &lv_font_montserrat_14, 0);
+    lv_obj_set_style_text_font(view->label_hint_left, &lv_font_montserrat_12, 0);
 
     view->label_hint_center = lv_label_create(view->screen);
     lv_label_set_text(view->label_hint_center, "O");
@@ -177,11 +177,25 @@ void HomeView_Render(HomeView_t *view, const HomeViewModel_t *model)
         lv_label_set_text(view->label_current_temp, buf);
     }
 
-    /* Time Slot */
-    if (view->first_render || view->last_model.slot_end_hour != model->slot_end_hour || view->last_model.slot_end_minute != model->slot_end_minute)
+    /* Time Slot (only in AUTO mode) */
+    if (view->first_render || view->last_model.slot_end_hour != model->slot_end_hour || view->last_model.slot_end_minute != model->slot_end_minute || view->last_model.mode != model->mode)
     {
-        snprintf(buf, sizeof(buf), "-> %02d:%02d", model->slot_end_hour, model->slot_end_minute);
-        lv_label_set_text(view->label_time_slot, buf);
+        if (model->mode == 0) /* MODE_AUTO */
+        {
+            snprintf(buf, sizeof(buf), "-> %02d:%02d", model->slot_end_hour, model->slot_end_minute);
+            lv_label_set_text(view->label_time_slot, buf);
+        }
+        else /* MODE_MANUAL */
+        {
+            lv_label_set_text(view->label_time_slot, "");
+        }
+    }
+
+    /* Mode Hint Label (Left Button) */
+    if (view->first_render || view->last_model.mode != model->mode)
+    {
+        const char *mode_text = (model->mode == 0) ? "Auto" : "Manual";
+        lv_label_set_text(view->label_hint_left, mode_text);
     }
 
     view->last_model = *model;

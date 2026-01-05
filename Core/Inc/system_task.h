@@ -23,6 +23,11 @@ typedef enum {
 } SystemState_t;
 
 typedef enum {
+  MODE_AUTO = 0,
+  MODE_MANUAL = 1
+} SystemMode_t;
+
+typedef enum {
   ADAPT_RESULT_UNKNOWN = -1,
   ADAPT_RESULT_OK = 0,
   ADAPT_RESULT_FAIL = 1
@@ -30,6 +35,7 @@ typedef enum {
 
 typedef struct {
   SystemState_t state;
+  SystemMode_t mode;  /* AUTO or MANUAL */
   AdaptResult_t adapt_result; /* ADAPT_RESULT_* */
   /* Target temperature and slot end time calculated in RUNNING state */
   float target_temp;

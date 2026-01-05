@@ -40,6 +40,7 @@ typedef struct
 {
   float TemperatureOffsetC;
   DailyScheduleTypeDef DailySchedule;
+  float ManualTargetTemp;  /* Manual mode target temperature (persistent storage) */
 } ConfigTypeDef;
 
 /**
