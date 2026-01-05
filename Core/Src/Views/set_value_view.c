@@ -183,3 +183,20 @@ void SetValueView_SetOptions(SetValueView_t *view, const char *options)
         lv_port_unlock();
     }
 }
+
+void SetValueView_SetLeftButtonHint(SetValueView_t *view, bool show)
+{
+    if (!view) return;
+    if (lv_port_lock())
+    {
+        if (show)
+        {
+            lv_obj_clear_flag(view->label_hint_left, LV_OBJ_FLAG_HIDDEN);
+        }
+        else
+        {
+            lv_obj_add_flag(view->label_hint_left, LV_OBJ_FLAG_HIDDEN);
+        }
+        lv_port_unlock();
+    }
+}

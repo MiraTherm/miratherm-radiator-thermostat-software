@@ -18,6 +18,7 @@ void SetValueView_Hide(SetValueView_t *view);
 void SetValueView_SetTitle(SetValueView_t *view, const char *title);
 void SetValueView_SetUnit(SetValueView_t *view, const char *unit);
 void SetValueView_SetOptions(SetValueView_t *view, const char *options);
+void SetValueView_SetLeftButtonHint(SetValueView_t *view, bool show);
 
 #ifdef __cplusplus
 }

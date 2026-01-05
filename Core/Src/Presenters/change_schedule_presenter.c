@@ -307,6 +307,7 @@ static void setup_slot_temp_view(ChangeSchedulePresenter_t *presenter)
     /* Need to set options when coming from STEP_NUM_SLOTS which uses different options */
     /* The SetValueView caches the options pointer, so this is only expensive on first call */
     SetValueView_SetOptions(ChangeScheduleView_GetValueView(presenter->view), presenter->temp_options);
+    SetValueView_SetLeftButtonHint(ChangeScheduleView_GetValueView(presenter->view), true);
     SetValuePresenter_SetMaxIndex(presenter->value_presenter, 51); /* 0..51 */
     
     float current_temp = presenter->schedule.TimeSlots[presenter->current_slot_index].Temperature;
@@ -337,6 +338,7 @@ void ChangeSchedulePresenter_HandleEvent(ChangeSchedulePresenter_t *presenter, c
                     
                     SetValueView_SetTitle(ChangeScheduleView_GetValueView(presenter->view), "Time slots / day:");
                     SetValueView_SetOptions(ChangeScheduleView_GetValueView(presenter->view), "3\n4\n5");
+                    SetValueView_SetLeftButtonHint(ChangeScheduleView_GetValueView(presenter->view), false);
                     SetValuePresenter_SetMaxIndex(presenter->value_presenter, 2); /* 0=3, 1=4, 2=5 */
                     
                     /* Map current num slots to index */
@@ -402,6 +404,7 @@ void ChangeSchedulePresenter_HandleEvent(ChangeSchedulePresenter_t *presenter, c
                         SetValueView_SetTitle(ChangeScheduleView_GetValueView(presenter->view), "Time slots / day:");
                         SetValueView_SetOptions(ChangeScheduleView_GetValueView(presenter->view), "3\n4\n5");
                         SetValueView_SetUnit(ChangeScheduleView_GetValueView(presenter->view), "");
+                        SetValueView_SetLeftButtonHint(ChangeScheduleView_GetValueView(presenter->view), false);
                         SetValuePresenter_SetMaxIndex(presenter->value_presenter, 2);
                         SetValuePresenter_SetSelectedIndex(presenter->value_presenter, presenter->schedule.NumTimeSlots - 3);
                         SetValuePresenter_Reset(presenter->value_presenter);
