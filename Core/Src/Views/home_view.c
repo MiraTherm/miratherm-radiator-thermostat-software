@@ -146,13 +146,26 @@ void HomeView_Render(HomeView_t *view, const HomeViewModel_t *model)
     }
 
     /* Target Temp */
-    if (view->first_render || view->last_model.target_temp != model->target_temp)
+    if (view->first_render || view->last_model.target_temp != model->target_temp ||
+        view->last_model.is_off_mode != model->is_off_mode ||
+        view->last_model.is_on_mode != model->is_on_mode)
     {
-        /* Assuming 1 decimal place */
-        int temp_int = (int)model->target_temp;
-        int temp_dec = (int)((model->target_temp - temp_int) * 10);
-        snprintf(buf, sizeof(buf), "%d.%d°", temp_int, temp_dec);
-        lv_label_set_text(view->label_target_temp, buf);
+        if (model->is_off_mode)
+        {
+            lv_label_set_text(view->label_target_temp, "OFF");
+        }
+        else if (model->is_on_mode)
+        {
+            lv_label_set_text(view->label_target_temp, "ON");
+        }
+        else
+        {
+            /* Assuming 1 decimal place */
+            int temp_int = (int)model->target_temp;
+            int temp_dec = (int)((model->target_temp - temp_int) * 10);
+            snprintf(buf, sizeof(buf), "%d.%d°", temp_int, temp_dec);
+            lv_label_set_text(view->label_target_temp, buf);
+        }
     }
 
     /* Current Temp */

@@ -19,6 +19,8 @@ typedef struct
     uint8_t slot_end_hour;
     uint8_t slot_end_minute;
     uint8_t battery_percentage;
+    bool is_off_mode;   /* true if target_temp == 4.5 (OFF) */
+    bool is_on_mode;    /* true if target_temp == 30.0 (ON) */
     /* Operational mode is static "Auto" for now */
 } HomeViewModel_t;
 

@@ -1,6 +1,7 @@
 #include "home_presenter.h"
 #include "view_presenter_router.h"
 #include "main.h"
+#include "utils.h"
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -43,6 +44,43 @@ void HomePresenter_HandleEvent(HomePresenter_t *presenter, const Input2VPEvent_t
 {
     if (!presenter || !event)
         return;
+
+    /* Handle rotary encoder movement */
+    if (event->type == EVT_CTRL_WHEEL_DELTA)
+    {
+        if (!presenter->system_context)
+            return;
+
+        if (osMutexAcquire(presenter->system_context->mutex, 10) == osOK)
+        {
+            /* Use current temporary override if set, otherwise start from scheduled target */
+            float current_temp;
+            if (presenter->system_context->data.temporary_target_temp != 0)
+            {
+                current_temp = presenter->system_context->data.temporary_target_temp;
+            }
+            else
+            {
+                current_temp = presenter->system_context->data.target_temp;
+            }
+            
+            uint16_t current_index = Utils_TempToIndex(current_temp);
+
+            /* Adjust index by delta (each encoder click = 1 step) */
+            int16_t new_index = (int16_t)current_index + event->delta;
+            if (new_index < 0) new_index = 0;
+            if (new_index > 51) new_index = 51;
+
+            float new_temp = Utils_IndexToTemp((uint16_t)new_index);
+            presenter->system_context->data.temporary_target_temp = new_temp;
+
+            printf("Home: Rotary encoder delta=%d, new temp override=%.1f°C\n", event->delta, new_temp);
+
+            osMutexRelease(presenter->system_context->mutex);
+        }
+
+        return;
+    }
 
     /* Handle button presses */
     if (event->button_action == BUTTON_ACTION_PRESSED)
@@ -92,52 +130,25 @@ void HomePresenter_Run(HomePresenter_t *presenter, uint32_t current_tick)
         osMutexRelease(presenter->sensor_values_access->mutex);
     }
 
-    /* Get Config Values (Target Temp & Schedule) */
-    if (osMutexAcquire(presenter->config_access->mutex, 10) == osOK)
+    /* Get Target Temperature from System State (calculated in RUNNING state) */
+    if (osMutexAcquire(presenter->system_context->mutex, 10) == osOK)
     {
-        /* Determine current target temp based on schedule or manual override (if implemented) */
-        /* For now, assume we follow schedule. */
-        /* Find current time slot */
-        ConfigTypeDef *cfg = &presenter->config_access->data;
-        float target_temp = 20.0f; /* Default */
-        uint8_t end_h = 0, end_m = 0;
-
-        /* Simple linear search for slot containing current time */
-        /* Assuming slots are sorted and non-overlapping for simplicity, or just find first match */
-        /* Note: Real implementation might need more robust schedule logic */
+        model.target_temp = presenter->system_context->data.target_temp;
         
-        bool found = false;
-        for (int i = 0; i < cfg->DailySchedule.NumTimeSlots; i++)
+        /* Use temporary override if set, otherwise use scheduled target */
+        if (presenter->system_context->data.temporary_target_temp != 0)
         {
-            TimeSlotTypeDef *slot = &cfg->DailySchedule.TimeSlots[i];
-            
-            int current_mins = model.hour * 60 + model.minute;
-            int start_mins = slot->StartHour * 60 + slot->StartMinute;
-            int end_mins = slot->EndHour * 60 + slot->EndMinute;
-
-            if (current_mins >= start_mins && current_mins < end_mins)
-            {
-                target_temp = slot->Temperature;
-                end_h = slot->EndHour;
-                end_m = slot->EndMinute;
-                found = true;
-                break;
-            }
+            model.target_temp = presenter->system_context->data.temporary_target_temp;
         }
-
-        if (!found)
-        {
-            /* Fallback if no slot matches (e.g. gap in schedule) */
-            target_temp = 18.0f; /* Eco temp? */
-            end_h = 0;
-            end_m = 0;
-        }
-
-        model.target_temp = target_temp;
-        model.slot_end_hour = end_h;
-        model.slot_end_minute = end_m;
-
-        osMutexRelease(presenter->config_access->mutex);
+        
+        model.slot_end_hour = presenter->system_context->data.slot_end_hour;
+        model.slot_end_minute = presenter->system_context->data.slot_end_minute;
+        
+        /* Determine if displaying OFF or ON mode */
+        model.is_off_mode = (model.target_temp <= 4.5f);
+        model.is_on_mode = (model.target_temp >= 30.0f);
+        
+        osMutexRelease(presenter->system_context->mutex);
     }
 
     HomeView_Render(presenter->view, &model);

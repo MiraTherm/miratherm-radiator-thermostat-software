@@ -13,6 +13,7 @@
 #include "cmsis_os2.h"
 #include "FreeRTOS.h"
 #include "system_task.h"
+#include "main.h"
 #include <stdio.h>
 
 /* Section: External Variables ************************************************/
@@ -323,13 +324,87 @@ static SystemState_t doRunningState(void)
 {
     SystemState_t nextState = STATE_RUNNING;
     static uint32_t tick_last = 0;
+    static bool first_run = true;
+    static uint8_t last_slot_end_hour = 0xFF;  /* Track previous slot to detect transitions */
+    static uint8_t last_slot_end_minute = 0xFF;
     
-    /* Periodic check */
+    /* Periodic check and temperature calculation */
     uint32_t now = osKernelGetTickCount();
-    if ((now - tick_last) > pdMS_TO_TICKS(60000))
+    if (first_run || (now - tick_last) > pdMS_TO_TICKS(30000))
     {
+        first_run = false;
         tick_last = now;
         printf("SystemSM: RUNNING periodic tick\n");
+        
+        /* Calculate target temperature and slot end time */
+        if (smArgs && smArgs->config_access && smArgs->system_context_access)
+        {
+            extern RTC_HandleTypeDef hrtc;
+            RTC_TimeTypeDef sTime = {0};
+            RTC_DateTypeDef sDate = {0};
+            HAL_RTC_GetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
+            HAL_RTC_GetDate(&hrtc, &sDate, RTC_FORMAT_BIN);
+            
+            float target_temp = 20.0f;
+            uint8_t end_h = 0, end_m = 0;
+            
+            if (osMutexAcquire(smArgs->config_access->mutex, 10) == osOK)
+            {
+                ConfigTypeDef *cfg = &smArgs->config_access->data;
+                bool found = false;
+                
+                int current_mins = sTime.Hours * 60 + sTime.Minutes;
+                
+                for (int i = 0; i < cfg->DailySchedule.NumTimeSlots; i++)
+                {
+                    TimeSlotTypeDef *slot = &cfg->DailySchedule.TimeSlots[i];
+                    
+                    int start_mins = slot->StartHour * 60 + slot->StartMinute;
+                    int end_mins = slot->EndHour * 60 + slot->EndMinute;
+
+                    if (current_mins >= start_mins && current_mins < end_mins)
+                    {
+                        target_temp = slot->Temperature;
+                        end_h = slot->EndHour;
+                        end_m = slot->EndMinute;
+                        found = true;
+                        break;
+                    }
+                }
+
+                if (!found)
+                {
+                    target_temp = 18.0f;
+                    end_h = 0;
+                    end_m = 0;
+                }
+                
+                osMutexRelease(smArgs->config_access->mutex);
+            }
+            
+            /* Update shared state */
+            if (osMutexAcquire(smArgs->system_context_access->mutex, 10) == osOK)
+            {
+                /* Detect slot transition and clear temporary override */
+                bool slot_changed = (end_h != last_slot_end_hour) || (end_m != last_slot_end_minute);
+                if (slot_changed && smArgs->system_context_access->data.temporary_target_temp != 0)
+                {
+                    smArgs->system_context_access->data.temporary_target_temp = 0;
+                    printf("SystemSM: Cleared temporary target temperature (slot changed from %02u:%02u to %02u:%02u)\n",
+                           last_slot_end_hour, last_slot_end_minute, end_h, end_m);
+                }
+                
+                smArgs->system_context_access->data.target_temp = target_temp;
+                smArgs->system_context_access->data.slot_end_hour = end_h;
+                smArgs->system_context_access->data.slot_end_minute = end_m;
+                
+                osMutexRelease(smArgs->system_context_access->mutex);
+                
+                /* Update slot tracking */
+                last_slot_end_hour = end_h;
+                last_slot_end_minute = end_m;
+            }
+        }
     }
 
     /* Consume VP events (ignored in RUNNING?) */
