@@ -3,6 +3,7 @@
 #include "set_value_presenter.h"
 #include "set_time_slot_presenter.h"
 #include "change_schedule_view.h"
+#include "utils.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -40,45 +41,6 @@ typedef struct ChangeSchedulePresenter
 
 static void load_schedule(ChangeSchedulePresenter_t *presenter);
 
-static void generate_temp_options(char *buffer, size_t size)
-{
-    /* OFF, 5.0, 5.5 ... 29.5, ON */
-    /* OFF = 4.5, ON = 30.0 */
-    
-    strcpy(buffer, "OFF\n");
-    char temp_str[16];
-    
-    for (int i = 10; i < 60; i++) /* 5.0 (10) to 29.5 (59) */
-    {
-        float t = i / 2.0f;
-        snprintf(temp_str, sizeof(temp_str), "%.1f\n", t);
-        strcat(buffer, temp_str);
-    }
-    strcat(buffer, "ON");
-}
-
-static float index_to_temp(uint16_t index)
-{
-    /* Index 0 = OFF (4.5) */
-    /* Index 1 = 5.0 */
-    /* ... */
-    /* Index 50 = 29.5 */
-    /* Index 51 = ON (30.0) */
-    
-    if (index == 0) return 4.5f;
-    if (index == 51) return 30.0f;
-    
-    return 5.0f + (index - 1) * 0.5f;
-}
-
-static uint16_t temp_to_index(float temp)
-{
-    if (temp <= 4.5f) return 0;
-    if (temp >= 30.0f) return 51;
-    
-    return (uint16_t)((temp - 5.0f) * 2.0f) + 1;
-}
-
 ChangeSchedulePresenter_t* ChangeSchedulePresenter_Init(ChangeScheduleView_t *view, ConfigAccessTypeDef *config_access, bool skip_confirmation)
 {
     ChangeSchedulePresenter_t *presenter = (ChangeSchedulePresenter_t *)malloc(sizeof(ChangeSchedulePresenter_t));
@@ -102,7 +64,7 @@ ChangeSchedulePresenter_t* ChangeSchedulePresenter_Init(ChangeScheduleView_t *vi
         return NULL;
     }
 
-    generate_temp_options(presenter->temp_options, sizeof(presenter->temp_options));
+    Utils_GenerateTempOptions(presenter->temp_options, sizeof(presenter->temp_options));
     SetValueView_SetOptions(ChangeScheduleView_GetValueView(view), presenter->temp_options);
 
     /* Load initial schedule from config */
@@ -347,7 +309,7 @@ static void setup_slot_temp_view(ChangeSchedulePresenter_t *presenter)
     SetValuePresenter_SetMaxIndex(presenter->value_presenter, 51); /* 0..51 */
     
     float current_temp = presenter->schedule.TimeSlots[presenter->current_slot_index].Temperature;
-    SetValuePresenter_SetSelectedIndex(presenter->value_presenter, temp_to_index(current_temp));
+    SetValuePresenter_SetSelectedIndex(presenter->value_presenter, Utils_TempToIndex(current_temp));
     
     SetValuePresenter_Reset(presenter->value_presenter);
     SetValueView_Show(ChangeScheduleView_GetValueView(presenter->view));
@@ -486,7 +448,7 @@ void ChangeSchedulePresenter_HandleEvent(ChangeSchedulePresenter_t *presenter, c
             {
                 /* Save Temp */
                 uint16_t idx = SetValuePresenter_GetSelectedIndex(presenter->value_presenter);
-                presenter->schedule.TimeSlots[presenter->current_slot_index].Temperature = index_to_temp(idx);
+                presenter->schedule.TimeSlots[presenter->current_slot_index].Temperature = Utils_IndexToTemp(idx);
                 
                 /* Next slot or Finish */
                 if (presenter->current_slot_index < presenter->schedule.NumTimeSlots - 1)

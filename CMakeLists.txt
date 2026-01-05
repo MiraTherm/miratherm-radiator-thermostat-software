@@ -85,6 +85,7 @@ file(GLOB PRESENTER_SOURCES Core/Src/Presenters/*.c)
 file(GLOB VIEW_SOURCES Core/Src/Views/*.c)
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user sources here
+    Core/Src/utils.c
     Core/Src/input_task.c
     Core/Src/sensor_task.c
     Core/Src/storage_task.c
