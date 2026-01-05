@@ -2,6 +2,7 @@
 #include "view_presenter_router.h"
 #include "main.h"
 #include "utils.h"
+#include "cmsis_os2.h"
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -140,8 +141,24 @@ void HomePresenter_HandleEvent(HomePresenter_t *presenter, const Input2VPEvent_t
                 }
                 break;
             case EVT_CENTRAL_BTN:
-                /* TODO: Handle Boost button */
-                printf("Home: Boost button pressed\n");
+                /* Activate Boost mode */
+                if (presenter->system_context)
+                {
+                    if (osMutexAcquire(presenter->system_context->mutex, 10) == osOK)
+                    {
+                        /* Save current mode before boost */
+                        presenter->system_context->data.mode_before_boost = presenter->system_context->data.mode;
+                        /* Set boost mode and record start time */
+                        presenter->system_context->data.mode = MODE_BOOST;
+                        presenter->system_context->data.boost_begin_time = osKernelGetTickCount();
+                        
+                        printf("Home: Boost button pressed, entering boost mode\n");
+                        
+                        osMutexRelease(presenter->system_context->mutex);
+                    }
+                    /* Switch to boost view */
+                    Router_GoToRoute(ROUTE_BOOST);
+                }
                 break;
             case EVT_MENU_BTN:
                 /* Handle Menu button */

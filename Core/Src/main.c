@@ -315,6 +315,8 @@ int main(void)
     .data = { 
       .state = STATE_INIT,
       .mode = MODE_AUTO,
+      .mode_before_boost = MODE_AUTO,
+      .boost_begin_time = 0,
       .adapt_result = -1 
     } 
   };

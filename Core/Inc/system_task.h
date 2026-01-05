@@ -24,7 +24,8 @@ typedef enum {
 
 typedef enum {
   MODE_AUTO = 0,
-  MODE_MANUAL = 1
+  MODE_MANUAL = 1,
+  MODE_BOOST = 2
 } SystemMode_t;
 
 typedef enum {
@@ -35,7 +36,9 @@ typedef enum {
 
 typedef struct {
   SystemState_t state;
-  SystemMode_t mode;  /* AUTO or MANUAL */
+  SystemMode_t mode;  /* AUTO, MANUAL, or BOOST */
+  SystemMode_t mode_before_boost;  /* Mode before boost activation */
+  uint32_t boost_begin_time;  /* Tick count when boost mode was activated */
   AdaptResult_t adapt_result; /* ADAPT_RESULT_* */
   /* Target temperature and slot end time calculated in RUNNING state */
   float target_temp;

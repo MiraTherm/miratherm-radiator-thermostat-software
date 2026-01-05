@@ -325,6 +325,26 @@ static SystemState_t doRunningState(void)
     SystemState_t nextState = STATE_RUNNING;
     static uint8_t last_slot_end_hour = 0xFF;  /* Track previous slot to detect transitions */
     static uint8_t last_slot_end_minute = 0xFF;
+    
+    /* Check for boost mode timeout (300 seconds) */
+    if (smArgs && smArgs->system_context_access)
+    {
+        if (osMutexAcquire(smArgs->system_context_access->mutex, 10) == osOK)
+        {
+            if (smArgs->system_context_access->data.mode == MODE_BOOST)
+            {
+                uint32_t elapsed_ticks = osKernelGetTickCount() - smArgs->system_context_access->data.boost_begin_time;
+                if (elapsed_ticks >= pdMS_TO_TICKS(300000))  /* 300 seconds */
+                {
+                    /* Boost timeout - restore previous mode */
+                    SystemMode_t previous_mode = smArgs->system_context_access->data.mode_before_boost;
+                    smArgs->system_context_access->data.mode = previous_mode;
+                    printf("SystemSM: Boost mode timeout - restoring previous mode (%d)\n", previous_mode);
+                }
+            }
+            osMutexRelease(smArgs->system_context_access->mutex);
+        }
+    }
         
     /* Calculate target temperature and slot end time */
     if (smArgs && smArgs->config_access && smArgs->system_context_access)
@@ -384,7 +404,7 @@ static SystemState_t doRunningState(void)
                 osMutexRelease(smArgs->config_access->mutex);
             }
         }
-        else
+        else if (current_mode == MODE_MANUAL)
         {
             /* MANUAL mode: use saved manual target temperature */
             if (osMutexAcquire(smArgs->config_access->mutex, 10) == osOK)
@@ -393,6 +413,14 @@ static SystemState_t doRunningState(void)
                 osMutexRelease(smArgs->config_access->mutex);
             }
             /* In manual mode, don't track slot changes */
+            end_h = 0xFF;
+            end_m = 0xFF;
+        }
+        else if (current_mode == MODE_BOOST)
+        {
+            /* BOOST mode: use maximum temperature (30°C) for maximum heating */
+            target_temp = 30.0f;
+            /* In boost mode, don't track slot changes */
             end_h = 0xFF;
             end_m = 0xFF;
         }
@@ -415,9 +443,9 @@ static SystemState_t doRunningState(void)
                 smArgs->system_context_access->data.slot_end_hour = end_h;
                 smArgs->system_context_access->data.slot_end_minute = end_m;
             }
-            else
+            else if (current_mode == MODE_MANUAL || current_mode == MODE_BOOST)
             {
-                /* In MANUAL mode, just update the target temp, don't touch slot info */
+                /* In MANUAL or BOOST mode, just update the target temp, don't touch slot info */
                 smArgs->system_context_access->data.target_temp = target_temp;
             }
             

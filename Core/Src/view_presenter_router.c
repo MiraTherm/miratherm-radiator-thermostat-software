@@ -9,6 +9,8 @@
 #include "waiting_view.h"
 #include "home_presenter.h"
 #include "home_view.h"
+#include "boost_presenter.h"
+#include "boost_view.h"
 #include "menu_presenter.h"
 #include "menu_view.h"
 #include "set_temp_offset_presenter.h"
@@ -57,6 +59,10 @@ typedef struct
     HomePresenter_t *home_presenter;
     HomeView_t *home_view;
 
+    /* Boost route */
+    BoostPresenter_t *boost_presenter;
+    BoostView_t *boost_view;
+
     /* Menu route */
     MenuPresenter_t *menu_presenter;
     MenuView_t *menu_view;
@@ -91,6 +97,8 @@ static Router_State_t g_router_state = {
     .adapt_fail_view = NULL,
     .home_presenter = NULL,
     .home_view = NULL,
+    .boost_presenter = NULL,
+    .boost_view = NULL,
     .menu_presenter = NULL,
     .menu_view = NULL,
     .temp_offset_presenter = NULL,
@@ -387,6 +395,13 @@ void Router_HandleEvent(const Input2VPEvent_t *event)
             HomePresenter_HandleEvent(g_router_state.home_presenter, event);
         }
     }
+    else if (g_router_state.current_route == ROUTE_BOOST)
+    {
+        if (g_router_state.boost_presenter)
+        {
+            BoostPresenter_HandleEvent(g_router_state.boost_presenter, event);
+        }
+    }
     else if (g_router_state.current_route == ROUTE_MENU)
     {
         if (g_router_state.menu_presenter)
@@ -470,6 +485,7 @@ void Router_OnTick(uint32_t current_tick)
         case STATE_RUNNING:
             /* Allow Menu and sub-menus in Running state */
             if (g_router_state.current_route != ROUTE_MENU && 
+                g_router_state.current_route != ROUTE_BOOST &&
                 g_router_state.current_route != ROUTE_EDIT_TEMP_OFFSET &&
                 g_router_state.current_route != ROUTE_CHANGE_SCHEDULE &&
                 g_router_state.current_route != ROUTE_FACTORY_RESET)
@@ -538,6 +554,13 @@ void Router_OnTick(uint32_t current_tick)
         if (g_router_state.home_presenter)
         {
             HomePresenter_Run(g_router_state.home_presenter, current_tick);
+        }
+    }
+    else if (g_router_state.current_route == ROUTE_BOOST)
+    {
+        if (g_router_state.boost_presenter)
+        {
+            BoostPresenter_Run(g_router_state.boost_presenter, current_tick);
         }
     }
     else if (g_router_state.current_route == ROUTE_MENU)
@@ -665,6 +688,17 @@ void Router_GoToRoute(RouteTypeDef route)
             g_router_state.home_presenter = HomePresenter_Init(g_router_state.home_view, g_router_state.system_context, g_router_state.config_access, g_router_state.sensor_values_access);
         }
     }
+    else if (route == ROUTE_BOOST)
+    {
+        if (!g_router_state.boost_view)
+        {
+            g_router_state.boost_view = BoostView_Init();
+        }
+        if (g_router_state.boost_view && !g_router_state.boost_presenter)
+        {
+            g_router_state.boost_presenter = BoostPresenter_Init(g_router_state.boost_view, g_router_state.system_context);
+        }
+    }
     else if (route == ROUTE_MENU)
     {
         if (!g_router_state.menu_view)
@@ -783,6 +817,18 @@ void Router_GoToRoute(RouteTypeDef route)
             {
                 HomeView_Deinit(g_router_state.home_view);
                 g_router_state.home_view = NULL;
+            }
+            break;
+        case ROUTE_BOOST:
+            if (g_router_state.boost_presenter)
+            {
+                BoostPresenter_Deinit(g_router_state.boost_presenter);
+                g_router_state.boost_presenter = NULL;
+            }
+            if (g_router_state.boost_view)
+            {
+                BoostView_Deinit(g_router_state.boost_view);
+                g_router_state.boost_view = NULL;
             }
             break;
         case ROUTE_MENU:
