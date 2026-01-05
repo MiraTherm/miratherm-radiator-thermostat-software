@@ -304,7 +304,8 @@ static void setup_slot_temp_view(ChangeSchedulePresenter_t *presenter)
     SetValueView_SetTitle(ChangeScheduleView_GetValueView(presenter->view), title);
     SetValueView_SetUnit(ChangeScheduleView_GetValueView(presenter->view), "°C");
     
-    /* Set options for temperature */
+    /* Need to set options when coming from STEP_NUM_SLOTS which uses different options */
+    /* The SetValueView caches the options pointer, so this is only expensive on first call */
     SetValueView_SetOptions(ChangeScheduleView_GetValueView(presenter->view), presenter->temp_options);
     SetValuePresenter_SetMaxIndex(presenter->value_presenter, 51); /* 0..51 */
     

@@ -5,6 +5,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdint.h>
+#include <limits.h>
 
 typedef struct SetTimeSlotView
 {
@@ -23,9 +25,6 @@ typedef struct SetTimeSlotView
     lv_obj_t *label_hint_left;
     lv_obj_t *label_hint_center;
     
-    char hour_options[256];
-    char minute_options[512];
-    
     uint8_t last_start_hour;
     uint8_t last_start_minute;
     uint8_t last_end_hour;
@@ -33,6 +32,7 @@ typedef struct SetTimeSlotView
     uint8_t last_active_field;
     bool last_start_time_locked;
     bool last_end_time_locked;
+    int16_t last_start_label_x;  /* Cache alignment position */
 } SetTimeSlotView_t;
 
 static const char HOUR_OPTIONS[] = "00\n01\n02\n03\n04\n05\n06\n07\n08\n09\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n22\n23\n";
@@ -75,9 +75,7 @@ SetTimeSlotView_t* SetTimeSlotView_Init(const char *title)
     view->last_active_field = 0xFF;
     view->last_start_time_locked = false;
     view->last_end_time_locked = false;
-
-    memcpy(view->hour_options, HOUR_OPTIONS, sizeof(HOUR_OPTIONS));
-    memcpy(view->minute_options, MINUTE_OPTIONS, sizeof(MINUTE_OPTIONS));
+    view->last_start_label_x = INT16_MIN;  /* Initialize with sentinel value */
 
     view->label_start_time = lv_label_create(view->screen);
     lv_label_set_text(view->label_start_time, "00:00");
@@ -90,7 +88,7 @@ SetTimeSlotView_t* SetTimeSlotView_Init(const char *title)
     lv_obj_set_style_text_color(view->label_dash, lv_color_white(), 0);
 
     view->roller_end_hour = lv_roller_create(view->screen);
-    lv_roller_set_options(view->roller_end_hour, view->hour_options, LV_ROLLER_MODE_NORMAL);
+    lv_roller_set_options(view->roller_end_hour, HOUR_OPTIONS, LV_ROLLER_MODE_NORMAL);
     lv_obj_align(view->roller_end_hour, LV_ALIGN_CENTER, 14, 0);
     lv_obj_set_size(view->roller_end_hour, 32, 31);
     lv_obj_set_style_text_color(view->roller_end_hour, lv_color_black(), LV_PART_SELECTED);
@@ -102,7 +100,7 @@ SetTimeSlotView_t* SetTimeSlotView_Init(const char *title)
     lv_obj_add_flag(view->label_end_time, LV_OBJ_FLAG_HIDDEN);
 
     view->roller_end_minute = lv_roller_create(view->screen);
-    lv_roller_set_options(view->roller_end_minute, view->minute_options, LV_ROLLER_MODE_NORMAL);
+    lv_roller_set_options(view->roller_end_minute, MINUTE_OPTIONS, LV_ROLLER_MODE_NORMAL);
     lv_obj_align(view->roller_end_minute, LV_ALIGN_CENTER, 48, 0);
     lv_obj_set_size(view->roller_end_minute, 32, 31);
     lv_obj_set_style_text_color(view->roller_end_minute, lv_color_black(), LV_PART_SELECTED);
@@ -139,28 +137,23 @@ void SetTimeSlotView_Render(SetTimeSlotView_t *view, const SetTimeSlot_ViewModel
     if (!view || !data) return;
     if (!lv_port_lock()) return;
 
-    /* Handle start time lock state change */
+    /* Handle start time lock state change and position */
     if (view->last_start_time_locked != data->start_time_locked)
     {
         if (data->start_time_locked)
-        {
             lv_obj_clear_flag(view->label_start_time, LV_OBJ_FLAG_HIDDEN);
-        }
         else
-        {
             lv_obj_add_flag(view->label_start_time, LV_OBJ_FLAG_HIDDEN);
-        }
-
         view->last_start_time_locked = data->start_time_locked;
     }
 
-    if(data->start_time_locked && data->end_time_locked)
+    /* Only update alignment if state actually changed */
+    int16_t new_x = (data->start_time_locked && data->end_time_locked) ? -25 : 5;
+    if (view->last_start_label_x != new_x)
     {
-        lv_obj_align(view->label_start_time, LV_ALIGN_CENTER, -25, 0);
-    }
-    else
-    {
-        lv_obj_align(view->label_start_time, LV_ALIGN_LEFT_MID, 5, 0);
+        int16_t align = (data->start_time_locked && data->end_time_locked) ? LV_ALIGN_CENTER : LV_ALIGN_LEFT_MID;
+        lv_obj_align(view->label_start_time, align, new_x, 0);
+        view->last_start_label_x = new_x;
     }
 
     /* Handle end time lock state change */
@@ -210,25 +203,27 @@ void SetTimeSlotView_Render(SetTimeSlotView_t *view, const SetTimeSlot_ViewModel
         view->last_end_minute = data->end_minute;
     }
 
-    /* Highlight active field with border */
-    lv_obj_set_style_border_width(view->roller_end_hour, 0, 0);
-    lv_obj_set_style_border_width(view->roller_end_minute, 0, 0);
-    
-    lv_obj_t *active_roller = NULL;
-    switch (data->active_field)
+    /* Highlight active field with border - only update if active field changed */
+    if (view->last_active_field != data->active_field)
     {
-        case 2:
+        /* Clear borders from both rollers */
+        lv_obj_set_style_border_width(view->roller_end_hour, 0, 0);
+        lv_obj_set_style_border_width(view->roller_end_minute, 0, 0);
+        
+        /* Set border on active roller */
+        lv_obj_t *active_roller = NULL;
+        if (data->active_field == 2)
             active_roller = view->roller_end_hour;
-            break;
-        case 3:
+        else if (data->active_field == 3)
             active_roller = view->roller_end_minute;
-            break;
-    }
-    
-    if (active_roller)
-    {
-        lv_obj_set_style_border_color(active_roller, lv_color_black(), 0);
-        lv_obj_set_style_border_width(active_roller, 2, 0);
+        
+        if (active_roller)
+        {
+            lv_obj_set_style_border_color(active_roller, lv_color_black(), 0);
+            lv_obj_set_style_border_width(active_roller, 2, 0);
+        }
+        
+        view->last_active_field = data->active_field;
     }
 
     lv_port_unlock();

@@ -13,6 +13,7 @@ typedef struct SetValueView
     lv_obj_t *label_hint_center;
     
     uint16_t last_selected_index;
+    const char *last_options_str;  /* Cache options string pointer */
 } SetValueView_t;
 
 SetValueView_t* SetValueView_Init(const char *title, const char *unit, const char *options)
@@ -79,6 +80,7 @@ SetValueView_t* SetValueView_Init(const char *title, const char *unit, const cha
     lv_obj_set_style_text_color(view->label_hint_center, lv_color_white(), 0);
 
     view->last_selected_index = 0xFFFF;
+    view->last_options_str = NULL;
 
     lv_port_unlock();
     return view;
@@ -101,9 +103,14 @@ void SetValueView_Render(SetValueView_t *view, const SetValue_ViewModelData_t *d
     if (!view || !data) return;
     if (!lv_port_lock()) return;
 
-    if (data->options_str)
+    /* Only update options if pointer changed (new options provided) */
+    if (view->last_options_str != data->options_str)
     {
-        lv_roller_set_options(view->roller_value, data->options_str, LV_ROLLER_MODE_NORMAL);
+        if (data->options_str)
+        {
+            lv_roller_set_options(view->roller_value, data->options_str, LV_ROLLER_MODE_NORMAL);
+        }
+        view->last_options_str = data->options_str;
     }
 
     if (view->last_selected_index != data->selected_index)
