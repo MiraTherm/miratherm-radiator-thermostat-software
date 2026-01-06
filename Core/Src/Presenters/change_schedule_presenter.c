@@ -426,6 +426,25 @@ void ChangeSchedulePresenter_HandleEvent(ChangeSchedulePresenter_t *presenter, c
             {
                 /* Save time slot data */
                 SetTimeSlot_ViewModelData_t data = SetTimeSlotPresenter_GetData(presenter->time_slot_presenter);
+                
+                /* Validate: end time must be greater than start time */
+                bool is_valid_time_range = false;
+                if (data.end_hour > data.start_hour)
+                {
+                    is_valid_time_range = true;
+                }
+                else if (data.end_hour == data.start_hour && data.end_minute > data.start_minute)
+                {
+                    is_valid_time_range = true;
+                }
+                
+                if (!is_valid_time_range)
+                {
+                    /* Invalid: end time is not greater than start time, reset the presenter */
+                    SetTimeSlotPresenter_Reset(presenter->time_slot_presenter);
+                    return;
+                }
+                
                 presenter->schedule.TimeSlots[presenter->current_slot_index].StartHour = data.start_hour;
                 presenter->schedule.TimeSlots[presenter->current_slot_index].StartMinute = data.start_minute;
                 presenter->schedule.TimeSlots[presenter->current_slot_index].EndHour = data.end_hour;

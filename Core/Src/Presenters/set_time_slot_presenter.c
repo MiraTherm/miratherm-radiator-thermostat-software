@@ -10,7 +10,8 @@ typedef struct SetTimeSlotPresenter
 } SetTimeSlotPresenter_t;
 
 static const uint8_t HOURS_COUNT = 24;
-static const uint8_t MINUTES_COUNT = 60;
+static const uint8_t MINUTES_COUNT = 12;  /* 5-minute resolution: 0, 5, 10, ..., 55 minutes */
+static const uint8_t MINUTE_STEP = 5;
 
 SetTimeSlotPresenter_t* SetTimeSlotPresenter_Init(SetTimeSlotView_t *view)
 {
@@ -57,10 +58,10 @@ void SetTimeSlotPresenter_HandleEvent(SetTimeSlotPresenter_t *presenter, const I
         }
         else if (presenter->data.active_field == 1 && !presenter->data.start_time_locked)
         {
-            int16_t val = (int16_t)presenter->data.start_minute + delta;
+            int16_t val = (int16_t)(presenter->data.start_minute / MINUTE_STEP) + delta;
             if (val < 0) val = MINUTES_COUNT - 1;
             else if (val >= MINUTES_COUNT) val = 0;
-            presenter->data.start_minute = (uint8_t)val;
+            presenter->data.start_minute = (uint8_t)(val * MINUTE_STEP);
             state_changed = true;
         }
         else if (presenter->data.active_field == 2 && !presenter->data.end_time_locked)
@@ -68,15 +69,70 @@ void SetTimeSlotPresenter_HandleEvent(SetTimeSlotPresenter_t *presenter, const I
             int16_t val = (int16_t)presenter->data.end_hour + delta;
             if (val < 0) val = HOURS_COUNT - 1;
             else if (val >= HOURS_COUNT) val = 0;
+            
+            /* Prevent end time from being less than or equal to start time */
+            /* If end hour would be less than start hour, don't allow it */
+            if (val < presenter->data.start_hour)
+            {
+                val = presenter->data.start_hour;
+            }
+            /* If end hour equals start hour, ensure end minute > start minute */
+            else if (val == presenter->data.start_hour && presenter->data.end_minute <= presenter->data.start_minute)
+            {
+                /* Set end_minute to be > start_minute (next 5-minute interval) */
+                uint8_t next_minute = presenter->data.start_minute + MINUTE_STEP;
+                if (next_minute <= 55)
+                {
+                    presenter->data.end_minute = next_minute;
+                }
+                else
+                {
+                    /* Next interval would overflow hour, don't change end hour */
+                    return;
+                }
+            }
+            
             presenter->data.end_hour = (uint8_t)val;
             state_changed = true;
         }
         else if (presenter->data.active_field == 3 && !presenter->data.end_time_locked)
         {
-            int16_t val = (int16_t)presenter->data.end_minute + delta;
+            int16_t val = (int16_t)(presenter->data.end_minute / MINUTE_STEP) + delta;
             if (val < 0) val = MINUTES_COUNT - 1;
             else if (val >= MINUTES_COUNT) val = 0;
-            presenter->data.end_minute = (uint8_t)val;
+            
+            uint8_t new_end_minute = (uint8_t)(val * MINUTE_STEP);
+            
+            /* Prevent end time from being less than or equal to start time */
+            /* If we're in the same hour as start time, don't allow end_minute <= start_minute */
+            if (presenter->data.end_hour == presenter->data.start_hour)
+            {
+                if (new_end_minute <= presenter->data.start_minute)
+                {
+                    /* Don't allow this value, stay at current or go to next valid value */
+                    /* Find the next valid minute that is > start_minute */
+                    uint8_t next_minute = presenter->data.start_minute + MINUTE_STEP;
+                    if (next_minute <= 55)
+                    {
+                        val = next_minute / MINUTE_STEP;
+                        presenter->data.end_minute = next_minute;
+                    }
+                    else
+                    {
+                        /* No valid minute in this hour, would need to go to next hour */
+                        return;
+                    }
+                }
+                else
+                {
+                    presenter->data.end_minute = new_end_minute;
+                }
+            }
+            else
+            {
+                presenter->data.end_minute = new_end_minute;
+            }
+            
             state_changed = true;
         }
     }
