@@ -28,7 +28,7 @@ typedef struct SetDateView {
   bool show_back_hint_on_first_field;
 } SetDateView_t;
 
-static const uint8_t YEARS_COUNT = 75; /* e.g., 2026-2060 */
+static const uint8_t YEARS_COUNT = 35; /* e.g., 2026-2060 */
 
 static const char DAY_OPTIONS[] =
     "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21"
@@ -157,28 +157,40 @@ void SetDateView_Render(SetDateView_t *view,
   if (!view || !data)
     return;
 
+  bool needs_update = false;
+  bool day_changed = view->last_day != data->day;
+  bool month_changed = view->last_month != data->month;
+  bool year_changed = view->last_year != data->year;
+  bool active_field_changed = view->last_active_field != data->active_field;
+
+  needs_update = day_changed || month_changed || year_changed || active_field_changed;
+
+  if (!needs_update)
+    return;
+
   if (!lv_port_lock())
     return;
 
-  if (view->last_day != data->day) {
+  if (day_changed) {
     view->last_day = data->day;
     lv_roller_set_selected(view->roller_day, data->day - 1, LV_ANIM_OFF);
   }
-  if (view->last_month != data->month) {
+  if (month_changed) {
     view->last_month = data->month;
     lv_roller_set_selected(view->roller_month, data->month - 1, LV_ANIM_OFF);
   }
-  if (view->last_year != data->year) {
+  if (year_changed) {
     view->last_year = data->year;
     lv_roller_set_selected(view->roller_year, data->year - view->default_year, LV_ANIM_OFF);
   }
 
-  update_date_roller_borders(view, data->active_field);
-
-  if (data->active_field > 0 || view->show_back_hint_on_first_field) {
-    lv_obj_clear_flag(view->label_hint_left, LV_OBJ_FLAG_HIDDEN);
-  } else {
-    lv_obj_add_flag(view->label_hint_left, LV_OBJ_FLAG_HIDDEN);
+  if (active_field_changed) {
+    update_date_roller_borders(view, data->active_field);
+    if (data->active_field > 0 || view->show_back_hint_on_first_field) {
+      lv_obj_clear_flag(view->label_hint_left, LV_OBJ_FLAG_HIDDEN);
+    } else {
+      lv_obj_add_flag(view->label_hint_left, LV_OBJ_FLAG_HIDDEN);
+    }
   }
 
   lv_port_unlock();

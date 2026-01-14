@@ -17,7 +17,7 @@ typedef struct SetDatePresenter {
 } SetDatePresenter_t;
 
 static const uint8_t MONTHS_COUNT = 12;
-static const uint8_t YEARS_COUNT = 75; /* e.g., 2026-2060 */
+static const uint8_t YEARS_COUNT = 35; /* e.g., 2026-2060 */
 static const uint8_t DEFAULT_DAY = 1;
 static const uint8_t DEFAULT_MONTH = 1;
 
@@ -103,10 +103,14 @@ void SetDatePresenter_HandleEvent(SetDatePresenter_t *presenter,
   if (!presenter || !event)
     return;
 
-  bool state_changed = false;
+  bool data_changed = false;
 
   if (event->type == EVT_CTRL_WHEEL_DELTA) {
     int16_t delta = event->delta;
+    uint16_t old_year = presenter->data.year;
+    uint8_t old_month = presenter->data.month;
+    uint8_t old_day = presenter->data.day;
+
     if (presenter->data.active_field == 0) {
       /* Year adjustment */
       int16_t new_year = (int16_t)presenter->date_year_index + delta;
@@ -119,6 +123,8 @@ void SetDatePresenter_HandleEvent(SetDatePresenter_t *presenter,
           presenter->default_year + presenter->date_year_index;
 
       validate_and_adjust_day(presenter);
+      data_changed = (presenter->data.year != old_year) ||
+                     (presenter->data.day != old_day);
     } else if (presenter->data.active_field == 1) {
       /* Month adjustment */
       int16_t new_month = (int16_t)presenter->date_month_index + delta;
@@ -130,6 +136,8 @@ void SetDatePresenter_HandleEvent(SetDatePresenter_t *presenter,
       presenter->data.month = presenter->date_month_index + 1;
 
       validate_and_adjust_day(presenter);
+      data_changed = (presenter->data.month != old_month) ||
+                     (presenter->data.day != old_day);
     } else if (presenter->data.active_field == 2) {
       /* Day adjustment */
       uint8_t max_days =
@@ -141,25 +149,26 @@ void SetDatePresenter_HandleEvent(SetDatePresenter_t *presenter,
         new_day = 0;
       presenter->date_day_index = (uint8_t)new_day;
       presenter->data.day = presenter->date_day_index + 1;
+      data_changed = (presenter->data.day != old_day);
     }
-    state_changed = true;
   } else if (event->type == EVT_MIDDLE_BTN &&
              event->button_action == BUTTON_ACTION_PRESSED) {
     if (presenter->data.active_field < 2) {
       presenter->data.active_field++;
+      data_changed = true;
     } else {
       presenter->is_complete = true;
+      data_changed = true;
     }
-    state_changed = true;
   } else if (event->type == EVT_LEFT_BTN &&
              event->button_action == BUTTON_ACTION_PRESSED) {
     if (presenter->data.active_field > 0) {
       presenter->data.active_field--;
-      state_changed = true;
+      data_changed = true;
     }
   }
 
-  if (state_changed && presenter->view) {
+  if (data_changed && presenter->view) {
     SetDateView_Render(presenter->view, &presenter->data);
   }
 }
