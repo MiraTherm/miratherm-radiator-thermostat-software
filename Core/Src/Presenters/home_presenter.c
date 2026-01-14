@@ -121,7 +121,7 @@ void HomePresenter_HandleEvent(HomePresenter_t *presenter, const Input2VPEvent_t
     {
         switch (event->type)
         {
-            case EVT_MODE_BTN:
+            case EVT_LEFT_BTN:
                 /* Toggle mode between AUTO and MANUAL */
                 if (presenter->system_context)
                 {
@@ -140,7 +140,7 @@ void HomePresenter_HandleEvent(HomePresenter_t *presenter, const Input2VPEvent_t
                     }
                 }
                 break;
-            case EVT_CENTRAL_BTN:
+            case EVT_MIDDLE_BTN:
                 /* Activate Boost mode */
                 if (presenter->system_context)
                 {
@@ -160,7 +160,7 @@ void HomePresenter_HandleEvent(HomePresenter_t *presenter, const Input2VPEvent_t
                     Router_GoToRoute(ROUTE_BOOST);
                 }
                 break;
-            case EVT_MENU_BTN:
+            case EVT_RIGHT_BTN:
                 /* Handle Menu button */
                 printf("Home: Menu button pressed\n");
                 Router_GoToRoute(ROUTE_MENU);

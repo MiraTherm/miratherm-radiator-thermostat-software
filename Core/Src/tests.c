@@ -208,9 +208,9 @@ void Driver_Test(osMessageQueueId_t storage2system_event_queue, osMessageQueueId
   lv_port_unlock();
 
   static const Input2VPEventTypeDef button_event_types[] = {
-    EVT_MODE_BTN,
-    EVT_CENTRAL_BTN,
-    EVT_MENU_BTN,
+    EVT_LEFT_BTN,
+    EVT_MIDDLE_BTN,
+    EVT_RIGHT_BTN,
   };
   const size_t button_event_count = sizeof(button_event_types) / sizeof(button_event_types[0]);
 
@@ -237,7 +237,7 @@ void Driver_Test(osMessageQueueId_t storage2system_event_queue, osMessageQueueId
         {
           switch (event.type)
           {
-            case EVT_MODE_BTN:
+            case EVT_LEFT_BTN:
               if (event.button_action == BUTTON_ACTION_PRESSED)
               {
                 motor_direction_forward = !motor_direction_forward;
@@ -248,7 +248,7 @@ void Driver_Test(osMessageQueueId_t storage2system_event_queue, osMessageQueueId
                 update_go_button_label(buttons[1].label, motor_direction_forward);
               }
               break;
-            case EVT_CENTRAL_BTN:
+            case EVT_MIDDLE_BTN:
               if (event.button_action == BUTTON_ACTION_PRESSED)
               {
                 motor_running = true;

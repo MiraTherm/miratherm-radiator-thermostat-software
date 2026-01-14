@@ -49,7 +49,7 @@ void SetBoolPresenter_HandleEvent(SetBoolPresenter_t *presenter, const Input2VPE
         }
         state_changed = true;
     }
-    else if ((event->type == EVT_CENTRAL_BTN || event->type == EVT_CENTRAL_DOUBLE_CLICK) && event->button_action == BUTTON_ACTION_PRESSED)
+    else if ((event->type == EVT_MIDDLE_BTN || event->type == EVT_MIDDLE_DOUBLE_CLICK) && event->button_action == BUTTON_ACTION_PRESSED)
     {
         presenter->is_complete = true;
         state_changed = true;

@@ -136,7 +136,7 @@ void SetTimeSlotPresenter_HandleEvent(SetTimeSlotPresenter_t *presenter, const I
             state_changed = true;
         }
     }
-    else if (event->type == EVT_CENTRAL_BTN && event->button_action == BUTTON_ACTION_PRESSED)
+    else if (event->type == EVT_MIDDLE_BTN && event->button_action == BUTTON_ACTION_PRESSED)
     {
         /* Move to next field or complete */
         /* Skip locked fields if we are moving forward? Or just pass through them? */
@@ -167,7 +167,7 @@ void SetTimeSlotPresenter_HandleEvent(SetTimeSlotPresenter_t *presenter, const I
         }
         state_changed = true;
     }
-    else if (event->type == EVT_MODE_BTN && event->button_action == BUTTON_ACTION_PRESSED)
+    else if (event->type == EVT_LEFT_BTN && event->button_action == BUTTON_ACTION_PRESSED)
     {
         /* Back navigation within fields */
         if (presenter->data.active_field > 0)

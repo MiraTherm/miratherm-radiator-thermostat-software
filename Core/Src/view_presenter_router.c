@@ -120,14 +120,14 @@ static void Router_UpdateDebugLeds(const Input2VPEvent_t *event)
     bool should_update = true;
     switch (event->type)
     {
-        case EVT_MODE_BTN:
+        case EVT_LEFT_BTN:
             target_led = LED3;
             break;
-        case EVT_CENTRAL_BTN:
-        case EVT_CENTRAL_DOUBLE_CLICK:
+        case EVT_MIDDLE_BTN:
+        case EVT_MIDDLE_DOUBLE_CLICK:
             target_led = LED2;
             break;
-        case EVT_MENU_BTN:
+        case EVT_RIGHT_BTN:
             target_led = LED1;
             break;
         default:
@@ -375,7 +375,7 @@ void Router_HandleEvent(const Input2VPEvent_t *event)
     else if (g_router_state.current_route == ROUTE_NOT_INST)
     {
         /* User confirms installation -> Start Adaptation */
-        if (event->type == EVT_CENTRAL_BTN && event->button_action == BUTTON_ACTION_PRESSED)
+        if (event->type == EVT_MIDDLE_BTN && event->button_action == BUTTON_ACTION_PRESSED)
         {
             Router_SendSystemEvent(EVT_INST_REQ); /* Moves to STATE_ADAPT */
         }
@@ -383,7 +383,7 @@ void Router_HandleEvent(const Input2VPEvent_t *event)
     else if (g_router_state.current_route == ROUTE_ADAPT_FAIL)
     {
         /* User acknowledges failure -> Retry */
-        if (event->type == EVT_CENTRAL_BTN && event->button_action == BUTTON_ACTION_PRESSED)
+        if (event->type == EVT_MIDDLE_BTN && event->button_action == BUTTON_ACTION_PRESSED)
         {
             Router_SendSystemEvent(EVT_ADAPT_RST); /* Moves to STATE_NOT_INST */
         }

@@ -13,13 +13,13 @@ static Input2VPEventTypeDef ButtonToVP(button_id_t id)
   switch (id)
   {
     case BUTTON_ID_LEFT:
-      return EVT_MODE_BTN;
+      return EVT_LEFT_BTN;
     case BUTTON_ID_MIDDLE:
-      return EVT_CENTRAL_BTN;
+      return EVT_MIDDLE_BTN;
     case BUTTON_ID_RIGHT:
-      return EVT_MENU_BTN;
+      return EVT_RIGHT_BTN;
     default:
-      return EVT_CENTRAL_BTN;
+      return EVT_MIDDLE_BTN;
   }
 }
 
@@ -85,7 +85,7 @@ void StartInputTask(void *argument)
         static uint32_t last_middle_press = 0;
         if ((button_event.timestamp - last_middle_press) < 500) // 500ms double click threshold
         {
-          event.type = EVT_CENTRAL_DOUBLE_CLICK;
+          event.type = EVT_MIDDLE_DOUBLE_CLICK;
           last_middle_press = 0; // Reset
         }
         else

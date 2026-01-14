@@ -71,7 +71,7 @@ void SetTempOffsetPresenter_HandleEvent(SetTempOffsetPresenter_t *presenter, con
     if (!presenter || !presenter->generic_presenter)
         return;
 
-    if (event->type == EVT_MODE_BTN && event->button_action == BUTTON_ACTION_PRESSED)
+    if (event->type == EVT_LEFT_BTN && event->button_action == BUTTON_ACTION_PRESSED)
     {
         presenter->is_cancelled = true;
         return;

@@ -11,11 +11,11 @@ extern "C" {
 #endif
 typedef enum
 {
-	EVT_MODE_BTN = 0,
-	EVT_CENTRAL_BTN,
-	EVT_MENU_BTN,
+	EVT_LEFT_BTN = 0,
+	EVT_MIDDLE_BTN,
+	EVT_RIGHT_BTN,
 	EVT_CTRL_WHEEL_DELTA,
-	EVT_CENTRAL_DOUBLE_CLICK
+	EVT_MIDDLE_DOUBLE_CLICK
 } Input2VPEventTypeDef;
 
 typedef struct

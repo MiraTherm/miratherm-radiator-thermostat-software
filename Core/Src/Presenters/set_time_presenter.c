@@ -79,7 +79,7 @@ void SetTimePresenter_HandleEvent(SetTimePresenter_t *presenter, const Input2VPE
         }
         state_changed = true;
     }
-    else if (event->type == EVT_CENTRAL_BTN && event->button_action == BUTTON_ACTION_PRESSED)
+    else if (event->type == EVT_MIDDLE_BTN && event->button_action == BUTTON_ACTION_PRESSED)
     {
         if (presenter->data.active_field < 1)
         {
@@ -91,7 +91,7 @@ void SetTimePresenter_HandleEvent(SetTimePresenter_t *presenter, const Input2VPE
         }
         state_changed = true;
     }
-    else if (event->type == EVT_MODE_BTN && event->button_action == BUTTON_ACTION_PRESSED)
+    else if (event->type == EVT_LEFT_BTN && event->button_action == BUTTON_ACTION_PRESSED)
     {
         if (presenter->data.active_field > 0)
         {

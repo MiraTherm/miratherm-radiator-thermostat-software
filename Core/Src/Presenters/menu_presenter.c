@@ -76,11 +76,11 @@ void MenuPresenter_HandleEvent(MenuPresenter_t *presenter, const Input2VPEvent_t
     {
         switch (event->type)
         {
-            case EVT_MODE_BTN:
+            case EVT_LEFT_BTN:
                 /* Left button: Back to Home */
                 Router_GoToRoute(ROUTE_HOME);
                 break;
-            case EVT_CENTRAL_BTN:
+            case EVT_MIDDLE_BTN:
                 /* Select item */
                 if (presenter->selected_index == MENU_OPTION_OFFSET)
                 {

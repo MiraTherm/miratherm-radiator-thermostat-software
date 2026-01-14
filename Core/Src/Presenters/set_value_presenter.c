@@ -45,7 +45,7 @@ void SetValuePresenter_HandleEvent(SetValuePresenter_t *presenter, const Input2V
             SetValueView_Render(presenter->view, &presenter->data);
         }
     }
-    else if (event->type == EVT_CENTRAL_BTN && event->button_action == BUTTON_ACTION_PRESSED)
+    else if (event->type == EVT_MIDDLE_BTN && event->button_action == BUTTON_ACTION_PRESSED)
     {
         presenter->is_complete = true;
     }

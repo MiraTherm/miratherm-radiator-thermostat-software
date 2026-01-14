@@ -104,7 +104,7 @@ void SetDateTimePresenter_HandleEvent(SetDateTimePresenter_t *presenter, const I
     }
     else if (presenter->current_step == 1)
     {
-        if (event->type == EVT_MODE_BTN && event->button_action == BUTTON_ACTION_PRESSED)
+        if (event->type == EVT_LEFT_BTN && event->button_action == BUTTON_ACTION_PRESSED)
         {
              const SetTime_ViewModelData_t *data = SetTimePresenter_GetData(presenter->time_presenter);
              if (data->active_field == 0)
@@ -129,7 +129,7 @@ void SetDateTimePresenter_HandleEvent(SetDateTimePresenter_t *presenter, const I
     }
     else if (presenter->current_step == 2)
     {
-        if (event->type == EVT_MODE_BTN && event->button_action == BUTTON_ACTION_PRESSED)
+        if (event->type == EVT_LEFT_BTN && event->button_action == BUTTON_ACTION_PRESSED)
         {
             presenter->current_step = 1;
             SetTimePresenter_Reset(presenter->time_presenter);

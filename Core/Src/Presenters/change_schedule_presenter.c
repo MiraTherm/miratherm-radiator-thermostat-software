@@ -360,7 +360,7 @@ void ChangeSchedulePresenter_HandleEvent(ChangeSchedulePresenter_t *presenter, c
 
         case STEP_NUM_SLOTS:
             /* Handle Back */
-            if (event->type == EVT_MODE_BTN && event->button_action == BUTTON_ACTION_PRESSED)
+            if (event->type == EVT_LEFT_BTN && event->button_action == BUTTON_ACTION_PRESSED)
             {                
                 presenter->is_cancelled = true;
                 return;
@@ -387,7 +387,7 @@ void ChangeSchedulePresenter_HandleEvent(ChangeSchedulePresenter_t *presenter, c
 
         case STEP_SLOT_TIME:
             /* Handle Back */
-            if (event->type == EVT_MODE_BTN && event->button_action == BUTTON_ACTION_PRESSED)
+            if (event->type == EVT_LEFT_BTN && event->button_action == BUTTON_ACTION_PRESSED)
             {
                 /* If we are at first field of time slot, go back to previous step */
                 SetTimeSlot_ViewModelData_t data = SetTimeSlotPresenter_GetData(presenter->time_slot_presenter);
@@ -458,7 +458,7 @@ void ChangeSchedulePresenter_HandleEvent(ChangeSchedulePresenter_t *presenter, c
 
         case STEP_SLOT_TEMP:
             /* Handle Back */
-            if (event->type == EVT_MODE_BTN && event->button_action == BUTTON_ACTION_PRESSED)
+            if (event->type == EVT_LEFT_BTN && event->button_action == BUTTON_ACTION_PRESSED)
             {
                 /* Back to Time Slot */
                 presenter->current_step = STEP_SLOT_TIME;

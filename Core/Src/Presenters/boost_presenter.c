@@ -43,7 +43,7 @@ void BoostPresenter_HandleEvent(BoostPresenter_t *presenter, const Input2VPEvent
     {
         switch (event->type)
         {
-            case EVT_CENTRAL_BTN:
+            case EVT_MIDDLE_BTN:
                 /* Close boost mode and return to home */
                 printf("Boost: Close button pressed, exiting boost mode\n");
                 
