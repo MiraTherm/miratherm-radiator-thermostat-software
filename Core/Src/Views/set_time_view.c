@@ -15,9 +15,6 @@ typedef struct SetTimeView {
   lv_obj_t *label_hint_left;
   lv_obj_t *label_hint_center;
 
-  char hour_options[256];
-  char minute_options[512];
-
   uint8_t last_hour;
   uint8_t last_minute;
   uint8_t last_active_field;
@@ -65,11 +62,8 @@ SetTimeView_t *SetTimeView_Init(const char *title,
   view->last_minute = 0xFF;
   view->last_active_field = 0xFF;
 
-  memcpy(view->hour_options, HOUR_OPTIONS, sizeof(HOUR_OPTIONS));
-  memcpy(view->minute_options, MINUTE_OPTIONS, sizeof(MINUTE_OPTIONS));
-
   view->roller_hour = lv_roller_create(view->screen);
-  lv_roller_set_options(view->roller_hour, view->hour_options,
+  lv_roller_set_options(view->roller_hour, HOUR_OPTIONS,
                         LV_ROLLER_MODE_NORMAL);
   lv_roller_set_selected(view->roller_hour, 12, LV_ANIM_OFF);
   lv_obj_align(view->roller_hour, LV_ALIGN_CENTER, -17, 0);
@@ -78,7 +72,7 @@ SetTimeView_t *SetTimeView_Init(const char *title,
                               LV_PART_SELECTED);
 
   view->roller_minute = lv_roller_create(view->screen);
-  lv_roller_set_options(view->roller_minute, view->minute_options,
+  lv_roller_set_options(view->roller_minute, MINUTE_OPTIONS,
                         LV_ROLLER_MODE_NORMAL);
   lv_roller_set_selected(view->roller_minute, 0, LV_ANIM_OFF);
   lv_obj_align(view->roller_minute, LV_ALIGN_CENTER, 17, 0);
