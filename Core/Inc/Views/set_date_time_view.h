@@ -11,7 +11,7 @@ extern "C" {
 
 typedef struct SetDateTimeView SetDateTimeView_t;
 
-SetDateTimeView_t* SetDateTimeView_Init(bool show_back_hint_on_first_field);
+SetDateTimeView_t* SetDateTimeView_Init(bool show_back_hint_on_first_field, uint16_t default_year);
 void SetDateTimeView_Deinit(SetDateTimeView_t *view);
 
 SetDateView_t* SetDateTimeView_GetDateView(SetDateTimeView_t *view);

@@ -11,7 +11,7 @@ extern "C" {
 
 typedef struct SetDateTimePresenter SetDateTimePresenter_t;
 
-SetDateTimePresenter_t* SetDateTimePresenter_Init(SetDateTimeView_t *view);
+SetDateTimePresenter_t* SetDateTimePresenter_Init(SetDateTimeView_t *view, uint16_t default_year);
 void SetDateTimePresenter_Deinit(SetDateTimePresenter_t *presenter);
 void SetDateTimePresenter_HandleEvent(SetDateTimePresenter_t *presenter, const Input2VPEvent_t *event);
 bool SetDateTimePresenter_IsComplete(SetDateTimePresenter_t *presenter);

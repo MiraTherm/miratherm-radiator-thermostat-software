@@ -9,17 +9,17 @@ typedef struct SetDatePresenter {
   SetDate_ViewModelData_t data;
   bool is_complete;
 
+  uint16_t default_year;
+
   uint8_t date_day_index;
   uint8_t date_month_index;
   uint8_t date_year_index;
 } SetDatePresenter_t;
 
 static const uint8_t MONTHS_COUNT = 12;
-static const uint8_t YEARS_COUNT = 30; /* e.g., 2020-2049 */
-static const uint16_t BASE_YEAR = 2020;
+static const uint8_t YEARS_COUNT = 75; /* e.g., 2026-2060 */
 static const uint8_t DEFAULT_DAY = 1;
 static const uint8_t DEFAULT_MONTH = 1;
-static const uint16_t DEFAULT_YEAR = 2025;
 
 static bool is_leap_year(uint16_t year) {
   if ((year % 4) != 0)
@@ -69,23 +69,26 @@ static void validate_and_adjust_day(SetDatePresenter_t *presenter) {
   }
 }
 
-SetDatePresenter_t *SetDatePresenter_Init(SetDateView_t *view) {
+SetDatePresenter_t *SetDatePresenter_Init(SetDateView_t *view,
+                                          uint16_t default_year) {
   SetDatePresenter_t *presenter =
       (SetDatePresenter_t *)malloc(sizeof(SetDatePresenter_t));
   if (!presenter)
     return NULL;
+
+  presenter->default_year = default_year;
 
   presenter->view = view;
   presenter->is_complete = false;
 
   presenter->data.day = DEFAULT_DAY;
   presenter->data.month = DEFAULT_MONTH;
-  presenter->data.year = DEFAULT_YEAR;
+  presenter->data.year = default_year;
   presenter->data.active_field = 0;
 
   presenter->date_day_index = DEFAULT_DAY - 1;
   presenter->date_month_index = DEFAULT_MONTH - 1;
-  presenter->date_year_index = DEFAULT_YEAR - BASE_YEAR;
+  presenter->date_year_index = 0;
 
   return presenter;
 }
@@ -104,7 +107,6 @@ void SetDatePresenter_HandleEvent(SetDatePresenter_t *presenter,
 
   if (event->type == EVT_CTRL_WHEEL_DELTA) {
     int16_t delta = event->delta;
-
     if (presenter->data.active_field == 0) {
       /* Year adjustment */
       int16_t new_year = (int16_t)presenter->date_year_index + delta;
@@ -113,7 +115,8 @@ void SetDatePresenter_HandleEvent(SetDatePresenter_t *presenter,
       else if (new_year >= YEARS_COUNT)
         new_year = 0;
       presenter->date_year_index = (uint8_t)new_year;
-      presenter->data.year = BASE_YEAR + presenter->date_year_index;
+      presenter->data.year =
+          presenter->default_year + presenter->date_year_index;
 
       validate_and_adjust_day(presenter);
     } else if (presenter->data.active_field == 1) {

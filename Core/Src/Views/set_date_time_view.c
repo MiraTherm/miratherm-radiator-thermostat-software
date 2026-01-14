@@ -7,14 +7,14 @@ typedef struct SetDateTimeView {
   SetBoolView_t *dst_view;
 } SetDateTimeView_t;
 
-SetDateTimeView_t *SetDateTimeView_Init(bool show_back_hint_on_first_field) {
+SetDateTimeView_t *SetDateTimeView_Init(bool show_back_hint_on_first_field, uint16_t default_year) {
   SetDateTimeView_t *view =
       (SetDateTimeView_t *)malloc(sizeof(SetDateTimeView_t));
   if (!view)
     return NULL;
 
   view->date_view =
-      SetDateView_Init("Set date:", show_back_hint_on_first_field);
+      SetDateView_Init("Set date:", show_back_hint_on_first_field, default_year);
   view->time_view = SetTimeView_Init("Set time:", true);
   view->dst_view = SetBoolView_Init("Summer time", "On", "Off", true);
 

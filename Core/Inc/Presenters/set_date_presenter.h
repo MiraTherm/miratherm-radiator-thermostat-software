@@ -12,7 +12,7 @@ extern "C" {
 typedef struct SetDatePresenter SetDatePresenter_t;
 typedef struct SetDateView SetDateView_t;
 
-SetDatePresenter_t* SetDatePresenter_Init(SetDateView_t *view);
+SetDatePresenter_t* SetDatePresenter_Init(SetDateView_t *view, uint16_t default_year);
 void SetDatePresenter_Deinit(SetDatePresenter_t *presenter);
 void SetDatePresenter_HandleEvent(SetDatePresenter_t *presenter, const Input2VPEvent_t *event);
 void SetDatePresenter_Reset(SetDatePresenter_t *presenter);

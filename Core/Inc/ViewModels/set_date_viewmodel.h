@@ -11,7 +11,7 @@ typedef struct
 {
     uint8_t day;      /* 1-31 */
     uint8_t month;    /* 1-12 */
-    uint16_t year;    /* e.g., 2025 */
+    uint16_t year;    /* e.g., 2026 */
     uint8_t active_field;   /* 0: year, 1: month, 2: day */
 } SetDate_ViewModelData_t;
 

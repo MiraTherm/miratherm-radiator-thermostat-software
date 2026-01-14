@@ -506,11 +506,11 @@ void Router_GoToRoute(RouteTypeDef route) {
   /* Initialize new route */
   if (route == ROUTE_DATE_TIME) {
     if (!g_router_state.dt_view) {
-      g_router_state.dt_view = SetDateTimeView_Init(false);
+      g_router_state.dt_view = SetDateTimeView_Init(false, 2026);
     }
     if (g_router_state.dt_view && !g_router_state.dt_presenter) {
       g_router_state.dt_presenter =
-          SetDateTimePresenter_Init(g_router_state.dt_view);
+          SetDateTimePresenter_Init(g_router_state.dt_view, 2026);
       /* Run immediately after initializing to ensure screen is displayed */
       // SetDateTimePresenter_Run(g_router_state.dt_presenter);
     }

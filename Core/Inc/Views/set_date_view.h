@@ -10,7 +10,7 @@ extern "C" {
 
 typedef struct SetDateView SetDateView_t;
 
-SetDateView_t* SetDateView_Init(const char *title, bool show_back_hint_on_first_field);
+SetDateView_t* SetDateView_Init(const char *title, bool show_back_hint_on_first_field, uint16_t default_year);
 void SetDateView_Deinit(SetDateView_t *view);
 void SetDateView_Render(SetDateView_t *view, const SetDate_ViewModelData_t *data);
 void SetDateView_Show(SetDateView_t *view);

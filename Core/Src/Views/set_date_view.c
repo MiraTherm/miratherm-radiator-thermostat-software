@@ -16,9 +16,9 @@ typedef struct SetDateView {
   lv_obj_t *label_hint_left;
   lv_obj_t *label_hint_center;
 
-  char day_options[256];
-  char month_options[256];
   char year_options[512];
+
+  uint16_t default_year;
 
   uint8_t last_day;
   uint8_t last_month;
@@ -28,14 +28,16 @@ typedef struct SetDateView {
   bool show_back_hint_on_first_field;
 } SetDateView_t;
 
+static const uint8_t YEARS_COUNT = 75; /* e.g., 2026-2060 */
+
 static const char DAY_OPTIONS[] =
     "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21"
     "\n22\n23\n24\n25\n26\n27\n28\n29\n30\n31\n";
 static const char MONTH_OPTIONS[] = "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n";
 
-static void create_year_options(char *buf, size_t size) {
+static void create_year_options(char *buf, size_t size, uint16_t default_year) {
   size_t pos = 0;
-  for (int i = 2020; i <= 2049; i++) {
+  for (int i = default_year; i <= default_year + YEARS_COUNT; i++) {
     if (pos + 6 < size) {
       pos += snprintf(buf + pos, size - pos, "%d\n", i);
     }
@@ -43,7 +45,7 @@ static void create_year_options(char *buf, size_t size) {
 }
 
 SetDateView_t *SetDateView_Init(const char *title,
-                                bool show_back_hint_on_first_field) {
+                                bool show_back_hint_on_first_field, uint16_t default_year) {
   SetDateView_t *view = (SetDateView_t *)malloc(sizeof(SetDateView_t));
   if (!view)
     return NULL;
@@ -52,6 +54,7 @@ SetDateView_t *SetDateView_Init(const char *title,
     return NULL;
 
   view->show_back_hint_on_first_field = show_back_hint_on_first_field;
+  view->default_year = default_year;
 
   view->screen = lv_obj_create(NULL);
   if (!view->screen) {
@@ -74,9 +77,7 @@ SetDateView_t *SetDateView_Init(const char *title,
   view->last_year = 0xFFFF;
   view->last_active_field = 0xFF;
 
-  memcpy(view->day_options, DAY_OPTIONS, sizeof(DAY_OPTIONS));
-  memcpy(view->month_options, MONTH_OPTIONS, sizeof(MONTH_OPTIONS));
-  create_year_options(view->year_options, sizeof(view->year_options));
+  create_year_options(view->year_options, sizeof(view->year_options), default_year);
 
   view->roller_year = lv_roller_create(view->screen);
   lv_roller_set_options(view->roller_year, view->year_options,
@@ -88,7 +89,7 @@ SetDateView_t *SetDateView_Init(const char *title,
                               LV_PART_SELECTED);
 
   view->roller_month = lv_roller_create(view->screen);
-  lv_roller_set_options(view->roller_month, view->month_options,
+  lv_roller_set_options(view->roller_month, MONTH_OPTIONS,
                         LV_ROLLER_MODE_NORMAL);
   lv_roller_set_selected(view->roller_month, 0, LV_ANIM_OFF);
   lv_obj_align(view->roller_month, LV_ALIGN_CENTER, 0, 0);
@@ -98,7 +99,7 @@ SetDateView_t *SetDateView_Init(const char *title,
                               LV_PART_SELECTED);
 
   view->roller_day = lv_roller_create(view->screen);
-  lv_roller_set_options(view->roller_day, view->day_options,
+  lv_roller_set_options(view->roller_day, DAY_OPTIONS,
                         LV_ROLLER_MODE_NORMAL);
   lv_roller_set_selected(view->roller_day, 0, LV_ANIM_OFF);
   lv_obj_align(view->roller_day, LV_ALIGN_CENTER, 43, 0);
@@ -119,7 +120,7 @@ SetDateView_t *SetDateView_Init(const char *title,
 
   SetDateView_Render(
       view, &(SetDate_ViewModelData_t){
-                .day = 1, .month = 1, .year = 2025, .active_field = 0});
+                .day = 1, .month = 1, .year = default_year, .active_field = 0});
 
   lv_port_unlock();
 
@@ -169,7 +170,7 @@ void SetDateView_Render(SetDateView_t *view,
   }
   if (view->last_year != data->year) {
     view->last_year = data->year;
-    lv_roller_set_selected(view->roller_year, data->year - 2020, LV_ANIM_OFF);
+    lv_roller_set_selected(view->roller_year, data->year - view->default_year, LV_ANIM_OFF);
   }
 
   update_date_roller_borders(view, data->active_field);

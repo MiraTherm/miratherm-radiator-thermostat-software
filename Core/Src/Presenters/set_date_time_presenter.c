@@ -54,7 +54,7 @@ static void set_rtc(SetDateTimePresenter_t *presenter) {
   HAL_RTC_SetDate(&hrtc, &sDate, RTC_FORMAT_BIN);
 }
 
-SetDateTimePresenter_t *SetDateTimePresenter_Init(SetDateTimeView_t *view) {
+SetDateTimePresenter_t *SetDateTimePresenter_Init(SetDateTimeView_t *view, uint16_t default_year) {
   SetDateTimePresenter_t *presenter =
       (SetDateTimePresenter_t *)malloc(sizeof(SetDateTimePresenter_t));
   if (!presenter)
@@ -65,7 +65,7 @@ SetDateTimePresenter_t *SetDateTimePresenter_Init(SetDateTimeView_t *view) {
   presenter->is_complete = false;
 
   presenter->date_presenter =
-      SetDatePresenter_Init(SetDateTimeView_GetDateView(view));
+      SetDatePresenter_Init(SetDateTimeView_GetDateView(view), default_year);
   presenter->time_presenter =
       SetTimePresenter_Init(SetDateTimeView_GetTimeView(view));
   presenter->dst_presenter =
