@@ -467,7 +467,7 @@ void ChangeSchedulePresenter_HandleEvent(ChangeSchedulePresenter_t *presenter, c
             }
 
             SetValuePresenter_HandleEvent(presenter->value_presenter, event);
-            if (SetValuePresenter_IsComplete(presenter->value_presenter))
+            if (SetValuePresenter_IsComplete(presenter->value_presenter) && !presenter->is_complete)
             {
                 /* Save Temp */
                 uint16_t idx = SetValuePresenter_GetSelectedIndex(presenter->value_presenter);
