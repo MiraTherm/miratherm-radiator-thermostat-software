@@ -14,18 +14,18 @@
 #define SSD1306_USE_I2C
 
 /* I2C Configuration */
-#define SSD1306_I2C_PORT        hi2c1
-#define SSD1306_I2C_ADDR        (0x3C << 1)
+#define SSD1306_I2C_PORT hi2c1
+#define SSD1306_I2C_ADDR (0x3C << 1)
 
 /* Display dimensions */
-#define SSD1306_WIDTH           128
-#define SSD1306_HEIGHT          64
+#define SSD1306_WIDTH 128
+#define SSD1306_HEIGHT 64
 
 /* SH1106 column offset (2 columns) - for SSD1306, set to 0 */
 /* SH1106 RAM is 132 columns but only 128 are visible, offset by 2 columns */
 /* This setting is relevant only if ssd1306_tests.c is being compiled.
  * Otherwise we should consider the offset in lvgl_port_display.c on our own. */
-#define SSD1306_X_OFFSET        2
+#define SSD1306_X_OFFSET 2
 
 /* Include fonts for potential use */
 /* This setting is relevant only if ssd1306_tests.c is being compiled.*/

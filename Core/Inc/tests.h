@@ -9,9 +9,9 @@ extern "C" {
 #endif
 
 // Tests settings
-#define TESTS               0
-#define DRIVER_TEST         0
-#define ADAPTATION_TEST     0
+#define TESTS 1
+#define DRIVER_TEST 1
+#define ADAPTATION_TEST 0
 
 #include "cmsis_os2.h"
 
@@ -22,7 +22,10 @@ extern "C" {
 #if DRIVER_TEST
 struct SensorValuesAccessTypeDef;
 struct ConfigAccessTypeDef;
-void Driver_Test(osMessageQueueId_t storage2system_event_queue, osMessageQueueId_t input2vp_event_queue, ConfigAccessTypeDef *config_access, struct SensorValuesAccessTypeDef *sensor_values_access);
+void Driver_Test(osMessageQueueId_t storage2system_event_queue,
+                 osMessageQueueId_t input2vp_event_queue,
+                 ConfigAccessTypeDef *config_access,
+                 struct SensorValuesAccessTypeDef *sensor_values_access);
 #elif ADAPTATION_TEST
 void Adaptation_Test(void);
 #endif

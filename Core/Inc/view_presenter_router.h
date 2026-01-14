@@ -2,9 +2,9 @@
 #define CORE_INC_VIEW_PRESENTER_ROUTER_H
 
 #include "input_task.h"
-#include "system_task.h"
-#include "storage_task.h"
 #include "sensor_task.h"
+#include "storage_task.h"
+#include "system_task.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -14,20 +14,19 @@ extern "C" {
  * @brief Router for MVP pattern - manages which view/presenter is active
  */
 
-typedef enum
-{
-    ROUTE_INIT = 0,
-    ROUTE_DATE_TIME,
-    ROUTE_CHANGE_SCHEDULE,
-    ROUTE_NOT_INST,
-    ROUTE_ADAPT,
-    ROUTE_ADAPT_FAIL,
-    ROUTE_RUNNING,
-    ROUTE_HOME,
-    ROUTE_BOOST,
-    ROUTE_MENU,
-    ROUTE_EDIT_TEMP_OFFSET,
-    ROUTE_FACTORY_RESET,
+typedef enum {
+  ROUTE_INIT = 0,
+  ROUTE_DATE_TIME,
+  ROUTE_CHANGE_SCHEDULE,
+  ROUTE_NOT_INST,
+  ROUTE_ADAPT,
+  ROUTE_ADAPT_FAIL,
+  ROUTE_RUNNING,
+  ROUTE_HOME,
+  ROUTE_BOOST,
+  ROUTE_MENU,
+  ROUTE_EDIT_TEMP_OFFSET,
+  ROUTE_FACTORY_RESET,
 } RouteTypeDef;
 
 /**
@@ -37,7 +36,10 @@ typedef enum
  * @param config_access Shared config access
  * @param sensor_values_access Shared sensor values access
  */
-void Router_Init(osMessageQueueId_t vp2system_queue, SystemContextAccessTypeDef *system_context, ConfigAccessTypeDef *config_access, SensorValuesAccessTypeDef *sensor_values_access);
+void Router_Init(osMessageQueueId_t vp2system_queue,
+                 SystemContextAccessTypeDef *system_context,
+                 ConfigAccessTypeDef *config_access,
+                 SensorValuesAccessTypeDef *sensor_values_access);
 
 /**
  * @brief Deinitialize the router

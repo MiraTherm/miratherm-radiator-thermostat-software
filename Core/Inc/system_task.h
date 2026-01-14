@@ -22,11 +22,7 @@ typedef enum {
   STATE_MAINT /* Not implemented */
 } SystemState_t;
 
-typedef enum {
-  MODE_AUTO = 0,
-  MODE_MANUAL = 1,
-  MODE_BOOST = 2
-} SystemMode_t;
+typedef enum { MODE_AUTO = 0, MODE_MANUAL = 1, MODE_BOOST = 2 } SystemMode_t;
 
 typedef enum {
   ADAPT_RESULT_UNKNOWN = -1,
@@ -36,16 +32,18 @@ typedef enum {
 
 typedef struct {
   SystemState_t state;
-  SystemMode_t mode;  /* AUTO, MANUAL, or BOOST */
-  SystemMode_t mode_before_boost;  /* Mode before boost activation */
-  uint32_t boost_begin_time;  /* Tick count when boost mode was activated */
-  AdaptResult_t adapt_result; /* ADAPT_RESULT_* */
+  SystemMode_t mode;              /* AUTO, MANUAL, or BOOST */
+  SystemMode_t mode_before_boost; /* Mode before boost activation */
+  uint32_t boost_begin_time;      /* Tick count when boost mode was activated */
+  AdaptResult_t adapt_result;     /* ADAPT_RESULT_* */
   /* Target temperature and slot end time calculated in RUNNING state */
   float target_temp;
   uint8_t slot_end_hour;
   uint8_t slot_end_minute;
-  /* Temporary target temperature override (set by rotary encoder, cleared when slot expires) */
-  float temporary_target_temp; /* 0 = not set, otherwise contains override temperature */
+  /* Temporary target temperature override (set by rotary encoder, cleared when
+   * slot expires) */
+  float temporary_target_temp; /* 0 = not set, otherwise contains override
+                                  temperature */
 } SystemContextTypeDef;
 
 typedef struct {
@@ -58,10 +56,10 @@ typedef struct {
  ************************************************/
 typedef enum {
   EVT_NO_EVENT = 0,
-  EVT_COD_DT_DONE, /* Date/Time setup done */
-  EVT_COD_SCH_DONE, /* Schedule setup done */
-  EVT_INST_REQ,    /* start adaptation */
-  EVT_ADAPT_RST,    /* user accepts adapt fail and requests retry */
+  EVT_COD_DT_DONE,    /* Date/Time setup done */
+  EVT_COD_SCH_DONE,   /* Schedule setup done */
+  EVT_INST_REQ,       /* start adaptation */
+  EVT_ADAPT_RST,      /* user accepts adapt fail and requests retry */
   EVT_FACTORY_RST_REQ /* Factory reset requested */
 } VP2SystemEventTypeDef;
 
@@ -69,7 +67,8 @@ typedef enum {
  * System -> ViewPresenter events
  ************************************************/
 typedef enum {
-  EVT_SYS_INIT_END = 0   /* System initialization complete, UI can start rendering */
+  EVT_SYS_INIT_END =
+      0 /* System initialization complete, UI can start rendering */
 } System2VPEventTypeDef;
 
 /* Forward declaration */
@@ -77,13 +76,15 @@ typedef struct ConfigAccessTypeDef ConfigAccessTypeDef;
 
 /* Arguments passed to StartSystemTask via the thread create call */
 typedef struct {
-  osMessageQueueId_t vp2_system_queue;           /* ViewPresenter -> System */
-  osMessageQueueId_t system2_vp_queue;           /* System -> ViewPresenter */
-  osMessageQueueId_t system2_maint_queue;        /* System -> Maint */
-  osMessageQueueId_t maint2_system_queue;        /* Maint -> System */
-  osMessageQueueId_t system2_storage_queue;      /* System -> Storage */
-  SystemContextAccessTypeDef *system_context_access; /* Pointer to shared system context */
-  ConfigAccessTypeDef *config_access;            /* Pointer to configuration for schedule lookup */
+  osMessageQueueId_t vp2_system_queue;      /* ViewPresenter -> System */
+  osMessageQueueId_t system2_vp_queue;      /* System -> ViewPresenter */
+  osMessageQueueId_t system2_maint_queue;   /* System -> Maint */
+  osMessageQueueId_t maint2_system_queue;   /* Maint -> System */
+  osMessageQueueId_t system2_storage_queue; /* System -> Storage */
+  SystemContextAccessTypeDef
+      *system_context_access; /* Pointer to shared system context */
+  ConfigAccessTypeDef
+      *config_access; /* Pointer to configuration for schedule lookup */
 } SystemTaskArgsTypeDef;
 
 /* Thread function */

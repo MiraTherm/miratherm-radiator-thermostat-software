@@ -1,17 +1,16 @@
 #include "system_task.h"
-#include "system_state_machine.h"
-#include "storage_task.h"
-#include "maintenance_task.h"
-#include "cmsis_os2.h"
 #include "FreeRTOS.h"
+#include "cmsis_os2.h"
+#include "maintenance_task.h"
+#include "storage_task.h"
+#include "system_state_machine.h"
 #include <stdio.h>
 
 /* Global pointer to system context for helper APIs */
 static SystemContextAccessTypeDef *g_sys_ctx = NULL;
 
 /* The state machine implementation */
-void StartSystemTask(void *argument)
-{
+void StartSystemTask(void *argument) {
   SystemTaskArgsTypeDef *args = (SystemTaskArgsTypeDef *)argument;
   if (args == NULL) {
     printf("ERROR: System task args NULL\n");
@@ -32,14 +31,14 @@ void StartSystemTask(void *argument)
   }
 
 #if OS_TASKS_DEBUG
-  printf("SystemTask running (heap=%lu)\n", (unsigned long)xPortGetFreeHeapSize());
+  printf("SystemTask running (heap=%lu)\n",
+         (unsigned long)xPortGetFreeHeapSize());
 #endif
 
   /* Initialize the State Machine */
   SystemSM_Init(args);
 
-  for(;;)
-  {
+  for (;;) {
     /* Run the State Machine */
     SystemSM_Run();
 

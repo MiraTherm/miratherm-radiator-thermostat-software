@@ -1,8 +1,8 @@
 #ifndef CORE_INC_UTILS_H
 #define CORE_INC_UTILS_H
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {

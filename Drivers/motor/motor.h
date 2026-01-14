@@ -3,12 +3,11 @@
 
 #include "main.h"
 
-typedef enum
-{
-	MOTOR_COAST = 0,
-	MOTOR_FORWARD,
-	MOTOR_BACKWARD,
-	MOTOR_BRAKE
+typedef enum {
+  MOTOR_COAST = 0,
+  MOTOR_FORWARD,
+  MOTOR_BACKWARD,
+  MOTOR_BRAKE
 } MotorStateTypeDef;
 
 void Motor_Init(void);

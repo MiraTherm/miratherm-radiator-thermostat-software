@@ -1,20 +1,20 @@
 /* USER CODE BEGIN Header */
 /**
-  ******************************************************************************
-  * @file           : main.c
-  * @brief          : Main program body
-  ******************************************************************************
-  * @attention
-  *
-  * Copyright (c) 2025 STMicroelectronics.
-  * All rights reserved.
-  *
-  * This software is licensed under terms that can be found in the LICENSE file
-  * in the root directory of this software component.
-  * If no LICENSE file comes with this software, it is provided AS-IS.
-  *
-  ******************************************************************************
-  */
+ ******************************************************************************
+ * @file           : main.c
+ * @brief          : Main program body
+ ******************************************************************************
+ * @attention
+ *
+ * Copyright (c) 2025 STMicroelectronics.
+ * All rights reserved.
+ *
+ * This software is licensed under terms that can be found in the LICENSE file
+ * in the root directory of this software component.
+ * If no LICENSE file comes with this software, it is provided AS-IS.
+ *
+ ******************************************************************************
+ */
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
@@ -23,14 +23,15 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "motor.h"
-#include "lvgl_port_display.h"
 #include "input_task.h"
+#include "lvgl_port_display.h"
+#include "maintenance_task.h"
+#include "motor.h"
 #include "sensor_task.h"
 #include "storage_task.h"
-#include "view_presenter_task.h"
 #include "system_task.h"
-#include "maintenance_task.h"
+#include "view_presenter_task.h"
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -70,35 +71,31 @@ const osThreadAttr_t defaultTask_attributes = {
 /* USER CODE BEGIN PV */
 /* Definitions for LVGLTask */
 osThreadId_t lvglTaskHandle;
-const osThreadAttr_t lvglTask_attributes = {
-  .name = "lvglTask",
-  .priority = (osPriority_t) osPriorityHigh1,
-  .stack_size = LVGL_TASK_STACK_SIZE
-};
+const osThreadAttr_t lvglTask_attributes = {.name = "lvglTask",
+                                            .priority =
+                                                (osPriority_t)osPriorityHigh1,
+                                            .stack_size = LVGL_TASK_STACK_SIZE};
 
 /* Definitions for InputTask */
 osThreadId_t inputTaskHandle;
 const osThreadAttr_t inputTask_attributes = {
-  .name = "inputTask",
-  .priority = (osPriority_t) osPriorityHigh2,
-  .stack_size = INPUT_TASK_STACK_SIZE
-};
+    .name = "inputTask",
+    .priority = (osPriority_t)osPriorityHigh2,
+    .stack_size = INPUT_TASK_STACK_SIZE};
 
 /* Definitions for SensorTask */
 osThreadId_t sensorTaskHandle;
 const osThreadAttr_t sensorTask_attributes = {
-  .name = "sensorTask",
-  .priority = (osPriority_t) osPriorityHigh3,
-  .stack_size = SENSOR_TASK_STACK_SIZE
-};
+    .name = "sensorTask",
+    .priority = (osPriority_t)osPriorityHigh3,
+    .stack_size = SENSOR_TASK_STACK_SIZE};
 
 /* Definitions for StorageTask */
 osThreadId_t storageTaskHandle;
 const osThreadAttr_t storageTask_attributes = {
-  .name = "storageTask",
-  .priority = (osPriority_t) osPriorityLow,
-  .stack_size = STORAGE_TASK_STACK_SIZE
-};
+    .name = "storageTask",
+    .priority = (osPriority_t)osPriorityLow,
+    .stack_size = STORAGE_TASK_STACK_SIZE};
 
 /* Storage event queue */
 osMessageQueueId_t storage2SystemEventQueueHandle;
@@ -116,26 +113,23 @@ osMessageQueueId_t vp2SystemEventQueueHandle;
 /*Definitions for ViewPresenterTask*/
 osThreadId_t viewPresenterTaskHandle;
 const osThreadAttr_t viewPresenterTask_attributes = {
-  .name = "viewPresenterTask",
-  .priority = (osPriority_t) osPriorityNormal3,
-  .stack_size = VP_TASK_STACK_SIZE
-};
+    .name = "viewPresenterTask",
+    .priority = (osPriority_t)osPriorityNormal3,
+    .stack_size = VP_TASK_STACK_SIZE};
 
 /* Definitions for SystemTask */
 osThreadId_t systemTaskHandle;
 const osThreadAttr_t systemTask_attributes = {
-  .name = "systemTask",
-  .priority = (osPriority_t) osPriorityNormal1,
-  .stack_size = SYSTEM_TASK_STACK_SIZE
-};
+    .name = "systemTask",
+    .priority = (osPriority_t)osPriorityNormal1,
+    .stack_size = SYSTEM_TASK_STACK_SIZE};
 
 /* Definitions for MaintTask */
 osThreadId_t maintenanceTaskHandle;
 const osThreadAttr_t maintenanceTask_attributes = {
-  .name = "maintenanceTask",
-  .priority = (osPriority_t) osPriorityNormal2,
-  .stack_size = MAINT_TASK_STACK_SIZE
-};
+    .name = "maintenanceTask",
+    .priority = (osPriority_t)osPriorityNormal2,
+    .stack_size = MAINT_TASK_STACK_SIZE};
 
 /* System -> ViewPresenter queue */
 osMessageQueueId_t system2VPEventQueueHandle;
@@ -167,20 +161,15 @@ void StartDefaultTask(void *argument);
  * Use `display_system_init()` to initialize the display and LVGL.
  */
 #if OS_TASKS_DEBUG
-static void DebugReportTaskCreation(const char *name, osThreadId_t handle)
-{
-  printf("%s creation %s handle=%p\n",
-         name,
-         handle ? "succeeded" : "FAILED",
+static void DebugReportTaskCreation(const char *name, osThreadId_t handle) {
+  printf("%s creation %s handle=%p\n", name, handle ? "succeeded" : "FAILED",
          (void *)handle);
 
 #if ERROR_HANDLER_ON_FAILURE
-  if (handle == NULL)
-  {
+  if (handle == NULL) {
     Error_Handler();
   }
 #endif
-
 }
 #endif
 /* USER CODE END 0 */
@@ -203,40 +192,28 @@ int main(void)
 
   /* USER CODE BEGIN Init */
   static DefaultTaskArgsTypeDef defaultTaskArgs = {
-    .storage2system_event_queue = NULL,
-    .input2vp_event_queue = NULL,
-    .config_access = NULL,
-    .sensor_values_access = NULL
-  };
+      .storage2system_event_queue = NULL,
+      .input2vp_event_queue = NULL,
+      .config_access = NULL,
+      .sensor_values_access = NULL};
   static StorageTaskArgsTypeDef storageTaskArgs = {
-    .storage2system_event_queue = NULL,
-    .config_access = NULL
-  };
-  static SensorTaskArgsTypeDef sensorTaskArgs = {
-    .config_access = NULL,
-    .sensor_values_access = NULL
-  };
-  static InputTaskArgsTypeDef inputTaskArgs = {
-    .input2vp_event_queue = NULL
-  };
+      .storage2system_event_queue = NULL, .config_access = NULL};
+  static SensorTaskArgsTypeDef sensorTaskArgs = {.config_access = NULL,
+                                                 .sensor_values_access = NULL};
+  static InputTaskArgsTypeDef inputTaskArgs = {.input2vp_event_queue = NULL};
 #if !TESTS
   static ViewPresenterTaskArgsTypeDef viewPresenterTaskArgs = {
-    .input2vp_event_queue = NULL,
-    .vp2system_event_queue = NULL,
-    .system2vp_event_queue = NULL,
-    .system_context_access = NULL
-  };
-  static SystemTaskArgsTypeDef systemTaskArgs = {
-    .vp2_system_queue = NULL,
-    .system2_vp_queue = NULL,
-    .system2_maint_queue = NULL,
-    .maint2_system_queue = NULL,
-    .system_context_access = NULL
-  };
+      .input2vp_event_queue = NULL,
+      .vp2system_event_queue = NULL,
+      .system2vp_event_queue = NULL,
+      .system_context_access = NULL};
+  static SystemTaskArgsTypeDef systemTaskArgs = {.vp2_system_queue = NULL,
+                                                 .system2_vp_queue = NULL,
+                                                 .system2_maint_queue = NULL,
+                                                 .maint2_system_queue = NULL,
+                                                 .system_context_access = NULL};
   static MaintenanceTaskArgsTypeDef maintenanceTaskArgs = {
-    .system2_maint_queue = NULL,
-    .maint2_system_queue = NULL
-  };
+      .system2_maint_queue = NULL, .maint2_system_queue = NULL};
 #endif
   /* USER CODE END Init */
 
@@ -260,7 +237,8 @@ int main(void)
   /* USER CODE BEGIN 2 */
   display_system_init();
   Motor_Init();
-  /* Initializations moved to according tasks to avoid issues before scheduler starts */
+  /* Initializations moved to according tasks to avoid issues before scheduler
+   * starts */
   /* USER CODE END 2 */
 
   /* Init scheduler */
@@ -269,16 +247,13 @@ int main(void)
   /* USER CODE BEGIN RTOS_MUTEX */
   /* Create config access structure with mutex */
   static ConfigAccessTypeDef configAccess = {
-    .mutex = NULL,
-    .data = {.TemperatureOffsetC = 0.0f}
-  };
+      .mutex = NULL, .data = {.TemperatureOffsetC = 0.0f}};
   const osMutexAttr_t configMutexAttr = {
-    .name = "ConfigMutex",
-    .attr_bits = osMutexPrioInherit,
+      .name = "ConfigMutex",
+      .attr_bits = osMutexPrioInherit,
   };
   configAccess.mutex = osMutexNew(&configMutexAttr);
-  if (configAccess.mutex == NULL)
-  {
+  if (configAccess.mutex == NULL) {
     Error_Handler();
   }
   defaultTaskArgs.config_access = &configAccess;
@@ -287,45 +262,37 @@ int main(void)
 
   /* Create sensor values access structure with mutex */
   static SensorValuesAccessTypeDef sensorValuesAccess = {
-    .mutex = NULL,
-    .data = {
-      .CurrentTemp = 0.0f,
-      .SoC = 0,
+      .mutex = NULL,
+      .data = {.CurrentTemp = 0.0f,
+               .SoC = 0,
 #if DRIVER_TEST
-      .BatteryVoltage = 0.0f,
+               .BatteryVoltage = 0.0f,
 #endif
-      .MotorCurrent = 0.0f
-    }
-  };
+               .MotorCurrent = 0.0f}};
   const osMutexAttr_t sensorValuesMutexAttr = {
-    .name = "SensorValuesMutex",
-    .attr_bits = osMutexPrioInherit,
+      .name = "SensorValuesMutex",
+      .attr_bits = osMutexPrioInherit,
   };
   sensorValuesAccess.mutex = osMutexNew(&sensorValuesMutexAttr);
-  if (sensorValuesAccess.mutex == NULL)
-  {
+  if (sensorValuesAccess.mutex == NULL) {
     Error_Handler();
   }
   defaultTaskArgs.sensor_values_access = &sensorValuesAccess;
   sensorTaskArgs.sensor_values_access = &sensorValuesAccess;
 
 #if !TESTS
-  static SystemContextAccessTypeDef systemContextAccess = { 
-    .mutex = NULL, 
-    .data = { 
-      .state = STATE_INIT,
-      .mode = MODE_AUTO,
-      .mode_before_boost = MODE_AUTO,
-      .boost_begin_time = 0,
-      .adapt_result = -1 
-    } 
-  };
+  static SystemContextAccessTypeDef systemContextAccess = {
+      .mutex = NULL,
+      .data = {.state = STATE_INIT,
+               .mode = MODE_AUTO,
+               .mode_before_boost = MODE_AUTO,
+               .boost_begin_time = 0,
+               .adapt_result = -1}};
 
-  
   /* Create system context mutex */
   const osMutexAttr_t sysCtxMutexAttr = {
-    .name = "SysCtxMutex",
-    .attr_bits = osMutexPrioInherit,
+      .name = "SysCtxMutex",
+      .attr_bits = osMutexPrioInherit,
   };
   systemContextAccess.mutex = osMutexNew(&sysCtxMutexAttr);
   if (systemContextAccess.mutex == NULL) {
@@ -347,26 +314,26 @@ int main(void)
 
   /* USER CODE BEGIN RTOS_QUEUES */
   /* Create storage event queue */
-  storage2SystemEventQueueHandle = osMessageQueueNew(4, sizeof(Storage2SystemEventTypeDef), NULL);
-  if (storage2SystemEventQueueHandle == NULL)
-  {
+  storage2SystemEventQueueHandle =
+      osMessageQueueNew(4, sizeof(Storage2SystemEventTypeDef), NULL);
+  if (storage2SystemEventQueueHandle == NULL) {
     Error_Handler();
   }
   defaultTaskArgs.storage2system_event_queue = storage2SystemEventQueueHandle;
   storageTaskArgs.storage2system_event_queue = storage2SystemEventQueueHandle;
-  
+
   /* Create System -> Storage event queue */
-  system2StorageEventQueueHandle = osMessageQueueNew(4U, sizeof(System2StorageEventTypeDef), NULL);
-  if (system2StorageEventQueueHandle == NULL)
-  {
+  system2StorageEventQueueHandle =
+      osMessageQueueNew(4U, sizeof(System2StorageEventTypeDef), NULL);
+  if (system2StorageEventQueueHandle == NULL) {
     Error_Handler();
   }
   storageTaskArgs.system2storage_event_queue = system2StorageEventQueueHandle;
-  
+
   /* Create input to ViewPresenter event queue */
-  input2VPEventQueueHandle = osMessageQueueNew(8U, sizeof(Input2VPEvent_t), NULL);
-  if (input2VPEventQueueHandle == NULL)
-  {
+  input2VPEventQueueHandle =
+      osMessageQueueNew(8U, sizeof(Input2VPEvent_t), NULL);
+  if (input2VPEventQueueHandle == NULL) {
     Error_Handler();
   }
   defaultTaskArgs.input2vp_event_queue = input2VPEventQueueHandle;
@@ -374,7 +341,8 @@ int main(void)
 #if !TESTS
   viewPresenterTaskArgs.input2vp_event_queue = input2VPEventQueueHandle;
   /* Create ViewPresenter -> System event queue */
-  vp2SystemEventQueueHandle = osMessageQueueNew(4U, sizeof(VP2SystemEventTypeDef), NULL);
+  vp2SystemEventQueueHandle =
+      osMessageQueueNew(4U, sizeof(VP2SystemEventTypeDef), NULL);
   if (vp2SystemEventQueueHandle == NULL) {
     Error_Handler();
   }
@@ -382,7 +350,8 @@ int main(void)
   viewPresenterTaskArgs.vp2system_event_queue = vp2SystemEventQueueHandle;
 
   /* Create System -> ViewPresenter event queue */
-  system2VPEventQueueHandle = osMessageQueueNew(2U, sizeof(System2VPEventTypeDef), NULL);
+  system2VPEventQueueHandle =
+      osMessageQueueNew(2U, sizeof(System2VPEventTypeDef), NULL);
   if (system2VPEventQueueHandle == NULL) {
     Error_Handler();
   }
@@ -393,14 +362,16 @@ int main(void)
   systemTaskArgs.config_access = &configAccess;
 
   /* Create System <-> Maint queues */
-  system2MaintEventQueueHandle = osMessageQueueNew(4U, sizeof(System2MaintEventTypeDef), NULL);
+  system2MaintEventQueueHandle =
+      osMessageQueueNew(4U, sizeof(System2MaintEventTypeDef), NULL);
   if (system2MaintEventQueueHandle == NULL) {
     Error_Handler();
   }
   systemTaskArgs.system2_maint_queue = system2MaintEventQueueHandle;
   maintenanceTaskArgs.system2_maint_queue = system2MaintEventQueueHandle;
 
-  maint2SystemEventQueueHandle = osMessageQueueNew(4U, sizeof(Maint2SystemEventTypeDef), NULL);
+  maint2SystemEventQueueHandle =
+      osMessageQueueNew(4U, sizeof(Maint2SystemEventTypeDef), NULL);
   if (maint2SystemEventQueueHandle == NULL) {
     Error_Handler();
   }
@@ -417,13 +388,21 @@ int main(void)
 
   /* USER CODE BEGIN RTOS_THREADS */
   lvglTaskHandle = osThreadNew(StartLVGLTask, NULL, &lvglTask_attributes);
-  sensorTaskHandle = osThreadNew(StartSensorTask, (void *)&sensorTaskArgs, &sensorTask_attributes);
-  storageTaskHandle = osThreadNew(StartStorageTask, (void *)&storageTaskArgs, &storageTask_attributes);
-  inputTaskHandle = osThreadNew(StartInputTask, (void *)&inputTaskArgs, &inputTask_attributes);
+  sensorTaskHandle = osThreadNew(StartSensorTask, (void *)&sensorTaskArgs,
+                                 &sensorTask_attributes);
+  storageTaskHandle = osThreadNew(StartStorageTask, (void *)&storageTaskArgs,
+                                  &storageTask_attributes);
+  inputTaskHandle = osThreadNew(StartInputTask, (void *)&inputTaskArgs,
+                                &inputTask_attributes);
 #if !TESTS
-  viewPresenterTaskHandle = osThreadNew(StartViewPresenterTask, (void *)&viewPresenterTaskArgs, &viewPresenterTask_attributes);
-  systemTaskHandle = osThreadNew(StartSystemTask, (void *)&systemTaskArgs, &systemTask_attributes);
-  maintenanceTaskHandle = osThreadNew(StartMaintenanceTask, (void *)&maintenanceTaskArgs, &maintenanceTask_attributes);
+  viewPresenterTaskHandle =
+      osThreadNew(StartViewPresenterTask, (void *)&viewPresenterTaskArgs,
+                  &viewPresenterTask_attributes);
+  systemTaskHandle = osThreadNew(StartSystemTask, (void *)&systemTaskArgs,
+                                 &systemTask_attributes);
+  maintenanceTaskHandle =
+      osThreadNew(StartMaintenanceTask, (void *)&maintenanceTaskArgs,
+                  &maintenanceTask_attributes);
 #endif
   /* USER CODE END RTOS_THREADS */
 
@@ -474,8 +453,7 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  while (0)
-  {
+  while (0) {
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -576,7 +554,8 @@ static void MX_ADC1_Init(void)
 
   /* USER CODE BEGIN ADC1_Init 1 */
   /* ADC channels need the maximum sampling time.
-   * Minimum measurement duration is 640.5/(64MHz/64) seconds with the current ADC clock.
+   * Minimum measurement duration is 640.5/(64MHz/64) seconds with the current
+   * ADC clock.
    */
   /* USER CODE END ADC1_Init 1 */
 
@@ -878,29 +857,24 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-// Override the HAL_Delay to use it in ssd1306_Init() before the scheduler starts:
-// The issue is that HAL_Delay relies on the HAL tick interrupt (TIM17) to increment uwTick. 
-// During initialization, before the scheduler starts or if interrupts  are not yet fully 
-// active/prioritized correctly, uwTick may not increment, causing HAL_Delay to hang in 
-// an infinite loop.
+// Override the HAL_Delay to use it in ssd1306_Init() before the scheduler
+// starts: The issue is that HAL_Delay relies on the HAL tick interrupt (TIM17)
+// to increment uwTick. During initialization, before the scheduler starts or if
+// interrupts  are not yet fully active/prioritized correctly, uwTick may not
+// increment, causing HAL_Delay to hang in an infinite loop.
 /**
-  * @brief  This function provides minimum delay (in milliseconds) based
-  *         on variable incremented.
-  * @param  Delay  specifies the delay time length, in milliseconds.
-  * @retval None
-  */
-void HAL_Delay(uint32_t Delay)
-{
-  if (osKernelGetState() == osKernelRunning)
-  {
-     osDelay(Delay);
-  }
-  else
-  {
+ * @brief  This function provides minimum delay (in milliseconds) based
+ *         on variable incremented.
+ * @param  Delay  specifies the delay time length, in milliseconds.
+ * @retval None
+ */
+void HAL_Delay(uint32_t Delay) {
+  if (osKernelGetState() == osKernelRunning) {
+    osDelay(Delay);
+  } else {
     /* Busy wait */
     volatile uint32_t count = (SystemCoreClock / 4000) * Delay;
-    while (count--)
-    {
+    while (count--) {
       __NOP();
     }
   }
@@ -909,10 +883,10 @@ void HAL_Delay(uint32_t Delay)
 
 /* USER CODE BEGIN Header_StartDefaultTask */
 /**
-  * @brief  Function implementing the defaultTask thread.
-  * @param  argument: Pointer to DefaultTaskArgsTypeDef containing task arguments
-  * @retval None
-  */
+ * @brief  Function implementing the defaultTask thread.
+ * @param  argument: Pointer to DefaultTaskArgsTypeDef containing task arguments
+ * @retval None
+ */
 /* USER CODE END Header_StartDefaultTask */
 void StartDefaultTask(void *argument)
 {
@@ -920,21 +894,23 @@ void StartDefaultTask(void *argument)
 #if TESTS
   DefaultTaskArgsTypeDef *args = (DefaultTaskArgsTypeDef *)argument;
 #else
-  (void)argument;  /* Unused */
+  (void)argument; /* Unused */
 #endif
 
 #if OS_TASKS_DEBUG
-  printf("DefaultTask running (heap=%lu)\n", (unsigned long)xPortGetFreeHeapSize());
+  printf("DefaultTask running (heap=%lu)\n",
+         (unsigned long)xPortGetFreeHeapSize());
 #endif
 
 #if TESTS
 #if DRIVER_TEST
-  Driver_Test(args->storage2system_event_queue, args->input2vp_event_queue, args->config_access, args->sensor_values_access);
+  Driver_Test(args->storage2system_event_queue, args->input2vp_event_queue,
+              args->config_access, args->sensor_values_access);
 #elif ADAPTATION_TEST
   Adaptation_Test();
 #endif
 #else
-  for(;;) {
+  for (;;) {
     osDelay(pdMS_TO_TICKS(60000U));
   }
 #endif
@@ -972,8 +948,7 @@ void Error_Handler(void)
   /* USER CODE BEGIN Error_Handler_Debug */
   /* User can add his own implementation to report the HAL error return state */
   __disable_irq();
-  while (1)
-  {
+  while (1) {
   }
   /* USER CODE END Error_Handler_Debug */
 }
@@ -988,8 +963,9 @@ void Error_Handler(void)
 void assert_failed(uint8_t *file, uint32_t line)
 {
   /* USER CODE BEGIN 6 */
-  /* User can add his own implementation to report the file name and line number,
-     ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
+  /* User can add his own implementation to report the file name and line
+     number, ex: printf("Wrong parameters value: file %s on line %d\r\n", file,
+     line) */
   /* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */

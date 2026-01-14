@@ -1,21 +1,21 @@
 /* USER CODE BEGIN Header */
 /**
-  ******************************************************************************
-  * @file           : main.h
-  * @brief          : Header for main.c file.
-  *                   This file contains the common defines of the application.
-  ******************************************************************************
-  * @attention
-  *
-  * Copyright (c) 2025 STMicroelectronics.
-  * All rights reserved.
-  *
-  * This software is licensed under terms that can be found in the LICENSE file
-  * in the root directory of this software component.
-  * If no LICENSE file comes with this software, it is provided AS-IS.
-  *
-  ******************************************************************************
-  */
+ ******************************************************************************
+ * @file           : main.h
+ * @brief          : Header for main.c file.
+ *                   This file contains the common defines of the application.
+ ******************************************************************************
+ * @attention
+ *
+ * Copyright (c) 2025 STMicroelectronics.
+ * All rights reserved.
+ *
+ * This software is licensed under terms that can be found in the LICENSE file
+ * in the root directory of this software component.
+ * If no LICENSE file comes with this software, it is provided AS-IS.
+ *
+ ******************************************************************************
+ */
 /* USER CODE END Header */
 
 /* Define to prevent recursive inclusion -------------------------------------*/
@@ -34,11 +34,12 @@ extern "C" {
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "task_debug.h"
 #include "cmsis_os2.h"
-#include "storage_task.h"
 #include "sensor_task.h"
+#include "storage_task.h"
+#include "task_debug.h"
 #include "tests.h"
+
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
@@ -51,27 +52,36 @@ struct SensorValuesAccessTypeDef;
  * @brief Arguments for defaultTask
  */
 typedef struct {
-  osMessageQueueId_t storage2system_event_queue;  /**< Storage event queue handle */
-  osMessageQueueId_t input2vp_event_queue;        /**< Input to ViewPresenter event queue handle */
-  struct ConfigAccessTypeDef *config_access;             /**< Configuration access with mutex protection */
-  struct SensorValuesAccessTypeDef *sensor_values_access; /**< Sensor values access with mutex protection */
+  osMessageQueueId_t
+      storage2system_event_queue; /**< Storage event queue handle */
+  osMessageQueueId_t
+      input2vp_event_queue; /**< Input to ViewPresenter event queue handle */
+  struct ConfigAccessTypeDef
+      *config_access; /**< Configuration access with mutex protection */
+  struct SensorValuesAccessTypeDef
+      *sensor_values_access; /**< Sensor values access with mutex protection */
 } DefaultTaskArgsTypeDef;
 
 /**
  * @brief Arguments for storageTask
  */
 typedef struct {
-  osMessageQueueId_t storage2system_event_queue;  /**< Storage event queue handle */
-  osMessageQueueId_t system2storage_event_queue;  /**< System -> Storage event queue handle */
-  struct ConfigAccessTypeDef *config_access;             /**< Configuration access with mutex protection */
+  osMessageQueueId_t
+      storage2system_event_queue; /**< Storage event queue handle */
+  osMessageQueueId_t
+      system2storage_event_queue; /**< System -> Storage event queue handle */
+  struct ConfigAccessTypeDef
+      *config_access; /**< Configuration access with mutex protection */
 } StorageTaskArgsTypeDef;
 
 /**
  * @brief Arguments for sensorTask
  */
 typedef struct {
-  struct ConfigAccessTypeDef *config_access;             /**< Configuration access with mutex protection */
-  struct SensorValuesAccessTypeDef *sensor_values_access; /**< Sensor values access with mutex protection */
+  struct ConfigAccessTypeDef
+      *config_access; /**< Configuration access with mutex protection */
+  struct SensorValuesAccessTypeDef
+      *sensor_values_access; /**< Sensor values access with mutex protection */
 } SensorTaskArgsTypeDef;
 
 /* USER CODE END ET */

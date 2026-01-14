@@ -1,13 +1,13 @@
 #include "maintenance_task.h"
-#include "main.h"
-#include "cmsis_os2.h"
 #include "FreeRTOS.h"
+#include "cmsis_os2.h"
+#include "main.h"
 #include <stdio.h>
 #include <stdlib.h>
 
-/* Minimal Maintenance mock: wait for adapt start, delay, then report end back to System */
-void StartMaintenanceTask(void *argument)
-{
+/* Minimal Maintenance mock: wait for adapt start, delay, then report end back
+ * to System */
+void StartMaintenanceTask(void *argument) {
   MaintenanceTaskArgsTypeDef *args = (MaintenanceTaskArgsTypeDef *)argument;
   if (args == NULL) {
     printf("ERROR: Maintenance task args NULL\n");
@@ -21,8 +21,9 @@ void StartMaintenanceTask(void *argument)
 #endif
 
   System2MaintEventTypeDef s2m;
-  for(;;) {
-    if (s2m_q != NULL && osMessageQueueGet(s2m_q, &s2m, NULL, osWaitForever) == osOK) {
+  for (;;) {
+    if (s2m_q != NULL &&
+        osMessageQueueGet(s2m_q, &s2m, NULL, osWaitForever) == osOK) {
       if (s2m == EVT_ADAPT_START) {
         /* Simulate long-running adaptation */
         osDelay(pdMS_TO_TICKS(10000));
