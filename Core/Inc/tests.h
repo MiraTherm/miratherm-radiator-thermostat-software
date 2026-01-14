@@ -9,8 +9,8 @@ extern "C" {
 #endif
 
 // Tests settings
-#define TESTS 1
-#define DRIVER_TEST 1
+#define TESTS 0
+#define DRIVER_TEST 0
 #define ADAPTATION_TEST 0
 
 #include "cmsis_os2.h"
