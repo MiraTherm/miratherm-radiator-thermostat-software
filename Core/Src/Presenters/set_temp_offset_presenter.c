@@ -29,25 +29,25 @@ SetTempOffsetPresenter_Init(SetValueView_t *view,
   SetValueView_SetTitle(view, "Temp Offset");
   SetValueView_SetUnit(view, "°C");
   SetValueView_SetOptions(
-      view, "-2.0\n-1.5\n-1.0\n-0.5\n0.0\n+0.5\n+1.0\n+1.5\n+2.0");
+      view, "-3.5\n-3.0\n-2.5\n-2.0\n-1.5\n-1.0\n-0.5\n0.0\n+0.5\n+1.0\n+1.5\n+2.0\n+2.5\n+3.0\n+3.5");
   SetValueView_Show(view);
 
   /* Calculate initial index */
-  uint16_t initial_index = 4; /* Default 0.0 */
+  uint16_t initial_index = 7; /* Default 0.0 */
   if (osMutexAcquire(config_access->mutex, 10) == osOK) {
     float current_offset = config_access->data.TemperatureOffsetC;
-    /* Calculate index: (offset + 2.0) / 0.5 */
-    int idx = (int)((current_offset + 2.0f) * 2.0f);
+    /* Calculate index: (offset + 3.5) / 0.5 */
+    int idx = (int)((current_offset + 3.5f) * 2.0f);
     if (idx < 0)
       idx = 0;
-    if (idx > 8)
-      idx = 8;
+    if (idx > 14)
+      idx = 14;
     initial_index = (uint16_t)idx;
     osMutexRelease(config_access->mutex);
   }
 
   /* Initialize Generic Presenter */
-  presenter->generic_presenter = SetValuePresenter_Init(view, initial_index, 8);
+  presenter->generic_presenter = SetValuePresenter_Init(view, initial_index, 14);
   if (!presenter->generic_presenter) {
     free(presenter);
     return NULL;
@@ -83,8 +83,8 @@ void SetTempOffsetPresenter_HandleEvent(SetTempOffsetPresenter_t *presenter,
     /* Save value */
     uint16_t index =
         SetValuePresenter_GetSelectedIndex(presenter->generic_presenter);
-    /* Map index to offset. Range -2.0 to +2.0 with 0.5 step. */
-    float new_offset = (float)index * 0.5f - 2.0f;
+    /* Map index to offset. Range -3.5 to +3.5 with 0.5 step. */
+    float new_offset = (float)index * 0.5f - 3.5f;
 
     if (osMutexAcquire(presenter->config_access->mutex, 10) == osOK) {
       presenter->config_access->data.TemperatureOffsetC = new_offset;
