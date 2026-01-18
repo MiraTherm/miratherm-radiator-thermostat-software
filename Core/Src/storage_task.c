@@ -6,6 +6,7 @@
 #include "stm32wbxx_hal.h"
 #include "task.h"
 #include "task_debug.h"
+#include "utils.h"
 
 #include <string.h>
 
@@ -193,7 +194,12 @@ void StartStorageTask(void *argument) {
     /* Save default configuration to Flash */
     ConfigTypeDef default_config = {.TemperatureOffsetC = 0.0f,
                                     .ManualTargetTemp = 20.0f};
+    Utils_LoadDefaultSchedule(&default_config.DailySchedule, 3);
     if (write_config_to_flash(&default_config)) {
+      if (osMutexAcquire(s_config_access->mutex, osWaitForever) == osOK) {
+        s_config_access->data = default_config;
+        osMutexRelease(s_config_access->mutex);
+      }
       printf("StorageTask: Default configuration saved to Flash\n");
     } else {
       printf("StorageTask: Failed to save default configuration\n");
@@ -222,7 +228,7 @@ void StartStorageTask(void *argument) {
         printf("StorageTask: Factory Reset Requested\n");
         ConfigTypeDef default_config = {.TemperatureOffsetC = 0.0f,
                                         .ManualTargetTemp = 20.0f};
-        /* Reset other fields if needed, e.g. schedule */
+        Utils_LoadDefaultSchedule(&default_config.DailySchedule, 3);
 
         if (write_config_to_flash(&default_config)) {
           if (osMutexAcquire(s_config_access->mutex, osWaitForever) == osOK) {

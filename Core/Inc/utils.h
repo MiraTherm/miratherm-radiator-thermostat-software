@@ -4,9 +4,20 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "storage_task.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+/**
+ * @brief Load default schedule into the provided structure
+ *
+ * @param schedule Pointer to schedule structure
+ * @param num_slots Number of slots to configure (3, 4, or 5)
+ */
+void Utils_LoadDefaultSchedule(DailyScheduleTypeDef *schedule,
+                               uint8_t num_slots);
 
 /**
  * @brief Convert temperature index to float value
