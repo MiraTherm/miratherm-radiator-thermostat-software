@@ -1,3 +1,21 @@
+/**
+ ******************************************************************************
+ * @file           :  sensor_task.c
+ * @brief          :  Implementation of sensor measurement and ADC data
+ *                    acquisition task
+ *
+ * @details        :  Provides ADC sampling, calibration calculations, battery
+ *                    state-of-charge computation, and thread-safe sensor value
+ *                    updates via mutex protection.
+ ******************************************************************************
+ * @attention
+ *
+ * Copyright (c) 2025 MiraTherm.
+ * This file is licensed under GPL-3.0 License.
+ * For details, see the LICENSE file in the project root directory.
+ *
+ ******************************************************************************
+ */
 #include "sensor_task.h"
 
 #include "FreeRTOS.h"
@@ -14,17 +32,25 @@
 #include <stddef.h>
 #include <string.h>
 
+/* ADC configuration: 4 channels (VREF, Motor, Temperature, VBat) */
 #define SENSOR_TASK_ADC_CHANNEL_COUNT 4U
 #define SENSOR_TASK_VREF_CHANNEL_INDEX 0U
 #define SENSOR_TASK_MOTOR_CHANNEL_INDEX 1U
 #define SENSOR_TASK_TEMPERATURE_CHANNEL_INDEX 2U
 #define SENSOR_TASK_VBAT_CHANNEL_INDEX 3U
+
+/* Motor shunt resistance and battery divider */
 #define SENSOR_TASK_MOTOR_SHUNT_OHMS 0.22f
 #define SENSOR_TASK_VBAT_DIVIDER 3.0f
 
+/* DMA buffer for ADC conversions */
 static uint16_t s_adc_dma_buffer[SENSOR_TASK_ADC_CHANNEL_COUNT];
+
+/* Thread-safe access to sensor values and configuration */
 static SensorValuesAccessTypeDef *s_sensor_values_access = NULL;
 static ConfigAccessTypeDef *s_config_access = NULL;
+
+/* Motor measurement enable flag (used to switch measurement periods) */
 #if TESTS & DRIVER_TEST
 static bool s_motor_measurements_enabled = true;
 #else
@@ -33,11 +59,13 @@ static bool s_motor_measurements_enabled = false;
 
 extern ADC_HandleTypeDef hadc1;
 
+/* Convert milliseconds to FreeRTOS ticks, ensuring minimum of 1 tick */
 static TickType_t safe_ms_to_ticks(uint32_t ms) {
   const uint32_t safe_ms = (ms == 0U) ? 1U : ms;
   return pdMS_TO_TICKS(safe_ms);
 }
 
+/* Calculate internal voltage reference from ADC sample */
 static uint32_t calculate_vref_voltage(uint16_t vref_raw) {
   if (vref_raw == 0U) {
     return TEMPSENSOR_CAL_VREFANALOG;
@@ -45,6 +73,7 @@ static uint32_t calculate_vref_voltage(uint16_t vref_raw) {
   return __LL_ADC_CALC_VREFANALOG_VOLTAGE(vref_raw, LL_ADC_RESOLUTION_12B);
 }
 
+/* Convert ADC raw value to voltage using current VREF calibration */
 static float convert_raw_to_voltage(uint16_t raw_value, uint32_t vref_mv) {
   const uint32_t millivolt =
       __LL_ADC_CALC_DATA_TO_VOLTAGE(vref_mv, raw_value, LL_ADC_RESOLUTION_12B);
@@ -65,19 +94,16 @@ static float calculate_temperature(uint16_t temperature_raw, uint32_t vref_mv) {
   return (float)temperature + offset;
 }
 
+/* Calculate battery state-of-charge percentage from voltage
+   Uses piecewise linear interpolation of 2 AA alkaline discharge curve */
 static uint8_t calculate_battery_soc(float battery_voltage_v) {
-  /* Calculate State of Charge for 2 AA alkaline batteries in series.
-     Uses a piecewise linear interpolation based on realistic alkaline discharge
-     curve. */
-
   typedef struct {
     uint16_t mv;
     uint8_t soc;
   } BatteryPoint;
 
-  /* Discharge curve for 2 AA alkaline batteries (voltage points in mV).
-     Values are doubled from single-battery curve since we have 2 batteries in
-     series. */
+  /* Discharge curve for 2 AA alkaline batteries (voltage in mV)
+     Doubled from single-battery curve due to 2-cell series configuration */
   static const BatteryPoint curve[] = {
       {3200, 100}, /* Freshly out of pack (2 x 1.6V) */
       {3000, 100}, /* Nominal Full (2 x 1.5V) */
@@ -97,21 +123,15 @@ static uint8_t calculate_battery_soc(float battery_voltage_v) {
   if (voltage_mv <= curve[6].mv)
     return 0;
 
-  /* Interpolate between points */
+  /* Interpolate between curve points */
   for (int i = 0; i < 6; i++) {
     if (voltage_mv >= curve[i + 1].mv) {
-      /* We are between curve[i] and curve[i+1] */
       uint16_t v_high = curve[i].mv;
       uint16_t v_low = curve[i + 1].mv;
       uint8_t s_high = curve[i].soc;
       uint8_t s_low = curve[i + 1].soc;
 
-      /* Linear interpolation formula:
-         SoC = s_low + (v_measured - v_low) * (s_high - s_low) / (v_high -
-         v_low) */
-
-      /* Using 32-bit math for the multiplication to prevent overflow before
-       * division */
+      /* Linear interpolation: SoC = s_low + (v - v_low) * (s_high - s_low) / (v_high - v_low) */
       uint32_t soc =
           s_low + ((uint32_t)(voltage_mv - v_low) * (s_high - s_low)) /
                       (v_high - v_low);
@@ -120,21 +140,25 @@ static uint8_t calculate_battery_soc(float battery_voltage_v) {
     }
   }
 
-  return 0; /* Should not reach here */
+  return 0;
 }
 
+/* Enable motor current measurements */
 void SensorTask_StartMotorMeasurements(void) {
   taskENTER_CRITICAL();
   s_motor_measurements_enabled = true;
   taskEXIT_CRITICAL();
 }
 
+/* Disable motor current measurements */
 void SensorTask_StopMotorMeasurements(void) {
   taskENTER_CRITICAL();
   s_motor_measurements_enabled = false;
   taskEXIT_CRITICAL();
 }
 
+/* Main sensor measurement task
+   Acquires ADC samples, performs calculations, updates sensor values via mutex */
 void StartSensorTask(void *argument) {
   SensorTaskArgsTypeDef *args = (SensorTaskArgsTypeDef *)argument;
 
@@ -157,6 +181,7 @@ void StartSensorTask(void *argument) {
     Error_Handler();
   }
 
+  /* Calibrate ADC and start DMA conversions */
   if (HAL_ADCEx_Calibration_Start(&hadc1, ADC_SINGLE_ENDED) != HAL_OK) {
     Error_Handler();
   }
@@ -167,9 +192,7 @@ void StartSensorTask(void *argument) {
     Error_Handler();
   }
 
-  /* Wait for first ADC conversions to complete before starting main loop.
-     Wait for 1 complete sampling period to ensure the DMA buffer is properly
-     filled. */
+  /* Wait for first ADC conversions to complete before starting main loop */
   osDelay(safe_ms_to_ticks(SENSOR_TASK_MIN_SAMPLING_PERIOD_MS));
 
   TickType_t last_wake_time = osKernelGetTickCount();
@@ -180,8 +203,7 @@ void StartSensorTask(void *argument) {
   printf("SensorTask init OK. Running loop...\n");
 
   for (;;) {
-    /* 1. Perform all ADC calculations OUTSIDE the mutex (keep critical section
-     * short) */
+    /* Perform all ADC calculations OUTSIDE the mutex (keep critical section short) */
     const uint16_t vref_raw = s_adc_dma_buffer[SENSOR_TASK_VREF_CHANNEL_INDEX];
     const uint32_t vref_mv = calculate_vref_voltage(vref_raw);
 
@@ -199,7 +221,7 @@ void StartSensorTask(void *argument) {
     taskEXIT_CRITICAL();
 
     if (local_motor_enabled) {
-      /* Motor measurements are enabled */
+      /* Motor measurements enabled: sample motor current */
       const uint16_t motor_raw =
           s_adc_dma_buffer[SENSOR_TASK_MOTOR_CHANNEL_INDEX];
       const float motor_voltage = convert_raw_to_voltage(motor_raw, vref_mv);
@@ -248,7 +270,7 @@ void StartSensorTask(void *argument) {
 #endif
     }
 
-    /* 2. Single Mutex Acquire for all updates */
+    /* Update sensor values via mutex */
     if (osMutexAcquire(s_sensor_values_access->mutex, osWaitForever) == osOK) {
       if (update_motor) {
         s_sensor_values_access->data.MotorCurrent = motor_current;
@@ -264,14 +286,13 @@ void StartSensorTask(void *argument) {
       osMutexRelease(s_sensor_values_access->mutex);
     }
 
-    /* 3. Determine delay interval based on motor measurement state */
+    /* Determine delay interval based on motor measurement state */
     TickType_t task_interval;
     if (local_motor_enabled) {
       /* Motor measurements enabled: use standard motor measurement period */
       task_interval = safe_ms_to_ticks(MOTOR_MEAS_PERIOD_MS);
     } else {
-      /* Motor measurements disabled: measure temperature/battery once per
-       * minute */
+      /* Motor measurements disabled: measure temp/battery once per minute */
       task_interval = safe_ms_to_ticks(TEMPERATURE_AND_BAT_MEAS_PERIOD_MS);
     }
     vTaskDelayUntil(&last_wake_time, task_interval);
