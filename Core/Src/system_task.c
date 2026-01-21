@@ -1,3 +1,21 @@
+/**
+ ******************************************************************************
+ * @file           :  system_task.c
+ * @brief          :  Implementation of main system control task
+ *
+ * @details        :  Manages system task initialization and the main control
+ *                    loop driving the state machine. Coordinates event queues
+ *                    and provides global context access for API helpers.
+ ******************************************************************************
+ * @attention
+ *
+ * Copyright (c) 2025 MiraTherm.
+ * This file is licensed under GPL-3.0 License.
+ * For details, see the LICENSE file in the project root directory.
+ *
+ ******************************************************************************
+ */
+
 #include "system_task.h"
 #include "FreeRTOS.h"
 #include "cmsis_os2.h"
@@ -6,10 +24,10 @@
 #include "system_state_machine.h"
 #include <stdio.h>
 
-/* Global pointer to system context for helper APIs */
+/* Global pointer to system context for API helpers (System_GetState, etc.) */
 static SystemContextAccessTypeDef *g_sys_ctx = NULL;
 
-/* The state machine implementation */
+/* Main system task: initializes state machine and runs control loop */
 void StartSystemTask(void *argument) {
   SystemTaskArgsTypeDef *args = (SystemTaskArgsTypeDef *)argument;
   if (args == NULL) {
@@ -35,14 +53,15 @@ void StartSystemTask(void *argument) {
          (unsigned long)xPortGetFreeHeapSize());
 #endif
 
-  /* Initialize the State Machine */
+  /* Initialize the state machine with task arguments */
   SystemSM_Init(args);
 
+  /* Main control loop: execute state machine periodically */
   for (;;) {
-    /* Run the State Machine */
+    /* Run one iteration of the state machine */
     SystemSM_Run();
 
-    /* Yield/Delay to prevent starvation */
+    /* Yield to prevent task starvation */
     osDelay(pdMS_TO_TICKS(100));
   }
 }
