@@ -7,8 +7,7 @@
  *                    system tick timestamps. Button presses/releases are
  *                    confirmed after BUTTONS_DEBOUNCE_MS delay. Three buttons
  *                    supported: middle (active low), left (active high), right
- *                    (active high). Thread-safe state access using critical
- *                    sections.
+ *                    (active high).
  ******************************************************************************
  * @attention
  *
@@ -80,12 +79,6 @@ void Buttons_RecordEdge(button_id_t id) {
   state->last_edge_tick = HAL_GetTick();
 }
 
-/* Save PRIMASK register for interrupt state preservation */
-static uint32_t button_primask_save(void) { return __get_PRIMASK(); }
-
-/* Restore PRIMASK register to saved interrupt state */
-static void button_primask_restore(uint32_t mask) { __set_PRIMASK(mask); }
-
 /* Poll all pending button edges, apply debounce, and return confirmed events */
 bool Buttons_Poll(button_event_t *event) {
   if (event == NULL) {
@@ -109,11 +102,10 @@ bool Buttons_Poll(button_event_t *event) {
     const button_pin_map_t *mapping = &s_button_pins[id];
     const bool current_pressed = button_read_pressed(mapping);
 
-    const uint32_t saved_mask = button_primask_save();
+    /* Disable interrupts briefly to check for race condition */
     __disable_irq();
-
     if (state->last_edge_tick != edge_tick) {
-      button_primask_restore(saved_mask);
+      __enable_irq();
       continue;
     }
 
@@ -123,8 +115,7 @@ bool Buttons_Poll(button_event_t *event) {
     if (current_pressed != previous_pressed) {
       state->stable_state = current_pressed;
     }
-
-    button_primask_restore(saved_mask);
+    __enable_irq();
 
     if (current_pressed != previous_pressed) {
       event->id = id;
@@ -144,11 +135,6 @@ bool Buttons_GetStableState(button_id_t id) {
     return false;
   }
 
-  const uint32_t saved_mask = button_primask_save();
-  __disable_irq();
-
-  const bool state = s_button_states[id].stable_state;
-
-  button_primask_restore(saved_mask);
-  return state;
+  /* Single volatile read is atomic on ARM Cortex-M, no critical section needed */
+  return s_button_states[id].stable_state;
 }
