@@ -63,13 +63,17 @@ void StartViewPresenterTask(void *argument) {
     osStatus_t queue_status = osMessageQueueGet(
         input2vp_event_queue, &event, NULL, pdMS_TO_TICKS(VIEW_DELAY_MS));
     if (queue_status == osOK) {
+#if VIEW_PRESENTER_TASK_DEBUG_PRINTING
       printf("ViewPresenterTask: Received event type=%d\n", event.type);
+#endif
       Router_HandleEvent(&event);
 
       // Drain remaining events in the queue without blocking
       while (osMessageQueueGet(input2vp_event_queue, &event, NULL, 0) == osOK) {
+#if VIEW_PRESENTER_TASK_DEBUG_PRINTING
         printf("ViewPresenterTask: Received event (drained) type=%d\n",
                event.type);
+#endif
         Router_HandleEvent(&event);
       }
     }
