@@ -25,63 +25,98 @@
 #include <stdint.h>
 
 /**
- * @brief Global router state
+ ******************************************************************************
+ * @file           :  view_presenter_router.c
+ * @brief          :  Implementation of MVP router for UI navigation
+ *
+ * @details        :  Manages view/presenter lifecycle, state-driven routing,
+ *                    input event dispatch, and periodic UI updates.
+ ******************************************************************************
+ * @attention
+ *
+ * Copyright (c) 2025 MiraTherm.
+ * This file is licensed under GPL-3.0 License.
+ * For details, see the LICENSE file in the project root directory.
+ *
+ ******************************************************************************
  */
+
+#include "view_presenter_router.h"
+#include "boost_presenter.h"
+#include "boost_view.h"
+#include "change_schedule_presenter.h"
+#include "change_schedule_view.h"
+#include "cmsis_os2.h"
+#include "factory_reset_presenter.h"
+#include "home_presenter.h"
+#include "home_view.h"
+#include "loading_presenter.h"
+#include "loading_view.h"
+#include "menu_presenter.h"
+#include "menu_view.h"
+#include "set_date_time_presenter.h"
+#include "set_date_time_view.h"
+#include "set_temp_offset_presenter.h"
+#include "set_value_view.h"
+#include "task_debug.h"
+#include "waiting_presenter.h"
+#include "waiting_view.h"
+#if VIEW_PRESENTER_TASK_DEBUG_LEDS
+#include "stm32wbxx_nucleo.h"
+#endif
+#include <stddef.h>
+#include <stdint.h>
+
+/* Global router state with all view/presenter pairs and queues */
 typedef struct {
   RouteTypeDef current_route;
 
-  /* Date/Time route */
+  /* Configuration screens */
   SetDateTimePresenter_t *dt_presenter;
   SetDateTimeView_t *dt_view;
 
-  /* Change Schedule route */
   ChangeSchedulePresenter_t *sch_presenter;
   ChangeScheduleView_t *sch_view;
 
-  /* Loading route (used for INIT, RUNNING) */
+  /* Initialization and progress screens */
   LoadingPresenter_t *loading_presenter;
   LoadingView_t *loading_view;
 
-  /* Waiting route (Begin installation?) */
   WaitingPresenter_t *waiting_presenter;
   WaitingView_t *waiting_view;
 
-  /* Adaptation route */
   LoadingPresenter_t *adapt_presenter;
   LoadingView_t *adapt_view;
 
-  /* Adaptation failed route (uses waiting view) */
   WaitingPresenter_t *adapt_fail_presenter;
   WaitingView_t *adapt_fail_view;
 
-  /* Home route */
+  /* Operating screens */
   HomePresenter_t *home_presenter;
   HomeView_t *home_view;
 
-  /* Boost route */
   BoostPresenter_t *boost_presenter;
   BoostView_t *boost_view;
 
-  /* Menu route */
   MenuPresenter_t *menu_presenter;
   MenuView_t *menu_view;
 
-  /* Edit Temp Offset route */
+  /* Settings screens */
   SetTempOffsetPresenter_t *temp_offset_presenter;
   SetValueView_t *temp_offset_view;
 
-  /* Factory Reset route */
   FactoryResetPresenter_t *factory_reset_presenter;
 
-  /* System Interface */
+  /* System communication and shared data */
   osMessageQueueId_t vp2system_queue;
   SystemContextAccessTypeDef *system_context;
   ConfigAccessTypeDef *config_access;
   SensorValuesAccessTypeDef *sensor_values_access;
 } Router_State_t;
 
+/* Global router state instance */
 static Router_State_t g_router_state = {
-    .current_route = ROUTE_INIT, /* Default start state */
+    .current_route = ROUTE_INIT,
     .dt_presenter = NULL,
     .dt_view = NULL,
     .sch_presenter = NULL,
@@ -108,6 +143,7 @@ static Router_State_t g_router_state = {
     .config_access = NULL,
     .sensor_values_access = NULL};
 
+/* Update debug LEDs based on button input (debug feature) */
 static void Router_UpdateDebugLeds(const Input2VPEvent_t *event) {
 #if VIEW_PRESENTER_TASK_DEBUG_LEDS
   if (!event)
@@ -143,6 +179,7 @@ static void Router_UpdateDebugLeds(const Input2VPEvent_t *event) {
 #endif
 }
 
+/* Query current system state with mutex protection */
 static SystemState_t Router_GetSystemState(void) {
   SystemState_t state = STATE_INIT;
   if (g_router_state.system_context && g_router_state.system_context->mutex) {
@@ -159,6 +196,7 @@ static SystemState_t Router_GetSystemState(void) {
   return state;
 }
 
+/* Send user action event to system task */
 static void Router_SendSystemEvent(VP2SystemEventTypeDef event) {
   if (g_router_state.vp2system_queue) {
     osMessageQueuePut(g_router_state.vp2system_queue, &event, 0, 0);
