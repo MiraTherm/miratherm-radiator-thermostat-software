@@ -1,8 +1,20 @@
-/* lvgl_port_display.c
- * Implementation of display callbacks and combined initialization for LVGL
- * using an SSD1306 monochrome display.
+/**
+ ******************************************************************************
+ * @file lvgl_port_display.c
+ * @brief Implementation of LVGL port for use on STM32WB55 with SH1106 display 
+ * driver.
+ *
+ * Currently a SH1106 monochrome display is being used.
+ * To replace the display driver, modify this file accordingly.
+ ******************************************************************************
+ * @attention
+ *
+ * Copyright (c) 2025 MiraTherm.
+ * This file is licensed under GPL-3.0 License.
+ * For details, see the LICENSE file in the project root directory.
+ *
+ ******************************************************************************
  */
-
 #include "lvgl_port_display.h"
 #include "ssd1306.h"
 #include "task_debug.h"
@@ -15,22 +27,51 @@
 #include <stdio.h>
 #include <string.h>
 
-/* Display buffer configuration */
-#define PARTIAL_BUF_SIZE (SSD1306_WIDTH * 8) /* 128 * 8 = 1024 bytes */
+/**
+ * @brief Size of the partial display buffer.
+ *
+ * This buffer holds one page (8 pixels in height) of the display.
+ * For a 128x64 SSD1306 display: 128 pixels × 8 pixels = 1024 bytes.
+ */
+#define PARTIAL_BUF_SIZE (SSD1306_WIDTH * 8)
 
-/* SSD1306/SH1106 command constants */
+/** @brief Page start address base for setting current page (0xB0-0xB7). */
 #define SSD1306_PAGE_START_ADDR 0xB0
+
+/** @brief Lower nibble of column address (0x00-0x0F). */
 #define SSD1306_LOWER_COL_ADDR 0x00
+
+/** @brief Mask for lower column address bits. */
 #define SSD1306_LOWER_COL_MASK 0x0F
+
+/** @brief Upper nibble of column address (0x10-0x1F). */
 #define SSD1306_UPPER_COL_ADDR 0x10
+
+/** @brief Mask for upper column address bits. */
 #define SSD1306_UPPER_COL_MASK 0x0F
 
-/* SH1106 column offset - RAM columns 2-129 map to display columns 0-127 */
+/**
+ * @brief SH1106 column offset correction.
+ *
+ * The SH1106 display controller maps RAM columns 2-129 to physical display
+ * columns 0-127. This constant compensates for this offset in addressing.
+ */
 #define SH1106_COL_OFFSET 2
 
-/* Bit manipulation macros - optimized for speed */
+/** @brief Set a single bit in a byte variable. */
 #define BIT_SET(a, b) ((a) |= (1U << (b)))
+
+/** @brief Clear a single bit in a byte variable. */
 #define BIT_CLEAR(a, b) ((a) &= ~(1U << (b)))
+
+/**
+ * @brief Write a bit value to a specific location in a buffer.
+ *
+ * @param buf  Buffer array containing the target byte.
+ * @param idx  Index of the byte in the buffer.
+ * @param bit  Bit position within the byte (0-7).
+ * @param val  Bit value (non-zero = set, zero = clear).
+ */
 #define WRITE_BIT(buf, idx, bit, val)                                          \
   do {                                                                         \
     if (val)                                                                   \
@@ -39,15 +80,40 @@
       BIT_CLEAR(buf[idx], bit);                                                \
   } while (0)
 
-/* Bit operations for monochrome display */
+/** @brief Number of bits per byte. */
 #define BYTE_BITS 8
-#define BIT_MASK 0x07
-#define ROW_BITS 3  /* log2(BYTE_BITS) */
-#define COL_SHIFT 4 /* bits to shift for upper column address */
 
-/* LVGL rendering mutex for thread safety */
+/** @brief Mask to extract bit position within a byte (y & 0x07). */
+#define BIT_MASK 0x07
+
+/** @brief Logarithm base 2 of BYTE_BITS; used for fast division/multiplication.
+ */
+#define ROW_BITS 3
+
+/** @brief Bit shift for converting column address to upper/lower nibbles. */
+#define COL_SHIFT 4
+
+/**
+ * @brief LVGL rendering mutex handle.
+ *
+ * Protects concurrent access to LVGL objects from multiple tasks
+ * (display task, input task, etc.). Uses recursive mutex to allow
+ * nested locking from the same task.
+ */
 static osMutexId_t s_lvgl_mutex;
 
+/**
+ * @brief Acquire the LVGL rendering mutex.
+ *
+ * Attempts to acquire the LVGL mutex for exclusive access to rendering
+ * operations. This function blocks indefinitely until the mutex becomes
+ * available.
+ *
+ * @return true if the mutex was successfully acquired.
+ * @return false if the mutex handle is NULL (not initialized).
+ *
+ * @see lv_port_unlock()
+ */
 bool lv_port_lock(void) {
   if (s_lvgl_mutex == NULL) {
     return false;
@@ -55,6 +121,15 @@ bool lv_port_lock(void) {
   return osMutexAcquire(s_lvgl_mutex, osWaitForever) == osOK;
 }
 
+/**
+ * @brief Release the LVGL rendering mutex.
+ *
+ * Releases the LVGL mutex to allow other tasks to acquire it.
+ * Safe to call even if the mutex is not currently held by this task
+ * due to the recursive mutex attribute.
+ *
+ * @see lv_port_lock()
+ */
 void lv_port_unlock(void) {
   if (s_lvgl_mutex == NULL) {
     return;
@@ -62,6 +137,28 @@ void lv_port_unlock(void) {
   osMutexRelease(s_lvgl_mutex);
 }
 
+/**
+ * @brief LVGL rendering task entry point for FreeRTOS.
+ *
+ * Runs in an infinite loop, executing LVGL timer callbacks and display
+ * rendering. Each iteration:
+ * 1. Acquires the LVGL mutex
+ * 2. Calls lv_timer_handler() to process timers and render
+ * 3. Releases the mutex
+ * 4. Yields with 1ms delay
+ *
+ * This task should run at regular intervals to maintain display responsiveness.
+ * The 1ms delay can be adjusted based on the desired display refresh rate.
+ *
+ * @param[in] argument FreeRTOS task argument (unused).
+ *
+ * @note This function never returns; it runs until the system is reset.
+ * @note Debug output can be enabled with OS_TASKS_DEBUG preprocessor flag.
+ *
+ * @see display_system_init()
+ * @see lv_port_lock()
+ * @see lv_timer_handler()
+ */
 void StartLVGLTask(void *argument) {
   /* Infinite loop - dedicated LVGL rendering task */
   (void)argument;
@@ -83,6 +180,30 @@ void StartLVGLTask(void *argument) {
   }
 }
 
+/**
+ * @brief Display flush callback for rendering partial display updates.
+ *
+ * This callback is invoked by LVGL after rendering a portion of the display.
+ * It transfers the rendered pixel data from the color buffer to the
+ * SSD1306/SH1106 display via I2C.
+ *
+ * The function:
+ * 1. Calculates the page and column ranges for the update area
+ * 2. Adjusts column addressing for SH1106 offset (columns 2-129)
+ * 3. Writes each page of pixel data to the display
+ * 4. Notifies LVGL that the flush is complete
+ *
+ * @param[in] disp_drv    Pointer to LVGL display driver.
+ * @param[in] area        Pointer to the display area to flush (coordinates).
+ * @param[in] color_p     Pointer to the pixel buffer in monochrome format.
+ *                        Each byte represents 8 vertical pixels.
+ *
+ * @note This function is called automatically by LVGL during rendering.
+ * @note Optimized for minimal I2C overhead with batch command writes.
+ *
+ * @see rounder_cb()
+ * @see set_pixel_cb()
+ */
 static inline void flush_cb(lv_disp_drv_t *disp_drv, const lv_area_t *area,
                             lv_color_t *color_p) {
 
@@ -116,6 +237,35 @@ static inline void flush_cb(lv_disp_drv_t *disp_drv, const lv_area_t *area,
   lv_disp_flush_ready(disp_drv);
 }
 
+/**
+ * @brief Set pixel callback for drawing individual pixels.
+ *
+ * This callback is invoked by LVGL to set a single pixel in the display buffer.
+ * For monochrome displays, each byte contains 8 pixels arranged vertically.
+ * This function uses fast bit arithmetic to locate and modify the target pixel.
+ *
+ * Pixel location calculation:
+ * - Row index: y >> 3 (divide by 8)
+ * - Bit position: y & 0x7 (modulo 8)
+ * - Byte offset: x + (row_offset × buffer_width)
+ *
+ * @param[in]     disp_drv  Pointer to LVGL display driver (unused).
+ * @param[in,out] buf       Pointer to the pixel buffer.
+ * @param[in]     buf_w     Width of the buffer in pixels.
+ * @param[in]     x         X coordinate of the pixel.
+ * @param[in]     y         Y coordinate of the pixel.
+ * @param[in]     color     Pixel color (monochrome: any non-zero value sets
+ * bit).
+ * @param[in]     opa       Opacity value (unused for monochrome display).
+ *
+ * @note This function is called for advanced drawing operations.
+ * @note Optimized with bitwise operations to avoid division/modulo.
+ * @note For monochrome, only the color.full field is checked (0 = off, non-zero
+ * = on).
+ *
+ * @see set_px_cb
+ * @see flush_cb()
+ */
 static inline void set_pixel_cb(struct _lv_disp_drv_t *disp_drv, uint8_t *buf,
                                 lv_coord_t buf_w, lv_coord_t x, lv_coord_t y,
                                 lv_color_t color, lv_opa_t opa) {
@@ -135,6 +285,32 @@ static inline void set_pixel_cb(struct _lv_disp_drv_t *disp_drv, uint8_t *buf,
   }
 }
 
+/**
+ * @brief Display area rounding callback for monochrome display compatibility.
+ *
+ * For monochrome displays, pixels are organized as 8 bits per byte vertically.
+ * LVGL rendering areas must be aligned to these 8-pixel boundaries to ensure
+ * efficient rendering and avoid partial byte updates.
+ *
+ * This callback rounds the provided drawing area to the nearest 8-pixel
+ * boundaries:
+ * - Y1 (top):    Rounds down to the nearest multiple of 8
+ * - Y2 (bottom): Rounds up to the nearest multiple of 8 + 7
+ *
+ * Example: y1=10, y2=20 → y1=8, y2=23 (page-aligned)
+ *
+ * @param[in]     disp_drv  Pointer to LVGL display driver (unused).
+ * @param[in,out] area      Pointer to the display area coordinates.
+ *                          X coordinates remain unchanged.
+ *                          Y coordinates are adjusted to page boundaries.
+ *
+ * @note This function is essential for correct rendering on monochrome
+ * displays.
+ * @note Called automatically by LVGL before each render operation.
+ * @note X coordinate alignment is not required for this display.
+ *
+ * @see flush_cb()
+ */
 static inline void rounder_cb(struct _lv_disp_drv_t *disp_drv,
                               lv_area_t *area) {
   (void)disp_drv;
@@ -143,6 +319,30 @@ static inline void rounder_cb(struct _lv_disp_drv_t *disp_drv,
   area->y2 = (area->y2 & ~BIT_MASK) | BIT_MASK;
 }
 
+/**
+ * @brief Initialize LVGL display driver for SSD1306/SH1106 monochrome display.
+ *
+ * This function performs complete LVGL display subsystem initialization:
+ * 1. Creates two display buffers for double-buffering
+ * 2. Initializes LVGL display buffer structure
+ * 3. Configures display driver with resolution and callbacks
+ * 4. Registers the driver with LVGL
+ *
+ * The display is configured for:
+ * - Monochrome 1-bit color (on/off pixels)
+ * - Partial refresh mode (only updated regions are redrawn)
+ * - 128x64 pixel resolution
+ * - No rotation
+ *
+ * @note This function is called by display_system_init() after LVGL core
+ *       initialization. Do not call directly.
+ * @note Buffers are statically allocated for deterministic memory usage.
+ *
+ * @see display_system_init()
+ * @see flush_cb()
+ * @see rounder_cb()
+ * @see set_pixel_cb()
+ */
 static void lv_port_disp_init(void) {
   static lv_disp_draw_buf_t draw_buf;
   static lv_color_t screenBuffer1[PARTIAL_BUF_SIZE];
@@ -177,8 +377,32 @@ static void lv_port_disp_init(void) {
   lv_disp_drv_register(&disp_drv_ssd1306);
 }
 
+/**
+ * @brief Initialize the complete display system for MiraTherm.
+ *
+ * Performs full initialization of the display subsystem in the correct order:
+ * 1. Creates the LVGL rendering mutex for thread safety (recursive, priority
+ * inheritance)
+ * 2. Initializes the SSD1306/SH1106 display hardware driver
+ * 3. Initializes the LVGL core library
+ * 4. Configures LVGL display driver and buffers
+ *
+ * Call sequence is critical:
+ * - Mutex must be created before any LVGL operations
+ * - Hardware driver must be initialized before LVGL rendering
+ * - LVGL core and display driver initialization must follow hardware setup
+ *
+ * @note This function must be called exactly once during system startup,
+ *       before creating the LVGL rendering task (StartLVGLTask).
+ * @note Not thread-safe; call only from the initialization context.
+ * @note After calling this function, the system is ready for display
+ * operations.
+ *
+ * @see StartLVGLTask()
+ * @see lv_port_lock()
+ * @see lv_port_unlock()
+ */
 void display_system_init(void) {
-  /* Create the LVGL rendering mutex */
   const osMutexAttr_t mutex_attr = {
       .name = "LVGL Mutex", .attr_bits = osMutexPrioInherit | osMutexRecursive};
   s_lvgl_mutex = osMutexNew(&mutex_attr);
