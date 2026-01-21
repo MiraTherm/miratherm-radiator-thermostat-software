@@ -1,3 +1,22 @@
+/**
+ ******************************************************************************
+ * @file           :  storage_task.c
+ * @brief          :  Implementation of Flash-based configuration storage and
+ *                    management task
+ *
+ * @details        :  Manages EEPROM emulation in STM32WB55 Flash, handles
+ *                    configuration read/write with checksum validation, and
+ *                    provides thread-safe persistent storage operations.
+ ******************************************************************************
+ * @attention
+ *
+ * Copyright (c) 2025 MiraTherm.
+ * This file is licensed under GPL-3.0 License.
+ * For details, see the LICENSE file in the project root directory.
+ *
+ ******************************************************************************
+ */
+
 #include "storage_task.h"
 
 #include "FreeRTOS.h"
@@ -10,15 +29,14 @@
 
 #include <string.h>
 
-/* EEPROM Emulation Layer Configuration */
-/* Using end of Flash for EEPROM emulation:
-   STM32WB55 has 512KB Flash, we use the last page (4KB) */
+/* EEPROM Emulation in Flash: STM32WB55 has 512KB Flash, use last 4KB page */
 #define EEPROM_START_ADDR (FLASH_BASE + 512 * 1024 - 4 * 1024)
 #define EEPROM_SIZE 4096U
 #define CONFIG_MAGIC_NUMBER 0xDEADBEEFU
 #define CONFIG_VERSION 1U
 #define STORAGE_EVENT_QUEUE_DEPTH 4U
 
+/* Configuration storage block format: magic + version + config + checksum */
 typedef struct {
   uint32_t magic;
   uint32_t version;
@@ -26,13 +44,12 @@ typedef struct {
   uint32_t checksum;
 } StorageBlockTypeDef;
 
+/* Thread-safe access to configuration and event queues */
 static ConfigAccessTypeDef *s_config_access = NULL;
 static osMessageQueueId_t s_event_queue = NULL;
 static osMessageQueueId_t s_system2storage_queue = NULL;
 
-/**
- * Calculate a simple checksum for config validation
- */
+/* Calculate simple checksum for config validation and corruption detection */
 static uint32_t calculate_checksum(const ConfigTypeDef *config) {
   if (config == NULL)
     return 0;
@@ -43,15 +60,13 @@ static uint32_t calculate_checksum(const ConfigTypeDef *config) {
 
   for (size_t i = 0; i < size; i++) {
     checksum += data[i];
-    checksum = (checksum << 1) | (checksum >> 31); /* Rotate left */
+    checksum = (checksum << 1) | (checksum >> 31); /* Rotate left for better distribution */
   }
 
   return checksum;
 }
 
-/**
- * Read configuration from Flash
- */
+/* Read configuration from Flash with validation */
 static bool read_config_from_flash(ConfigTypeDef *config) {
   if (config == NULL)
     return false;
@@ -66,7 +81,7 @@ static bool read_config_from_flash(ConfigTypeDef *config) {
   if (block->version != CONFIG_VERSION)
     return false;
 
-  /* Validate checksum */
+  /* Validate checksum to detect corruption */
   uint32_t calculated_checksum = calculate_checksum(&block->config);
   if (calculated_checksum != block->checksum)
     return false;
@@ -75,9 +90,7 @@ static bool read_config_from_flash(ConfigTypeDef *config) {
   return true;
 }
 
-/**
- * Write configuration to Flash (with sector erase)
- */
+/* Write configuration to Flash with sector erase */
 static bool write_config_to_flash(const ConfigTypeDef *config) {
   if (config == NULL)
     return false;
@@ -88,11 +101,11 @@ static bool write_config_to_flash(const ConfigTypeDef *config) {
   block.config = *config;
   block.checksum = calculate_checksum(config);
 
-  /* Unlock Flash */
+  /* Unlock Flash for writing */
   if (HAL_FLASH_Unlock() != HAL_OK)
     return false;
 
-  /* Erase the EEPROM sector */
+  /* Erase the EEPROM sector (single 4KB page) */
   FLASH_EraseInitTypeDef erase_init = {0};
   erase_init.TypeErase = FLASH_TYPEERASE_PAGES;
   erase_init.Page = (EEPROM_START_ADDR - FLASH_BASE) / FLASH_PAGE_SIZE;
@@ -104,8 +117,7 @@ static bool write_config_to_flash(const ConfigTypeDef *config) {
     return false;
   }
 
-  /* Program the new data (64-bit words) */
-  /* Ensure we write all bytes, padding with 0 if necessary */
+  /* Program data as 64-bit words (STM32WB55 requires double-word writes) */
   uint8_t *src_bytes = (uint8_t *)&block;
   uint64_t *dst = (uint64_t *)EEPROM_START_ADDR;
   size_t total_bytes = sizeof(StorageBlockTypeDef);
@@ -113,7 +125,7 @@ static bool write_config_to_flash(const ConfigTypeDef *config) {
 
   for (size_t i = 0; i < words; i++) {
     uint64_t data = 0;
-    /* Construct 64-bit word safely */
+    /* Construct 64-bit word safely from source bytes */
     size_t copy_len = (total_bytes - i * 8);
     if (copy_len > 8)
       copy_len = 8;
@@ -127,11 +139,12 @@ static bool write_config_to_flash(const ConfigTypeDef *config) {
     }
   }
 
-  /* Lock Flash */
+  /* Lock Flash after writing */
   HAL_FLASH_Lock();
   return true;
 }
 
+/* Post event to system via event queue */
 static void StorageTask_PostEvent(Storage2SystemEventTypeDef event) {
   if (s_event_queue == NULL)
     return;
@@ -143,6 +156,7 @@ static void StorageTask_PostEvent(Storage2SystemEventTypeDef event) {
   }
 }
 
+/* Retrieve event from storage event queue with timeout */
 bool StorageTask_TryGetEvent(Storage2SystemEventTypeDef *event,
                              uint32_t timeout_ticks) {
   if ((event == NULL) || (s_event_queue == NULL))
@@ -151,6 +165,7 @@ bool StorageTask_TryGetEvent(Storage2SystemEventTypeDef *event,
   return (osMessageQueueGet(s_event_queue, event, NULL, timeout_ticks) == osOK);
 }
 
+/* Main storage task: manages Flash persistence and configuration events */
 void StartStorageTask(void *argument) {
   StorageTaskArgsTypeDef *args = (StorageTaskArgsTypeDef *)argument;
   osMessageQueueId_t event_queue = args->storage2system_event_queue;
@@ -179,7 +194,7 @@ void StartStorageTask(void *argument) {
     Error_Handler();
   }
 
-  /* Attempt to load configuration from Flash */
+  /* Load configuration from Flash or initialize defaults */
   ConfigTypeDef loaded_config = {.TemperatureOffsetC = 0.0f,
                                  .ManualTargetTemp = 20.0f};
   if (read_config_from_flash(&loaded_config)) {
@@ -217,12 +232,13 @@ void StartStorageTask(void *argument) {
   /* Track last written config to detect changes */
   ConfigTypeDef last_written_config = s_config_access->data;
 
-  /* Periodic write task: check every 2.5 seconds if config changed */
+  /* Periodic monitoring loop: check every 2.5 seconds for config changes */
   for (;;) {
     System2StorageEventTypeDef sysEvt;
     osStatus_t status = osMessageQueueGet(s_system2storage_queue, &sysEvt, NULL,
                                           pdMS_TO_TICKS(2500U));
 
+    /* Handle factory reset request */
     if (status == osOK) {
       if (sysEvt == EVT_CFG_RST_REQ) {
         printf("StorageTask: Factory Reset Requested\n");
@@ -233,8 +249,7 @@ void StartStorageTask(void *argument) {
         if (write_config_to_flash(&default_config)) {
           if (osMutexAcquire(s_config_access->mutex, osWaitForever) == osOK) {
             s_config_access->data = default_config;
-            last_written_config =
-                default_config; /* Update last written to avoid re-write */
+            last_written_config = default_config; /* Prevent re-write */
             osMutexRelease(s_config_access->mutex);
           }
           printf("StorageTask: Factory Reset Complete\n");
@@ -243,8 +258,8 @@ void StartStorageTask(void *argument) {
       }
     }
 
+    /* Check if config changed and write to Flash if needed */
     if (osMutexAcquire(s_config_access->mutex, osWaitForever) == osOK) {
-      /* Check if config changed by comparing with last written version */
       bool config_changed =
           (memcmp(&s_config_access->data, &last_written_config,
                   sizeof(ConfigTypeDef)) != 0);
@@ -253,7 +268,7 @@ void StartStorageTask(void *argument) {
         ConfigTypeDef current_data = s_config_access->data;
         osMutexRelease(s_config_access->mutex);
 
-        /* Config changed, write to Flash */
+        /* Config changed, persist to Flash */
         if (write_config_to_flash(&current_data)) {
           if (osMutexAcquire(s_config_access->mutex, osWaitForever) == osOK) {
             last_written_config = s_config_access->data;
