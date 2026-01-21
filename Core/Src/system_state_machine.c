@@ -1,12 +1,21 @@
-/*
- * File: system_state_machine.c
+/**
+ ******************************************************************************
+ * @file           :  system_state_machine.c
+ * @brief          :  Implementation of system state machine logic
  *
- * Summary:
- * - System State Machine Implementation
- * - Manages the main operational states of the system.
+ * @details        :  Implements finite state machine handling state transitions,
+ *                    event processing, exit/entry actions, and shared context
+ *                    updates for operational state control.
+ ******************************************************************************
+ * @attention
+ *
+ * Copyright (c) 2025 MiraTherm.
+ * This file is licensed under GPL-3.0 License.
+ * For details, see the LICENSE file in the project root directory.
+ *
+ ******************************************************************************
  */
 
-/* Section: Included Files ****************************************************/
 #include "system_state_machine.h"
 #include "FreeRTOS.h"
 #include "cmsis_os2.h"
@@ -16,17 +25,16 @@
 #include "system_task.h"
 #include <stdio.h>
 
-/* Section: External Variables ************************************************/
+/* External event queue from storage task */
 extern osMessageQueueId_t storage2SystemEventQueueHandle;
 
-/* Section: Local Variables ***************************************************/
-/* - module variable to save the current state of the System */
+/* Current system state */
 static SystemState_t currentSystemState;
-/* - module variable to hold the task arguments (queues, context) */
+
+/* Task arguments containing queues and shared data pointers */
 static SystemTaskArgsTypeDef *smArgs = NULL;
 
-/* Section: Local Functions Declarations **************************************/
-/* - state handler functions */
+/* Forward declarations for state handler functions */
 static SystemState_t doInitState(void);
 static SystemState_t doCodDateTimeState(void);
 static SystemState_t doCodScheduleState(void);
@@ -36,15 +44,12 @@ static SystemState_t doAdaptFailState(void);
 static SystemState_t doRunningState(void);
 static SystemState_t doFactoryRstState(void);
 
-/* - state machine execution logic */
+/* State machine logic and helpers */
 static SystemState_t getNextState(SystemState_t state);
-
-/* - helper functions */
 static void updateSharedState(SystemState_t newState);
 static void sendMaintCommand(System2MaintEventTypeDef cmd);
 
-/* Section: Public Functions Definitions **************************************/
-
+/* Initialize state machine with task arguments */
 void SystemSM_Init(SystemTaskArgsTypeDef *args) {
   if (args == NULL) {
     printf("ERROR: System SM init args NULL\n");
@@ -58,6 +63,7 @@ void SystemSM_Init(SystemTaskArgsTypeDef *args) {
   updateSharedState(STATE_INIT);
 }
 
+/* Execute one iteration of the state machine */
 void SystemSM_Run(void) {
   if (smArgs == NULL) {
     return;
@@ -66,12 +72,12 @@ void SystemSM_Run(void) {
   SystemState_t previousSystemState = currentSystemState;
   SystemState_t nextSystemState = getNextState(previousSystemState);
 
-  /* If a state transition occurs, execute exit and entry actions */
+  /* Handle state transitions with exit and entry actions */
   if (nextSystemState != previousSystemState) {
-    /* Execute "exit" action for the old state */
+    /* Execute exit action for previous state */
     switch (previousSystemState) {
     case STATE_INIT:
-      /* Send init complete event to ViewPresenter on exit from INIT */
+      /* Signal init complete to ViewPresenter on exit */
       if (smArgs->system2_vp_queue != NULL) {
         System2VPEventTypeDef event = EVT_SYS_INIT_END;
         osMessageQueuePut(smArgs->system2_vp_queue, &event, 0, 0);
@@ -90,7 +96,7 @@ void SystemSM_Run(void) {
       break;
     }
 
-    /* Execute "entry" action for the new state */
+    /* Execute entry action for new state */
     switch (nextSystemState) {
     case STATE_INIT:
       printf("SystemSM: Entering INIT state...\n");
@@ -106,7 +112,7 @@ void SystemSM_Run(void) {
       break;
     case STATE_ADAPT:
       printf("SystemSM: Entering ADAPT state...\n");
-      /* Request maint task to perform adaptation */
+      /* Request maintenance task to perform adaptation */
       sendMaintCommand(EVT_ADAPT_START);
       break;
     case STATE_ADAPT_FAIL:
@@ -147,8 +153,7 @@ void SystemSM_Run(void) {
   }
 }
 
-/* Section: Local Functions Definitions ***************************************/
-
+/* Determine next state based on current state and queued events */
 static SystemState_t getNextState(SystemState_t state) {
   SystemState_t nextState = state;
 
@@ -185,11 +190,12 @@ static SystemState_t getNextState(SystemState_t state) {
   return nextState;
 }
 
+/* INIT state: wait for config load from storage */
 static SystemState_t doInitState(void) {
   SystemState_t nextState = STATE_INIT;
   Storage2SystemEventTypeDef stEvt;
 
-  /* Check Storage Queue */
+  /* Check for storage config load completion */
   if (storage2SystemEventQueueHandle != NULL &&
       osMessageQueueGet(storage2SystemEventQueueHandle, &stEvt, NULL, 0) ==
           osOK) {
@@ -198,8 +204,7 @@ static SystemState_t doInitState(void) {
     }
   }
 
-  /* Also consume VP events to prevent queue full, though ignored in INIT?
-     Original code checked VP queue first. */
+  /* Consume VP events to prevent queue overflow */
   VP2SystemEventTypeDef vpEvt;
   if (smArgs->vp2_system_queue != NULL &&
       osMessageQueueGet(smArgs->vp2_system_queue, &vpEvt, NULL, 0) == osOK) {
@@ -209,6 +214,7 @@ static SystemState_t doInitState(void) {
   return nextState;
 }
 
+/* COD_DATE_TIME state: wait for date/time configuration completion */
 static SystemState_t doCodDateTimeState(void) {
   SystemState_t nextState = STATE_COD_DATE_TIME;
   VP2SystemEventTypeDef vpEvt;
@@ -223,6 +229,7 @@ static SystemState_t doCodDateTimeState(void) {
   return nextState;
 }
 
+/* COD_SCHEDULE state: wait for schedule configuration completion */
 static SystemState_t doCodScheduleState(void) {
   SystemState_t nextState = STATE_COD_SCHEDULE;
   VP2SystemEventTypeDef vpEvt;
@@ -237,6 +244,7 @@ static SystemState_t doCodScheduleState(void) {
   return nextState;
 }
 
+/* NOT_INST state: wait for user to request adaptation */
 static SystemState_t doNotInstState(void) {
   SystemState_t nextState = STATE_NOT_INST;
   VP2SystemEventTypeDef vpEvt;
@@ -251,11 +259,12 @@ static SystemState_t doNotInstState(void) {
   return nextState;
 }
 
+/* ADAPT state: wait for adaptation result from maintenance task */
 static SystemState_t doAdaptState(void) {
   SystemState_t nextState = STATE_ADAPT;
   Maint2SystemEvent_t m2s;
 
-  /* Check Maint Queue */
+  /* Check maintenance result */
   if (smArgs->maint2_system_queue != NULL &&
       osMessageQueueGet(smArgs->maint2_system_queue, &m2s, NULL, 0) == osOK) {
     if (m2s.result == OK) {
@@ -265,7 +274,7 @@ static SystemState_t doAdaptState(void) {
     }
   }
 
-  /* Consume VP events (ignored in ADAPT?) */
+  /* Consume VP events to prevent queue overflow */
   VP2SystemEventTypeDef vpEvt;
   if (smArgs->vp2_system_queue != NULL &&
       osMessageQueueGet(smArgs->vp2_system_queue, &vpEvt, NULL, 0) == osOK) {
@@ -275,6 +284,7 @@ static SystemState_t doAdaptState(void) {
   return nextState;
 }
 
+/* ADAPT_FAIL state: wait for user to retry or abandon adaptation */
 static SystemState_t doAdaptFailState(void) {
   SystemState_t nextState = STATE_ADAPT_FAIL;
   VP2SystemEventTypeDef vpEvt;
@@ -289,6 +299,7 @@ static SystemState_t doAdaptFailState(void) {
   return nextState;
 }
 
+/* RUNNING state: manage active heating control and schedule transitions */
 static SystemState_t doRunningState(void) {
   SystemState_t nextState = STATE_RUNNING;
   static uint8_t last_slot_end_hour =
@@ -304,7 +315,7 @@ static SystemState_t doRunningState(void) {
             smArgs->system_context_access->data.boost_begin_time;
         if (elapsed_ticks >= pdMS_TO_TICKS(300000)) /* 300 seconds */
         {
-          /* Boost timeout - restore previous mode */
+          /* Restore mode before boost */
           SystemMode_t previous_mode =
               smArgs->system_context_access->data.mode_before_boost;
           smArgs->system_context_access->data.mode = previous_mode;
@@ -317,7 +328,7 @@ static SystemState_t doRunningState(void) {
     }
   }
 
-  /* Calculate target temperature and slot end time */
+  /* Calculate target temperature and schedule slot end time */
   if (smArgs && smArgs->config_access && smArgs->system_context_access) {
     extern RTC_HandleTypeDef hrtc;
     RTC_TimeTypeDef sTime = {0};
@@ -329,15 +340,15 @@ static SystemState_t doRunningState(void) {
     uint8_t end_h = 0, end_m = 0;
     SystemMode_t current_mode = MODE_AUTO;
 
-    /* Read current mode first */
+    /* Read current mode */
     if (osMutexAcquire(smArgs->system_context_access->mutex, 10) == osOK) {
       current_mode = smArgs->system_context_access->data.mode;
       osMutexRelease(smArgs->system_context_access->mutex);
     }
 
-    /* Set target temperature based on mode */
+    /* Set target temperature based on current operating mode */
     if (current_mode == MODE_AUTO) {
-      /* AUTO mode: calculate temperature from schedule */
+      /* AUTO mode: calculate from active schedule slot */
       if (osMutexAcquire(smArgs->config_access->mutex, 10) == osOK) {
         ConfigTypeDef *cfg = &smArgs->config_access->data;
         bool found = false;
@@ -368,25 +379,23 @@ static SystemState_t doRunningState(void) {
         osMutexRelease(smArgs->config_access->mutex);
       }
     } else if (current_mode == MODE_MANUAL) {
-      /* MANUAL mode: use saved manual target temperature */
+      /* MANUAL mode: use fixed manual temperature */
       if (osMutexAcquire(smArgs->config_access->mutex, 10) == osOK) {
         target_temp = smArgs->config_access->data.ManualTargetTemp;
         osMutexRelease(smArgs->config_access->mutex);
       }
-      /* In manual mode, don't track slot changes */
-      end_h = 0xFF;
+      end_h = 0xFF; /* No slot tracking in manual */
       end_m = 0xFF;
     } else if (current_mode == MODE_BOOST) {
-      /* BOOST mode: use maximum temperature (30°C) for maximum heating */
+      /* BOOST mode: maximum heating (30°C) */
       target_temp = 30.0f;
-      /* In boost mode, don't track slot changes */
-      end_h = 0xFF;
+      end_h = 0xFF; /* No slot tracking in boost */
       end_m = 0xFF;
     }
 
-    /* Update shared state */
+    /* Update shared context with calculated values */
     if (osMutexAcquire(smArgs->system_context_access->mutex, 10) == osOK) {
-      /* Only clear temporary override in AUTO mode when slot changes */
+      /* Only clear temporary override in AUTO mode on slot change */
       if (current_mode == MODE_AUTO) {
         bool slot_changed =
             (end_h != last_slot_end_hour) || (end_m != last_slot_end_minute);
@@ -402,14 +411,13 @@ static SystemState_t doRunningState(void) {
         smArgs->system_context_access->data.slot_end_hour = end_h;
         smArgs->system_context_access->data.slot_end_minute = end_m;
       } else if (current_mode == MODE_MANUAL || current_mode == MODE_BOOST) {
-        /* In MANUAL or BOOST mode, just update the target temp, don't touch
-         * slot info */
+        /* MANUAL/BOOST: only update target, don't modify slot info */
         smArgs->system_context_access->data.target_temp = target_temp;
       }
 
       osMutexRelease(smArgs->system_context_access->mutex);
 
-      /* Update slot tracking (only for AUTO mode) */
+      /* Update slot tracking (AUTO mode only) */
       if (current_mode == MODE_AUTO) {
         last_slot_end_hour = end_h;
         last_slot_end_minute = end_m;
@@ -417,7 +425,7 @@ static SystemState_t doRunningState(void) {
     }
   }
 
-  /* Consume VP events (ignored in RUNNING?) */
+  /* Check for factory reset request */
   VP2SystemEventTypeDef vpEvt;
   if (smArgs->vp2_system_queue != NULL &&
       osMessageQueueGet(smArgs->vp2_system_queue, &vpEvt, NULL, 0) == osOK) {
@@ -429,18 +437,19 @@ static SystemState_t doRunningState(void) {
   return nextState;
 }
 
+/* FACTORY_RST state: wait for storage task to complete reset */
 static SystemState_t doFactoryRstState(void) {
   SystemState_t nextState = STATE_FACTORY_RST;
   Storage2SystemEventTypeDef stEvt;
 
-  /* Check Storage Queue for completion */
+  /* Check for factory reset completion */
   if (storage2SystemEventQueueHandle != NULL &&
       osMessageQueueGet(storage2SystemEventQueueHandle, &stEvt, NULL, 0) ==
           osOK) {
     if (stEvt == EVT_CFG_RST_END) {
       printf("SystemSM: Factory Reset Complete. Resetting MCU...\n");
 
-      /* Reset Backup Domain (RTC) */
+      /* Reset backup domain (RTC) */
       HAL_PWR_EnableBkUpAccess();
       __HAL_RCC_BACKUPRESET_FORCE();
       __HAL_RCC_BACKUPRESET_RELEASE();
@@ -452,6 +461,7 @@ static SystemState_t doFactoryRstState(void) {
   return nextState;
 }
 
+/* Update shared system context with new state */
 static void updateSharedState(SystemState_t newState) {
   if (smArgs != NULL && smArgs->system_context_access != NULL &&
       smArgs->system_context_access->mutex != NULL) {
@@ -462,10 +472,12 @@ static void updateSharedState(SystemState_t newState) {
   }
 }
 
+/* Send command to maintenance task via queue */
 static void sendMaintCommand(System2MaintEventTypeDef cmd) {
   if (smArgs != NULL && smArgs->system2_maint_queue != NULL) {
     osMessageQueuePut(smArgs->system2_maint_queue, &cmd, 0, 0);
   }
 }
 
+/* Query current state without mutex (internal use) */
 SystemState_t SystemSM_GetCurrentState(void) { return currentSystemState; }
