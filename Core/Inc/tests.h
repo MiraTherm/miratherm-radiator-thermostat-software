@@ -28,7 +28,7 @@ struct ConfigAccessTypeDef;
 void Driver_Test(osMessageQueueId_t storage2system_event_queue,
                  osMessageQueueId_t input2vp_event_queue,
                  ConfigAccessTypeDef *config_access,
-                 struct SensorValuesAccessTypeDef *sensor_values_access);
+                 SensorValuesAccessTypeDef *sensor_values_access);
 #elif ADAPTATION_TEST
 void Adaptation_Test(void);
 #endif
