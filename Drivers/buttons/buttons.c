@@ -1,19 +1,43 @@
+/**
+ ******************************************************************************
+ * @file           :  buttons.c
+ * @brief          :  Implementation of debounced button input driver.
+ *
+ * @details        :  Provides debounce logic using GPIO EXTI interrupts and
+ *                    system tick timestamps. Button presses/releases are
+ *                    confirmed after BUTTONS_DEBOUNCE_MS delay. Three buttons
+ *                    supported: middle (active low), left (active high), right
+ *                    (active high). Thread-safe state access using critical
+ *                    sections.
+ ******************************************************************************
+ * @attention
+ *
+ * Copyright (c) 2025 MiraTherm.
+ * This file is licensed under GPL-3.0 License.
+ * For details, see the LICENSE file in the project root directory.
+ *
+ ******************************************************************************
+ */
 #include "buttons.h"
 
+/* Debounce delay in milliseconds */
 #define BUTTONS_DEBOUNCE_MS 50U
 
+/* Button pin mapping: GPIO port, pin, and active level */
 typedef struct {
   GPIO_TypeDef *port;
   uint16_t pin;
   GPIO_PinState pressed_level;
 } button_pin_map_t;
 
+/* Button state tracking: pending edge, stable state, and timestamp */
 typedef struct {
   volatile bool pending;
   volatile bool stable_state;
   volatile uint32_t last_edge_tick;
 } button_state_t;
 
+/* Static pin configuration for all buttons */
 static const button_pin_map_t s_button_pins[BUTTON_ID_COUNT] = {
     [BUTTON_ID_MIDDLE] = {BUTTON_MIDDLE_GPIO_Port, BUTTON_MIDDLE_Pin,
                           GPIO_PIN_RESET},
@@ -22,13 +46,16 @@ static const button_pin_map_t s_button_pins[BUTTON_ID_COUNT] = {
                          GPIO_PIN_SET},
 };
 
+/* Button state array: one entry per button */
 static button_state_t s_button_states[BUTTON_ID_COUNT];
 
+/* Read GPIO pin and return true if button is pressed (matches pressed_level) */
 static inline bool button_read_pressed(const button_pin_map_t *mapping) {
   return HAL_GPIO_ReadPin(mapping->port, mapping->pin) ==
          mapping->pressed_level;
 }
 
+/* Initialize button states to current GPIO levels */
 void Buttons_Init(void) {
   const uint32_t start_tick = HAL_GetTick();
 
@@ -42,6 +69,7 @@ void Buttons_Init(void) {
   }
 }
 
+/* Record button edge timestamp and mark as pending debounce */
 void Buttons_RecordEdge(button_id_t id) {
   if (id >= BUTTON_ID_COUNT) {
     return;
@@ -52,10 +80,13 @@ void Buttons_RecordEdge(button_id_t id) {
   state->last_edge_tick = HAL_GetTick();
 }
 
+/* Save PRIMASK register for interrupt state preservation */
 static uint32_t button_primask_save(void) { return __get_PRIMASK(); }
 
+/* Restore PRIMASK register to saved interrupt state */
 static void button_primask_restore(uint32_t mask) { __set_PRIMASK(mask); }
 
+/* Poll all pending button edges, apply debounce, and return confirmed events */
 bool Buttons_Poll(button_event_t *event) {
   if (event == NULL) {
     return false;
@@ -107,6 +138,7 @@ bool Buttons_Poll(button_event_t *event) {
   return false;
 }
 
+/* Get current stable (debounced) state of a button without generating events */
 bool Buttons_GetStableState(button_id_t id) {
   if (id >= BUTTON_ID_COUNT) {
     return false;
