@@ -4,6 +4,9 @@
 #include "cmsis_os2.h"
 #include "storage_task.h"
 
+/* Forward declaration to break circular dependency with sensor_task.h */
+typedef struct SensorValuesAccessTypeDef SensorValuesAccessTypeDef;
+
 #ifdef __cplusplus
 extern "C" {
 #endif
