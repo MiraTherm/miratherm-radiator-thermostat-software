@@ -72,7 +72,7 @@ typedef enum {
 typedef enum {
   MODE_AUTO = 0,            /**< Schedule-based automatic mode */
   MODE_MANUAL = 1,          /**< Fixed temperature manual mode */
-  MODE_BOOST = 2            /**< Maximum heating boost mode */
+  MODE_BOOST = 2            /**< Opens valve at 80% for 300 seconds*/
 } SystemMode_t;
 
 /**
