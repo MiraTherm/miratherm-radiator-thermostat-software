@@ -5,8 +5,10 @@
  * radiator thermostat.
  *
  * To replace the display driver, ensure that the corresponding display 
- * resolution is greater than or equal to 128x64. Modify memory buffer sizes 
- * accordingly.
+ * resolution is greater than or equal to 128x64. Additionaly to functions 
+ * declared here, flush_cb(), rounder_cb(), and set_pixel_cb() should be 
+ * implemented in lvgl_port_display.c then. Memory buffer sizes should be 
+ * adjusted accordingly.
  ******************************************************************************
  * @attention
  *
