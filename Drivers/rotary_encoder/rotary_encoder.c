@@ -1,11 +1,21 @@
 /**
  ******************************************************************************
- * @file           : rotary_encoder.c
- * @brief          : Rotary Encoder driver implementation using TIM2 Encoder
- *Mode
+ * @file           :  rotary_encoder.c
+ * @brief          :  Implementation of rotary encoder driver using TIM2
+ *                    in encoder mode.
+ *
+ * @details        :  Provides rotary encoder support via STM32 timer in
+ *                    quadrature encoder mode. Converts raw timer pulses into
+ *                    logical rotation steps, handling KY-040 encoder behavior.
+ ******************************************************************************
+ * @attention
+ *
+ * Copyright (c) 2025 MiraTherm.
+ * This file is licensed under GPL-3.0 License.
+ * For details, see the LICENSE file in the project root directory.
+ *
  ******************************************************************************
  */
-
 #include "rotary_encoder.h"
 #include "stm32wbxx_hal_def.h"
 
@@ -14,23 +24,16 @@
 /* External timer handle configured in encoder mode */
 extern TIM_HandleTypeDef ROTARY_ENCODER_TIMER_HANDLER;
 
-/* Cached counter state */
+/* Cached counter state from previous read */
 static uint8_t last_counter_value;
+
+/* Accumulator for fractional ticks (two raw ticks = one logical step) */
 static int8_t pending_ticks;
 
+/* Center point for 16-bit counter to allow balanced range */
 static const uint8_t ENCODER_CENTER = 127U;
 
-/**
- * @brief Initialize the Rotary Encoder using TIM2 Encoder Mode
- *
- * The TIM2 must be configured in CubeMX before calling this function:
- * - Mode: Encoder Mode (quadrature input from channels 1 and 2)
- * - Input1: GPIO (connected to encoder A)
- * - Input2: GPIO (connected to encoder B)
- * - Period: 0xFFFF (16-bit counter)
- *
- * @retval HAL_OK on success, HAL_ERROR otherwise
- */
+/* Initialize rotary encoder: start timer and center counter */
 HAL_StatusTypeDef RotaryEncoder_Init(void) {
   /* Start the encoder timer and capture its counter range */
   if (HAL_TIM_Encoder_Start(&ROTARY_ENCODER_TIMER_HANDLER, TIM_CHANNEL_ALL) !=
@@ -45,18 +48,7 @@ HAL_StatusTypeDef RotaryEncoder_Init(void) {
   return HAL_OK;
 }
 
-/**
- * @brief Get the rotation delta since last call
- *
- * This function reads the current counter value from TIM2 which is configured
- * in encoder mode. The timer counter is re-centered to 127 after each read so
- * the driver can assume the current count stays within 0..255 between reads.
- *
- * @return Delta value - the change in counter position since last call
- *         Positive values indicate clockwise rotation
- *         Negative values indicate counter-clockwise rotation
- *         0 = no rotation since last call
- */
+/* Read current counter and compute delta, accounting for KY-040 two-tick-per-step behavior */
 int8_t RotaryEncoder_GetDelta(void) {
   /* Read the current counter value from TIM2 */
   uint8_t current_count =
