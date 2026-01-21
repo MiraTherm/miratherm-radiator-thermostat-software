@@ -96,7 +96,6 @@ typedef struct SensorValuesAccessTypeDef
  *                 and sensor_values_access pointers. NULL argument causes
  *                 Error_Handler() to be called.
  * @return Does not return; runs as infinite FreeRTOS task
- * @note Called from app_freertos.c during RTOS initialization
  * @see SensorTaskArgsTypeDef, SensorValuesAccessTypeDef
  */
 void StartSensorTask(void *argument);
