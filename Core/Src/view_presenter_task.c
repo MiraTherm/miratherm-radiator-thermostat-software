@@ -1,3 +1,20 @@
+/**
+ ******************************************************************************
+ * @file           :  view_presenter_task.c
+ * @brief          :  Implementation of user interface presentation task
+ *
+ * @details        :  Manages the main UI loop, input event processing,
+ *                    router coordination, and periodic display updates.
+ ******************************************************************************
+ * @attention
+ *
+ * Copyright (c) 2025 MiraTherm.
+ * This file is licensed under GPL-3.0 License.
+ * For details, see the LICENSE file in the project root directory.
+ *
+ ******************************************************************************
+ */
+
 #include "view_presenter_task.h"
 #include "FreeRTOS.h"
 #include "cmsis_os2.h"
@@ -7,8 +24,10 @@
 #include "task.h"
 #include "view_presenter_router.h"
 
+/* Display update interval in milliseconds */
 #define VIEW_DELAY_MS 10U
 
+/* Main UI presentation task: handles input, routing, and display */
 void StartViewPresenterTask(void *argument) {
   const ViewPresenterTaskArgsTypeDef *args =
       (const ViewPresenterTaskArgsTypeDef *)argument;
@@ -26,15 +45,16 @@ void StartViewPresenterTask(void *argument) {
     Error_Handler();
   }
 
-  /* Optional: pointer to shared system context for UI reading */
+  /* Optional: pointer to shared system context for UI state reading */
   SystemContextAccessTypeDef *sys_ctx = args->system_context_access;
-  (void)sys_ctx; /* currently unused; provided for UI read access */
+  (void)sys_ctx; /* Currently unused; provided for future UI read access */
 
 #if OS_TASKS_DEBUG
   printf("ViewPresenterTask running (heap=%lu)\n",
          (unsigned long)xPortGetFreeHeapSize());
 #endif
 
+  /* Initialize MVP router with all queues and data access */
   Router_Init(args->vp2system_event_queue, args->system_context_access,
               args->config_access, args->sensor_values_access);
 
@@ -44,7 +64,7 @@ void StartViewPresenterTask(void *argument) {
 
   printf("ViewPresenter task waiting for system init...\n");
 
-  /* Wait for system initialization to complete */
+  /* Wait for system initialization to complete before rendering */
   while (!init_complete) {
     if (osMessageQueueGet(system2vp_event_queue, &sys_event, NULL,
                           osWaitForever) == osOK) {
@@ -56,19 +76,19 @@ void StartViewPresenterTask(void *argument) {
     }
   }
 
+  /* Main UI loop: process input and render display */
   for (;;) {
-    // Wait for event with timeout to allow periodic updates
-    // Use the timeout to pace the loop when idle, but process immediately when
-    // busy
+    /* Wait for input event with timeout to allow periodic updates */
     osStatus_t queue_status = osMessageQueueGet(
         input2vp_event_queue, &event, NULL, pdMS_TO_TICKS(VIEW_DELAY_MS));
     if (queue_status == osOK) {
 #if VIEW_PRESENTER_TASK_DEBUG_PRINTING
       printf("ViewPresenterTask: Received event type=%d\n", event.type);
 #endif
+      /* Process single input event */
       Router_HandleEvent(&event);
 
-      // Drain remaining events in the queue without blocking
+      /* Drain remaining queued events without blocking */
       while (osMessageQueueGet(input2vp_event_queue, &event, NULL, 0) == osOK) {
 #if VIEW_PRESENTER_TASK_DEBUG_PRINTING
         printf("ViewPresenterTask: Received event (drained) type=%d\n",
@@ -78,11 +98,11 @@ void StartViewPresenterTask(void *argument) {
       }
     }
 
-    // Always call OnTick without stopping rendering
-    // This ensures continuous animation and updates
+    /* Periodic display update: animations and state changes */
+    /* This ensures continuous rendering even with no input */
     Router_OnTick(osKernelGetTickCount());
 
-    // Give other tasks (LVGL rendering, sensor, etc.) a chance to run.
+    /* Yield to allow other tasks (LVGL, sensor, storage) to run */
     osDelay(pdMS_TO_TICKS(5U));
   }
 }
