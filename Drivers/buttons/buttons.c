@@ -19,8 +19,8 @@
  */
 #include "buttons.h"
 
-/* Debounce delay in milliseconds */
-#define BUTTONS_DEBOUNCE_MS 50U
+/* Debounce delay in ticks */
+#define BUTTONS_DEBOUNCE_TICKS 50U
 
 /* Button pin mapping: GPIO port, pin, and active level */
 typedef struct {
@@ -95,7 +95,7 @@ bool Buttons_Poll(button_event_t *event) {
     }
 
     const uint32_t edge_tick = state->last_edge_tick;
-    if ((now - edge_tick) < BUTTONS_DEBOUNCE_MS) {
+    if ((now - edge_tick) < BUTTONS_DEBOUNCE_TICKS) {
       continue;
     }
 
