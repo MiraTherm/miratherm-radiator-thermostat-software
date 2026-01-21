@@ -62,6 +62,6 @@ void StartSystemTask(void *argument) {
     SystemSM_Run();
 
     /* Yield to prevent task starvation */
-    osDelay(pdMS_TO_TICKS(100));
+    osDelay(pdMS_TO_TICKS(250));
   }
 }
