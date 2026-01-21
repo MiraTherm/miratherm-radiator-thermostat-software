@@ -27,41 +27,21 @@
 #include <stdio.h>
 #include <string.h>
 
-/**
- * @brief Size of the partial display buffer.
- *
- * This buffer holds one page (8 pixels in height) of the display.
- * For a 128x64 SSD1306 display: 128 pixels × 8 pixels = 1024 bytes.
- */
+/* Display buffer configuration: 128x8 pixels = 1024 bytes */
 #define PARTIAL_BUF_SIZE (SSD1306_WIDTH * 8)
 
-/** @brief Page start address base for setting current page (0xB0-0xB7). */
-#define SSD1306_PAGE_START_ADDR 0xB0
+/* Display command and control constants for SSD1306/SH1106 */
+#define SSD1306_PAGE_START_ADDR 0xB0   /* Page address base (0xB0-0xB7) */
+#define SSD1306_LOWER_COL_ADDR 0x00    /* Lower column address nibble */
+#define SSD1306_LOWER_COL_MASK 0x0F    /* Mask for lower column bits */
+#define SSD1306_UPPER_COL_ADDR 0x10    /* Upper column address nibble */
+#define SSD1306_UPPER_COL_MASK 0x0F    /* Mask for upper column bits */
 
-/** @brief Lower nibble of column address (0x00-0x0F). */
-#define SSD1306_LOWER_COL_ADDR 0x00
-
-/** @brief Mask for lower column address bits. */
-#define SSD1306_LOWER_COL_MASK 0x0F
-
-/** @brief Upper nibble of column address (0x10-0x1F). */
-#define SSD1306_UPPER_COL_ADDR 0x10
-
-/** @brief Mask for upper column address bits. */
-#define SSD1306_UPPER_COL_MASK 0x0F
-
-/**
- * @brief SH1106 column offset correction.
- *
- * The SH1106 display controller maps RAM columns 2-129 to physical display
- * columns 0-127. This constant compensates for this offset in addressing.
- */
+/* SH1106 maps RAM columns 2-129 to physical columns 0-127 */
 #define SH1106_COL_OFFSET 2
 
-/** @brief Set a single bit in a byte variable. */
+/* Bit manipulation macros - optimized for speed */
 #define BIT_SET(a, b) ((a) |= (1U << (b)))
-
-/** @brief Clear a single bit in a byte variable. */
 #define BIT_CLEAR(a, b) ((a) &= ~(1U << (b)))
 
 /**
@@ -102,18 +82,7 @@
  */
 static osMutexId_t s_lvgl_mutex;
 
-/**
- * @brief Acquire the LVGL rendering mutex.
- *
- * Attempts to acquire the LVGL mutex for exclusive access to rendering
- * operations. This function blocks indefinitely until the mutex becomes
- * available.
- *
- * @return true if the mutex was successfully acquired.
- * @return false if the mutex handle is NULL (not initialized).
- *
- * @see lv_port_unlock()
- */
+/* Acquire LVGL rendering mutex for exclusive access */
 bool lv_port_lock(void) {
   if (s_lvgl_mutex == NULL) {
     return false;
@@ -121,15 +90,7 @@ bool lv_port_lock(void) {
   return osMutexAcquire(s_lvgl_mutex, osWaitForever) == osOK;
 }
 
-/**
- * @brief Release the LVGL rendering mutex.
- *
- * Releases the LVGL mutex to allow other tasks to acquire it.
- * Safe to call even if the mutex is not currently held by this task
- * due to the recursive mutex attribute.
- *
- * @see lv_port_lock()
- */
+/* Release LVGL rendering mutex */
 void lv_port_unlock(void) {
   if (s_lvgl_mutex == NULL) {
     return;
@@ -137,28 +98,7 @@ void lv_port_unlock(void) {
   osMutexRelease(s_lvgl_mutex);
 }
 
-/**
- * @brief LVGL rendering task entry point for FreeRTOS.
- *
- * Runs in an infinite loop, executing LVGL timer callbacks and display
- * rendering. Each iteration:
- * 1. Acquires the LVGL mutex
- * 2. Calls lv_timer_handler() to process timers and render
- * 3. Releases the mutex
- * 4. Yields with 1ms delay
- *
- * This task should run at regular intervals to maintain display responsiveness.
- * The 1ms delay can be adjusted based on the desired display refresh rate.
- *
- * @param[in] argument FreeRTOS task argument (unused).
- *
- * @note This function never returns; it runs until the system is reset.
- * @note Debug output can be enabled with OS_TASKS_DEBUG preprocessor flag.
- *
- * @see display_system_init()
- * @see lv_port_lock()
- * @see lv_timer_handler()
- */
+/* LVGL rendering task - handles timer callbacks and display updates */
 void StartLVGLTask(void *argument) {
   /* Infinite loop - dedicated LVGL rendering task */
   (void)argument;
@@ -319,30 +259,7 @@ static inline void rounder_cb(struct _lv_disp_drv_t *disp_drv,
   area->y2 = (area->y2 & ~BIT_MASK) | BIT_MASK;
 }
 
-/**
- * @brief Initialize LVGL display driver for SSD1306/SH1106 monochrome display.
- *
- * This function performs complete LVGL display subsystem initialization:
- * 1. Creates two display buffers for double-buffering
- * 2. Initializes LVGL display buffer structure
- * 3. Configures display driver with resolution and callbacks
- * 4. Registers the driver with LVGL
- *
- * The display is configured for:
- * - Monochrome 1-bit color (on/off pixels)
- * - Partial refresh mode (only updated regions are redrawn)
- * - 128x64 pixel resolution
- * - No rotation
- *
- * @note This function is called by display_system_init() after LVGL core
- *       initialization. Do not call directly.
- * @note Buffers are statically allocated for deterministic memory usage.
- *
- * @see display_system_init()
- * @see flush_cb()
- * @see rounder_cb()
- * @see set_pixel_cb()
- */
+/* Initialize LVGL display driver, buffers, and callbacks */
 static void lv_port_disp_init(void) {
   static lv_disp_draw_buf_t draw_buf;
   static lv_color_t screenBuffer1[PARTIAL_BUF_SIZE];
@@ -377,31 +294,7 @@ static void lv_port_disp_init(void) {
   lv_disp_drv_register(&disp_drv_ssd1306);
 }
 
-/**
- * @brief Initialize the complete display system for MiraTherm.
- *
- * Performs full initialization of the display subsystem in the correct order:
- * 1. Creates the LVGL rendering mutex for thread safety (recursive, priority
- * inheritance)
- * 2. Initializes the SSD1306/SH1106 display hardware driver
- * 3. Initializes the LVGL core library
- * 4. Configures LVGL display driver and buffers
- *
- * Call sequence is critical:
- * - Mutex must be created before any LVGL operations
- * - Hardware driver must be initialized before LVGL rendering
- * - LVGL core and display driver initialization must follow hardware setup
- *
- * @note This function must be called exactly once during system startup,
- *       before creating the LVGL rendering task (StartLVGLTask).
- * @note Not thread-safe; call only from the initialization context.
- * @note After calling this function, the system is ready for display
- * operations.
- *
- * @see StartLVGLTask()
- * @see lv_port_lock()
- * @see lv_port_unlock()
- */
+/* Initialize complete display system: mutex, hardware, and LVGL */
 void display_system_init(void) {
   const osMutexAttr_t mutex_attr = {
       .name = "LVGL Mutex", .attr_bits = osMutexPrioInherit | osMutexRecursive};
