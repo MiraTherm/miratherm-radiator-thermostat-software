@@ -1,7 +1,22 @@
-/*
- * Motor driver implementation for DRV8833 or similar H-bridge driver.
- * See motor.h for API documentation.
+/**
+ ******************************************************************************
+ * @file           :  motor.c
+ * @brief          :  Implementation of motor control interface for DRV8833
+ *                    or similar H-bridge motor driver.
+ *
+ * @details        :  Provides control pin manipulation and state management
+ *                    for motor operation. Implements coast, forward, backward,
+ *                    and brake states through GPIO control.
+ ******************************************************************************
+ * @attention
+ *
+ * Copyright (c) 2025 MiraTherm.
+ * This file is licensed under GPL-3.0 License.
+ * For details, see the LICENSE file in the project root directory.
+ *
+ ******************************************************************************
  */
+
 #include "motor.h"
 
 /* Current motor control state cache */
