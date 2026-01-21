@@ -165,7 +165,7 @@ static void DebugReportTaskCreation(const char *name, osThreadId_t handle) {
   printf("%s creation %s handle=%p\n", name, handle ? "succeeded" : "FAILED",
          (void *)handle);
 
-#if ERROR_HANDLER_ON_FAILURE
+#if ERROR_HANDLER_ON_TASK_CREATION_FAILURE
   if (handle == NULL) {
     Error_Handler();
   }
