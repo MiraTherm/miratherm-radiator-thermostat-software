@@ -156,7 +156,6 @@ static void Router_UpdateDebugLeds(const Input2VPEvent_t *event) {
     target_led = LED3;
     break;
   case EVT_MIDDLE_BTN:
-  case EVT_MIDDLE_DOUBLE_CLICK:
     target_led = LED2;
     break;
   case EVT_RIGHT_BTN:

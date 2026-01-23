@@ -69,19 +69,6 @@ void StartInputTask(void *argument) {
           .timestamp = button_event.timestamp,
       };
 
-      if (button_event.id == BUTTON_ID_MIDDLE &&
-          button_event.action == BUTTON_ACTION_PRESSED) {
-        static uint32_t last_middle_press = 0;
-        if ((button_event.timestamp - last_middle_press) <
-            500) // 500ms double click threshold
-        {
-          event.type = EVT_MIDDLE_DOUBLE_CLICK;
-          last_middle_press = 0; // Reset
-        } else {
-          last_middle_press = button_event.timestamp;
-        }
-      }
-
       InputTask_PostEvent(&event);
     }
 

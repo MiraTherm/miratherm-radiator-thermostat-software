@@ -42,8 +42,7 @@ void SetBoolPresenter_HandleEvent(SetBoolPresenter_t *presenter,
       presenter->data.value = true;
     }
     state_changed = true;
-  } else if ((event->type == EVT_MIDDLE_BTN ||
-              event->type == EVT_MIDDLE_DOUBLE_CLICK) &&
+  } else if (event->type == EVT_MIDDLE_BTN &&
              event->button_action == BUTTON_ACTION_PRESSED) {
     presenter->is_complete = true;
     state_changed = true;

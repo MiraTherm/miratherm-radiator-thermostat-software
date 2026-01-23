@@ -13,8 +13,7 @@ typedef enum {
   EVT_LEFT_BTN = 0,
   EVT_MIDDLE_BTN,
   EVT_RIGHT_BTN,
-  EVT_CTRL_WHEEL_DELTA,
-  EVT_MIDDLE_DOUBLE_CLICK
+  EVT_CTRL_WHEEL_DELTA
 } Input2VPEventTypeDef;
 
 typedef struct {
