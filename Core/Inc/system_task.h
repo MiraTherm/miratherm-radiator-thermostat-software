@@ -123,18 +123,18 @@ typedef struct {
  * @typedef VP2SystemEventTypeDef
  * @brief ViewPresenter to System event type
  * @details User interface events requesting state transitions:
- *          - EVT_COD_DT_DONE: Date/time configuration complete
- *          - EVT_COD_SCH_DONE: Schedule configuration complete
+ *          - EVT_COD_DT_END: Date/time configuration complete
+ *          - EVT_COD_SH_END: Schedule configuration complete
  *          - EVT_INST_REQ: Initiate radiator adaptation
- *          - EVT_ADAPT_RST: Retry adaptation after failure
+ *          - EVT_ADAPT_RST_REQ: Retry adaptation after failure
  *          - EVT_FACTORY_RST_REQ: Perform factory reset
  */
 typedef enum {
   EVT_NO_EVENT = 0,         /**< No event */
-  EVT_COD_DT_DONE,          /**< Date/time setup complete */
-  EVT_COD_SCH_DONE,         /**< Schedule setup complete */
+  EVT_COD_DT_END,           /**< Date/time setup complete */
+  EVT_COD_SH_END,           /**< Schedule setup complete */
   EVT_INST_REQ,             /**< Start adaptation request */
-  EVT_ADAPT_RST,            /**< Retry adaptation request */
+  EVT_ADAPT_RST_REQ,        /**< Retry adaptation request */
   EVT_FACTORY_RST_REQ       /**< Factory reset request */
 } VP2SystemEventTypeDef;
 

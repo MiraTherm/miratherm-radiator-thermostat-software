@@ -338,7 +338,7 @@ void Router_HandleEvent(const Input2VPEvent_t *event) {
       /* Check if date/time setup is complete */
       if (SetDateTimePresenter_IsComplete(g_router_state.dt_presenter)) {
         /* Signal System that COD is done (moves to COD_SCHEDULE) */
-        Router_SendSystemEvent(EVT_COD_DT_DONE);
+        Router_SendSystemEvent(EVT_COD_DT_END);
         /* Router_OnTick will handle the transition to ROUTE_CHANGE_SCHEDULE
          * when system state changes */
         return;
@@ -366,7 +366,7 @@ void Router_HandleEvent(const Input2VPEvent_t *event) {
           Router_GoToRoute(ROUTE_MENU);
         } else {
           /* In setup mode, signal System that Schedule setup is done */
-          Router_SendSystemEvent(EVT_COD_SCH_DONE);
+          Router_SendSystemEvent(EVT_COD_SH_END);
         }
         return;
       }
@@ -381,7 +381,7 @@ void Router_HandleEvent(const Input2VPEvent_t *event) {
     /* User acknowledges failure -> Retry */
     if (event->type == EVT_MIDDLE_BTN &&
         event->button_action == BUTTON_ACTION_PRESSED) {
-      Router_SendSystemEvent(EVT_ADAPT_RST); /* Moves to STATE_NOT_INST */
+      Router_SendSystemEvent(EVT_ADAPT_RST_REQ); /* Moves to STATE_NOT_INST */
     }
   } else if (g_router_state.current_route == ROUTE_HOME) {
     if (g_router_state.home_presenter) {

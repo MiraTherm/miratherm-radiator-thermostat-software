@@ -221,7 +221,7 @@ static SystemState_t doCodDateTimeState(void) {
 
   if (smArgs->vp2_system_queue != NULL &&
       osMessageQueueGet(smArgs->vp2_system_queue, &vpEvt, NULL, 0) == osOK) {
-    if (vpEvt == EVT_COD_DT_DONE) {
+    if (vpEvt == EVT_COD_DT_END) {
       nextState = STATE_COD_SCHEDULE;
     }
   }
@@ -236,7 +236,7 @@ static SystemState_t doCodScheduleState(void) {
 
   if (smArgs->vp2_system_queue != NULL &&
       osMessageQueueGet(smArgs->vp2_system_queue, &vpEvt, NULL, 0) == osOK) {
-    if (vpEvt == EVT_COD_SCH_DONE) {
+    if (vpEvt == EVT_COD_SH_END) {
       nextState = STATE_NOT_INST;
     }
   }
@@ -291,7 +291,7 @@ static SystemState_t doAdaptFailState(void) {
 
   if (smArgs->vp2_system_queue != NULL &&
       osMessageQueueGet(smArgs->vp2_system_queue, &vpEvt, NULL, 0) == osOK) {
-    if (vpEvt == EVT_ADAPT_RST) {
+    if (vpEvt == EVT_ADAPT_RST_REQ) {
       nextState = STATE_NOT_INST;
     }
   }
