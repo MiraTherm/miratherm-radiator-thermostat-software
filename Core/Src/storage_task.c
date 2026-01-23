@@ -156,15 +156,6 @@ static void StorageTask_PostEvent(Storage2SystemEventTypeDef event) {
   }
 }
 
-/* Retrieve event from storage event queue with timeout */
-bool StorageTask_TryGetEvent(Storage2SystemEventTypeDef *event,
-                             uint32_t timeout_ticks) {
-  if ((event == NULL) || (s_event_queue == NULL))
-    return false;
-
-  return (osMessageQueueGet(s_event_queue, event, NULL, timeout_ticks) == osOK);
-}
-
 /* Main storage task: manages Flash persistence and configuration events */
 void StartStorageTask(void *argument) {
   StorageTaskArgsTypeDef *args = (StorageTaskArgsTypeDef *)argument;
