@@ -370,16 +370,18 @@ void Router_HandleEvent(const Input2VPEvent_t *event) {
       }
     }
   } else if (g_router_state.current_route == ROUTE_NOT_INST) {
-    /* User confirms installation -> Start Adaptation */
-    if (event->type == EVT_MIDDLE_BTN &&
-        event->button_action == BUTTON_ACTION_PRESSED) {
-      Router_SendSystemEvent(EVT_INST_REQ); /* Moves to STATE_ADAPT */
+    if (g_router_state.waiting_presenter) {
+      WaitingPresenter_HandleEvent(g_router_state.waiting_presenter, event);
+      if (WaitingPresenter_IsComplete(g_router_state.waiting_presenter)) {
+        Router_SendSystemEvent(EVT_INST_REQ); /* Moves to STATE_ADAPT */
+      }
     }
   } else if (g_router_state.current_route == ROUTE_ADAPT_FAIL) {
-    /* User acknowledges failure -> Retry */
-    if (event->type == EVT_MIDDLE_BTN &&
-        event->button_action == BUTTON_ACTION_PRESSED) {
-      Router_SendSystemEvent(EVT_ADAPT_RST_REQ); /* Moves to STATE_NOT_INST */
+    if (g_router_state.adapt_fail_presenter) {
+      WaitingPresenter_HandleEvent(g_router_state.adapt_fail_presenter, event);
+      if (WaitingPresenter_IsComplete(g_router_state.adapt_fail_presenter)) {
+        Router_SendSystemEvent(EVT_ADAPT_RST_REQ); /* Moves to STATE_NOT_INST */
+      }
     }
   } else if (g_router_state.current_route == ROUTE_HOME) {
     if (g_router_state.home_presenter) {
@@ -581,6 +583,10 @@ void Router_GoToRoute(RouteTypeDef route) {
       g_router_state.waiting_presenter =
           WaitingPresenter_Init(g_router_state.waiting_view);
       WaitingPresenter_Run(g_router_state.waiting_presenter);
+    } else if (g_router_state.waiting_presenter) {
+      /* Reset completion flag when re-entering the route */
+      WaitingPresenter_Reset(g_router_state.waiting_presenter);
+      WaitingPresenter_Run(g_router_state.waiting_presenter);
     }
   } else if (route == ROUTE_ADAPT) {
     if (!g_router_state.adapt_view) {
@@ -602,6 +608,10 @@ void Router_GoToRoute(RouteTypeDef route) {
         !g_router_state.adapt_fail_presenter) {
       g_router_state.adapt_fail_presenter =
           WaitingPresenter_Init(g_router_state.adapt_fail_view);
+      WaitingPresenter_Run(g_router_state.adapt_fail_presenter);
+    } else if (g_router_state.adapt_fail_presenter) {
+      /* Reset completion flag when re-entering the route */
+      WaitingPresenter_Reset(g_router_state.adapt_fail_presenter);
       WaitingPresenter_Run(g_router_state.adapt_fail_presenter);
     }
   } else if (route == ROUTE_RUNNING) {
