@@ -79,8 +79,8 @@ typedef struct {
  * @see StartMaintenanceTask
  */
 typedef struct {
-  osMessageQueueId_t system2_maint_queue;  /**< System -> Maintenance command queue */
-  osMessageQueueId_t maint2_system_queue;  /**< Maintenance -> System result queue */
+  osMessageQueueId_t system2maint_event_queue;  /**< System -> Maintenance command queue */
+  osMessageQueueId_t maint2system_event_queue;  /**< Maintenance -> System result queue */
 } MaintenanceTaskArgsTypeDef;
 
 /**

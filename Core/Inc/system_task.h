@@ -155,11 +155,11 @@ typedef struct ConfigAccessTypeDef ConfigAccessTypeDef;
  * @see StartSystemTask
  */
 typedef struct {
-  osMessageQueueId_t vp2_system_queue;      /**< ViewPresenter -> System event queue */
-  osMessageQueueId_t system2_vp_queue;      /**< System -> ViewPresenter event queue */
-  osMessageQueueId_t system2_maint_queue;   /**< System -> Maintenance command queue */
-  osMessageQueueId_t maint2_system_queue;   /**< Maintenance -> System result queue */
-  osMessageQueueId_t system2_storage_queue; /**< System -> Storage command queue */
+  osMessageQueueId_t vp2system_event_queue;      /**< ViewPresenter -> System event queue */
+  osMessageQueueId_t system2vp_event_queue;      /**< System -> ViewPresenter event queue */
+  osMessageQueueId_t system2maint_event_queue;   /**< System -> Maintenance command queue */
+  osMessageQueueId_t maint2system_event_queue;   /**< Maintenance -> System result queue */
+  osMessageQueueId_t system2storage_event_queue; /**< System -> Storage command queue */
   SystemContextAccessTypeDef
       *system_context_access;               /**< Pointer to system state context */
   ConfigAccessTypeDef

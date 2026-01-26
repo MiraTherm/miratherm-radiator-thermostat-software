@@ -77,9 +77,9 @@ void SystemSM_Run(void) {
     switch (previousSystemState) {
     case STATE_INIT:
       /* Signal init complete to ViewPresenter on exit */
-      if (smArgs->system2_vp_queue != NULL) {
+      if (smArgs->system2vp_event_queue != NULL) {
         System2VPEventTypeDef event = EVT_SYS_INIT_END;
-        osMessageQueuePut(smArgs->system2_vp_queue, &event, 0, 0);
+        osMessageQueuePut(smArgs->system2vp_event_queue, &event, 0, 0);
         printf("SystemSM: Sent EVT_SYS_INIT_END to ViewPresenter on exit from "
                "INIT\n");
       }
@@ -134,9 +134,9 @@ void SystemSM_Run(void) {
       break;
     case STATE_FACTORY_RST:
       printf("SystemSM: Entering FACTORY_RST state...\n");
-      if (smArgs->system2_storage_queue != NULL) {
+      if (smArgs->system2storage_event_queue != NULL) {
         System2StorageEventTypeDef evt = EVT_CFG_RST_REQ;
-        osMessageQueuePut(smArgs->system2_storage_queue, &evt, 0, 0);
+        osMessageQueuePut(smArgs->system2storage_event_queue, &evt, 0, 0);
       }
       break;
     default:
@@ -198,8 +198,8 @@ static SystemState_t doInitState(void) {
 
   /* Consume VP events to prevent queue overflow */
   VP2SystemEventTypeDef vpEvt;
-  if (smArgs->vp2_system_queue != NULL &&
-      osMessageQueueGet(smArgs->vp2_system_queue, &vpEvt, NULL, 0) == osOK) {
+  if (smArgs->vp2system_event_queue != NULL &&
+      osMessageQueueGet(smArgs->vp2system_event_queue, &vpEvt, NULL, 0) == osOK) {
     /* Ignored in INIT */
   }
 
@@ -211,8 +211,8 @@ static SystemState_t doCodState(void) {
   SystemState_t nextState = STATE_COD;
   VP2SystemEventTypeDef vpEvt;
 
-  if (smArgs->vp2_system_queue != NULL &&
-      osMessageQueueGet(smArgs->vp2_system_queue, &vpEvt, NULL, 0) == osOK) {
+  if (smArgs->vp2system_event_queue != NULL &&
+      osMessageQueueGet(smArgs->vp2system_event_queue, &vpEvt, NULL, 0) == osOK) {
     if (vpEvt == EVT_COD_END) {
       nextState = STATE_NOT_INST;
     }
@@ -226,8 +226,8 @@ static SystemState_t doNotInstState(void) {
   SystemState_t nextState = STATE_NOT_INST;
   VP2SystemEventTypeDef vpEvt;
 
-  if (smArgs->vp2_system_queue != NULL &&
-      osMessageQueueGet(smArgs->vp2_system_queue, &vpEvt, NULL, 0) == osOK) {
+  if (smArgs->vp2system_event_queue != NULL &&
+      osMessageQueueGet(smArgs->vp2system_event_queue, &vpEvt, NULL, 0) == osOK) {
     if (vpEvt == EVT_INST_REQ) {
       nextState = STATE_ADAPT;
     }
@@ -242,8 +242,8 @@ static SystemState_t doAdaptState(void) {
   Maint2SystemEvent_t m2s;
 
   /* Check maintenance result */
-  if (smArgs->maint2_system_queue != NULL &&
-      osMessageQueueGet(smArgs->maint2_system_queue, &m2s, NULL, 0) == osOK) {
+  if (smArgs->maint2system_event_queue != NULL &&
+      osMessageQueueGet(smArgs->maint2system_event_queue, &m2s, NULL, 0) == osOK) {
     if (m2s.result == OK) {
       nextState = STATE_RUNNING;
     } else if (m2s.result == FAIL) {
@@ -253,8 +253,8 @@ static SystemState_t doAdaptState(void) {
 
   /* Consume VP events to prevent queue overflow */
   VP2SystemEventTypeDef vpEvt;
-  if (smArgs->vp2_system_queue != NULL &&
-      osMessageQueueGet(smArgs->vp2_system_queue, &vpEvt, NULL, 0) == osOK) {
+  if (smArgs->vp2system_event_queue != NULL &&
+      osMessageQueueGet(smArgs->vp2system_event_queue, &vpEvt, NULL, 0) == osOK) {
     /* Ignored in ADAPT */
   }
 
@@ -266,8 +266,8 @@ static SystemState_t doAdaptFailState(void) {
   SystemState_t nextState = STATE_ADAPT_FAIL;
   VP2SystemEventTypeDef vpEvt;
 
-  if (smArgs->vp2_system_queue != NULL &&
-      osMessageQueueGet(smArgs->vp2_system_queue, &vpEvt, NULL, 0) == osOK) {
+  if (smArgs->vp2system_event_queue != NULL &&
+      osMessageQueueGet(smArgs->vp2system_event_queue, &vpEvt, NULL, 0) == osOK) {
     if (vpEvt == EVT_ADAPT_RST_REQ) {
       nextState = STATE_NOT_INST;
     }
@@ -404,8 +404,8 @@ static SystemState_t doRunningState(void) {
 
   /* Check for factory reset request */
   VP2SystemEventTypeDef vpEvt;
-  if (smArgs->vp2_system_queue != NULL &&
-      osMessageQueueGet(smArgs->vp2_system_queue, &vpEvt, NULL, 0) == osOK) {
+  if (smArgs->vp2system_event_queue != NULL &&
+      osMessageQueueGet(smArgs->vp2system_event_queue, &vpEvt, NULL, 0) == osOK) {
     if (vpEvt == EVT_FACTORY_RST_REQ) {
       nextState = STATE_FACTORY_RST;
     }
@@ -451,8 +451,8 @@ static void updateSharedState(SystemState_t newState) {
 
 /* Send command to maintenance task via queue */
 static void sendMaintCommand(System2MaintEventTypeDef cmd) {
-  if (smArgs != NULL && smArgs->system2_maint_queue != NULL) {
-    osMessageQueuePut(smArgs->system2_maint_queue, &cmd, 0, 0);
+  if (smArgs != NULL && smArgs->system2maint_event_queue != NULL) {
+    osMessageQueuePut(smArgs->system2maint_event_queue, &cmd, 0, 0);
   }
 }
 

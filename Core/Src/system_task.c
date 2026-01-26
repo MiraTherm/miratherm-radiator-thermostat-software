@@ -43,8 +43,8 @@ void StartSystemTask(void *argument) {
     Error_Handler();
   }
 
-  if (args->system2_vp_queue == NULL) {
-    printf("ERROR: system2_vp_queue NULL\n");
+  if (args->system2vp_event_queue == NULL) {
+    printf("ERROR: system2vp_event_queue NULL\n");
     Error_Handler();
   }
 

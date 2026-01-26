@@ -207,13 +207,13 @@ int main(void)
       .vp2system_event_queue = NULL,
       .system2vp_event_queue = NULL,
       .system_context_access = NULL};
-  static SystemTaskArgsTypeDef systemTaskArgs = {.vp2_system_queue = NULL,
-                                                 .system2_vp_queue = NULL,
-                                                 .system2_maint_queue = NULL,
-                                                 .maint2_system_queue = NULL,
+  static SystemTaskArgsTypeDef systemTaskArgs = {.vp2system_event_queue = NULL,
+                                                 .system2vp_event_queue = NULL,
+                                                 .system2maint_event_queue = NULL,
+                                                 .maint2system_event_queue = NULL,
                                                  .system_context_access = NULL};
   static MaintenanceTaskArgsTypeDef maintenanceTaskArgs = {
-      .system2_maint_queue = NULL, .maint2_system_queue = NULL};
+      .system2maint_event_queue = NULL, .maint2system_event_queue = NULL};
 #endif
   /* USER CODE END Init */
 
@@ -346,7 +346,7 @@ int main(void)
   if (vp2SystemEventQueueHandle == NULL) {
     Error_Handler();
   }
-  systemTaskArgs.vp2_system_queue = vp2SystemEventQueueHandle;
+  systemTaskArgs.vp2system_event_queue = vp2SystemEventQueueHandle;
   viewPresenterTaskArgs.vp2system_event_queue = vp2SystemEventQueueHandle;
 
   /* Create System -> ViewPresenter event queue */
@@ -355,7 +355,7 @@ int main(void)
   if (system2VPEventQueueHandle == NULL) {
     Error_Handler();
   }
-  systemTaskArgs.system2_vp_queue = system2VPEventQueueHandle;
+  systemTaskArgs.system2vp_event_queue = system2VPEventQueueHandle;
   viewPresenterTaskArgs.system2vp_event_queue = system2VPEventQueueHandle;
   viewPresenterTaskArgs.config_access = &configAccess;
   viewPresenterTaskArgs.sensor_values_access = &sensorValuesAccess;
@@ -367,18 +367,18 @@ int main(void)
   if (system2MaintEventQueueHandle == NULL) {
     Error_Handler();
   }
-  systemTaskArgs.system2_maint_queue = system2MaintEventQueueHandle;
-  maintenanceTaskArgs.system2_maint_queue = system2MaintEventQueueHandle;
+  systemTaskArgs.system2maint_event_queue = system2MaintEventQueueHandle;
+  maintenanceTaskArgs.system2maint_event_queue = system2MaintEventQueueHandle;
 
   maint2SystemEventQueueHandle =
       osMessageQueueNew(4U, sizeof(Maint2SystemEventTypeDef), NULL);
   if (maint2SystemEventQueueHandle == NULL) {
     Error_Handler();
   }
-  systemTaskArgs.maint2_system_queue = maint2SystemEventQueueHandle;
-  maintenanceTaskArgs.maint2_system_queue = maint2SystemEventQueueHandle;
+  systemTaskArgs.maint2system_event_queue = maint2SystemEventQueueHandle;
+  maintenanceTaskArgs.maint2system_event_queue = maint2SystemEventQueueHandle;
 
-  systemTaskArgs.system2_storage_queue = system2StorageEventQueueHandle;
+  systemTaskArgs.system2storage_event_queue = system2StorageEventQueueHandle;
 #endif
   /* USER CODE END RTOS_QUEUES */
 

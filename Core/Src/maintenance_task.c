@@ -30,8 +30,8 @@ void StartMaintenanceTask(void *argument) {
     printf("ERROR: Maintenance task args NULL\n");
     Error_Handler();
   }
-  osMessageQueueId_t s2m_q = args->system2_maint_queue;
-  osMessageQueueId_t m2s_q = args->maint2_system_queue;
+  osMessageQueueId_t s2m_q = args->system2maint_event_queue;
+  osMessageQueueId_t m2s_q = args->maint2system_event_queue;
 
 #if OS_TASKS_DEBUG
   printf("MaintenanceTask running (mock)\n");
