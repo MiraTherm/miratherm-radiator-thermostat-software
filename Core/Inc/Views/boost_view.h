@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include "boost_viewmodel.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -10,14 +11,9 @@ extern "C" {
 
 typedef struct BoostView BoostView_t;
 
-typedef struct
-{
-    uint16_t remaining_seconds;  /* Countdown from 300 to 0 */
-} BoostViewModel_t;
-
 BoostView_t* BoostView_Init(void);
 void BoostView_Deinit(BoostView_t *view);
-void BoostView_Render(BoostView_t *view, const BoostViewModel_t *model);
+void BoostView_Render(BoostView_t *view, const Boost_ViewModelData_t *model);
 
 #ifdef __cplusplus
 }

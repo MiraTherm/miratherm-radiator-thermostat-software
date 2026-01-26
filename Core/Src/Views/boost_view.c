@@ -1,4 +1,5 @@
 #include "boost_view.h"
+#include "boost_viewmodel.h"
 #include "lvgl_port_display.h"
 #include <src/misc/lv_area.h>
 #include <src/misc/lv_txt.h>
@@ -14,7 +15,7 @@ typedef struct BoostView {
   lv_obj_t *label_hint_center;
 
   /* Cache to avoid redrawing if not changed */
-  BoostViewModel_t last_model;
+  Boost_ViewModelData_t last_model;
   bool first_render;
 } BoostView_t;
 
@@ -78,7 +79,7 @@ void BoostView_Deinit(BoostView_t *view) {
   }
 }
 
-void BoostView_Render(BoostView_t *view, const BoostViewModel_t *model) {
+void BoostView_Render(BoostView_t *view, const Boost_ViewModelData_t *model) {
   if (!view || !model)
     return;
 

@@ -1,4 +1,5 @@
 #include "menu_view.h"
+#include "menu_viewmodel.h"
 #include "lvgl_port_display.h"
 #include <src/font/lv_symbol_def.h>
 #include <stdlib.h>
@@ -110,7 +111,7 @@ void MenuView_Deinit(MenuView_t *view) {
   free(view);
 }
 
-void MenuView_Render(MenuView_t *view, const MenuViewModel_t *model) {
+void MenuView_Render(MenuView_t *view, const Menu_ViewModelData_t *model) {
   if (!view || !model)
     return;
   if (!lv_port_lock())

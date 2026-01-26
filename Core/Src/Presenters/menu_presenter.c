@@ -1,4 +1,5 @@
 #include "menu_presenter.h"
+#include "menu_viewmodel.h"
 #include "view_presenter_router.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -92,7 +93,7 @@ void MenuPresenter_Run(MenuPresenter_t *presenter, uint32_t current_tick) {
   if (!presenter || !presenter->view)
     return;
 
-  MenuViewModel_t model;
+  Menu_ViewModelData_t model;
   model.selected_index = presenter->selected_index;
   model.options_str = presenter->options;
 

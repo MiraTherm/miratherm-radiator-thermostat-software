@@ -1,4 +1,5 @@
 #include "home_presenter.h"
+#include "home_viewmodel.h"
 #include "cmsis_os2.h"
 #include "main.h"
 #include "utils.h"
@@ -173,7 +174,7 @@ void HomePresenter_Run(HomePresenter_t *presenter, uint32_t current_tick) {
   if (!presenter || !presenter->view)
     return;
 
-  HomeViewModel_t model = {0};
+  Home_ViewModelData_t model = {0};
 
   /* Get Time */
   RTC_TimeTypeDef sTime = {0};

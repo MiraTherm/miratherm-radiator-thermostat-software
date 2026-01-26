@@ -1,4 +1,5 @@
 #include "boost_presenter.h"
+#include "boost_viewmodel.h"
 #include "cmsis_os2.h"
 #include "view_presenter_router.h"
 #include <stdio.h>
@@ -67,7 +68,7 @@ void BoostPresenter_Run(BoostPresenter_t *presenter, uint32_t current_tick) {
   if (!presenter || !presenter->view)
     return;
 
-  BoostViewModel_t model = {0};
+  Boost_ViewModelData_t model = {0};
 
   /* Calculate remaining time */
   if (osMutexAcquire(presenter->system_context->mutex, 10) == osOK) {
