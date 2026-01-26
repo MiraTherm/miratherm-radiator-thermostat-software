@@ -337,10 +337,8 @@ void Router_HandleEvent(const Input2VPEvent_t *event) {
 
       /* Check if date/time setup is complete */
       if (SetDateTimePresenter_IsComplete(g_router_state.dt_presenter)) {
-        /* Signal System that COD is done (moves to COD_SCHEDULE) */
-        Router_SendSystemEvent(EVT_COD_DT_END);
-        /* Router_OnTick will handle the transition to ROUTE_CHANGE_SCHEDULE
-         * when system state changes */
+        /* Transition to schedule configuration within same state */
+        Router_GoToRoute(ROUTE_CHANGE_SCHEDULE);
         return;
       }
     }
@@ -352,10 +350,10 @@ void Router_HandleEvent(const Input2VPEvent_t *event) {
         SystemState_t state = Router_GetSystemState();
         if (state == STATE_RUNNING) {
           Router_GoToRoute(ROUTE_MENU);
+        } else {
+          /* In setup mode, go back to date/time configuration */
+          Router_GoToRoute(ROUTE_DATE_TIME);
         }
-        /* If not running (setup), we probably shouldn't be able to cancel back
-           to menu, but maybe back to previous step? For now, assume only Menu
-           uses cancel. */
         return;
       }
 
@@ -365,8 +363,8 @@ void Router_HandleEvent(const Input2VPEvent_t *event) {
           /* In running mode, go back to Menu */
           Router_GoToRoute(ROUTE_MENU);
         } else {
-          /* In setup mode, signal System that Schedule setup is done */
-          Router_SendSystemEvent(EVT_COD_SH_END);
+          /* In setup mode, signal System that both COD steps are done */
+          Router_SendSystemEvent(EVT_COD_END);
         }
         return;
       }
@@ -445,11 +443,12 @@ void Router_OnTick(uint32_t current_tick) {
   case STATE_INIT:
     targetRoute = ROUTE_INIT;
     break;
-  case STATE_COD_DATE_TIME:
-    targetRoute = ROUTE_DATE_TIME;
-    break;
-  case STATE_COD_SCHEDULE:
-    targetRoute = ROUTE_CHANGE_SCHEDULE;
+  case STATE_COD:
+    /* Start with DATE_TIME configuration, then move to SCHEDULE */
+    if (g_router_state.current_route != ROUTE_DATE_TIME &&
+        g_router_state.current_route != ROUTE_CHANGE_SCHEDULE) {
+      targetRoute = ROUTE_DATE_TIME;
+    }
     break;
   case STATE_NOT_INST:
     targetRoute = ROUTE_NOT_INST;

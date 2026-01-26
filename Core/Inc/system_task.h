@@ -40,8 +40,7 @@ extern "C" {
  * @brief System operational state enumeration
  * @details Defines all possible states in the system lifecycle:
  *          - STATE_INIT: Initial startup, waiting for config load
- *          - STATE_COD_DATE_TIME: Configuration of date/time via UI
- *          - STATE_COD_SCHEDULE: Configuration of daily heating schedule
+ *          - STATE_COD: Configuration on device (date/time and daily heating schedule) via UI
  *          - STATE_NOT_INST: Not installed (waiting for user to request adaptation)
  *          - STATE_ADAPT: Adaptation in progress (measuring radiator characteristics)
  *          - STATE_ADAPT_FAIL: Adaptation failed (user can retry)
@@ -51,8 +50,7 @@ extern "C" {
  */
 typedef enum {
   STATE_INIT = 0,           /**< Startup initialization */
-  STATE_COD_DATE_TIME,      /**< Date/time configuration */
-  STATE_COD_SCHEDULE,       /**< Schedule configuration */
+  STATE_COD,                /**< Configuration on device (date/time and schedule) */
   STATE_NOT_INST,           /**< Not installed - awaiting adaptation request */
   STATE_ADAPT,              /**< Adaptation in progress */
   STATE_ADAPT_FAIL,         /**< Adaptation failed */
@@ -123,16 +121,14 @@ typedef struct {
  * @typedef VP2SystemEventTypeDef
  * @brief ViewPresenter to System event type
  * @details User interface events requesting state transitions:
- *          - EVT_COD_DT_END: Date/time configuration complete
- *          - EVT_COD_SH_END: Schedule configuration complete
+ *          - EVT_COD_END: Configuration on device (date/time and schedule) complete
  *          - EVT_INST_REQ: Initiate radiator adaptation
  *          - EVT_ADAPT_RST_REQ: Retry adaptation after failure
  *          - EVT_FACTORY_RST_REQ: Perform factory reset
  */
 typedef enum {
   EVT_NO_EVENT = 0,         /**< No event */
-  EVT_COD_DT_END,           /**< Date/time setup complete */
-  EVT_COD_SH_END,           /**< Schedule setup complete */
+  EVT_COD_END,              /**< Configuration on device (date/time and schedule) complete */
   EVT_INST_REQ,             /**< Start adaptation request */
   EVT_ADAPT_RST_REQ,        /**< Retry adaptation request */
   EVT_FACTORY_RST_REQ       /**< Factory reset request */

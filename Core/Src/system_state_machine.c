@@ -36,8 +36,7 @@ static SystemTaskArgsTypeDef *smArgs = NULL;
 
 /* Forward declarations for state handler functions */
 static SystemState_t doInitState(void);
-static SystemState_t doCodDateTimeState(void);
-static SystemState_t doCodScheduleState(void);
+static SystemState_t doCodState(void);
 static SystemState_t doNotInstState(void);
 static SystemState_t doAdaptState(void);
 static SystemState_t doAdaptFailState(void);
@@ -85,8 +84,7 @@ void SystemSM_Run(void) {
                "INIT\n");
       }
       break;
-    case STATE_COD_DATE_TIME:
-    case STATE_COD_SCHEDULE:
+    case STATE_COD:
     case STATE_NOT_INST:
     case STATE_ADAPT:
     case STATE_ADAPT_FAIL:
@@ -101,11 +99,8 @@ void SystemSM_Run(void) {
     case STATE_INIT:
       printf("SystemSM: Entering INIT state...\n");
       break;
-    case STATE_COD_DATE_TIME:
-      printf("SystemSM: Entering COD_DATE_TIME state...\n");
-      break;
-    case STATE_COD_SCHEDULE:
-      printf("SystemSM: Entering COD_SCHEDULE state...\n");
+    case STATE_COD:
+      printf("SystemSM: Entering COD state (Date/Time and Schedule configuration)...\n");
       break;
     case STATE_NOT_INST:
       printf("SystemSM: Entering NOT_INST state...\n");
@@ -161,11 +156,8 @@ static SystemState_t getNextState(SystemState_t state) {
   case STATE_INIT:
     nextState = doInitState();
     break;
-  case STATE_COD_DATE_TIME:
-    nextState = doCodDateTimeState();
-    break;
-  case STATE_COD_SCHEDULE:
-    nextState = doCodScheduleState();
+  case STATE_COD:
+    nextState = doCodState();
     break;
   case STATE_NOT_INST:
     nextState = doNotInstState();
@@ -200,7 +192,7 @@ static SystemState_t doInitState(void) {
       osMessageQueueGet(storage2SystemEventQueueHandle, &stEvt, NULL, 0) ==
           osOK) {
     if (stEvt == EVT_CFG_LOAD_END) {
-      nextState = STATE_COD_DATE_TIME;
+      nextState = STATE_COD;
     }
   }
 
@@ -214,29 +206,14 @@ static SystemState_t doInitState(void) {
   return nextState;
 }
 
-/* COD_DATE_TIME state: wait for date/time configuration completion */
-static SystemState_t doCodDateTimeState(void) {
-  SystemState_t nextState = STATE_COD_DATE_TIME;
+/* COD state: wait for configuration on device completion */
+static SystemState_t doCodState(void) {
+  SystemState_t nextState = STATE_COD;
   VP2SystemEventTypeDef vpEvt;
 
   if (smArgs->vp2_system_queue != NULL &&
       osMessageQueueGet(smArgs->vp2_system_queue, &vpEvt, NULL, 0) == osOK) {
-    if (vpEvt == EVT_COD_DT_END) {
-      nextState = STATE_COD_SCHEDULE;
-    }
-  }
-
-  return nextState;
-}
-
-/* COD_SCHEDULE state: wait for schedule configuration completion */
-static SystemState_t doCodScheduleState(void) {
-  SystemState_t nextState = STATE_COD_SCHEDULE;
-  VP2SystemEventTypeDef vpEvt;
-
-  if (smArgs->vp2_system_queue != NULL &&
-      osMessageQueueGet(smArgs->vp2_system_queue, &vpEvt, NULL, 0) == osOK) {
-    if (vpEvt == EVT_COD_SH_END) {
+    if (vpEvt == EVT_COD_END) {
       nextState = STATE_NOT_INST;
     }
   }
