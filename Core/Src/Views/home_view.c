@@ -159,9 +159,9 @@ void HomeView_Render(HomeView_t *view, const HomeViewModel_t *model) {
 
   /* Current Temp */
   if (view->first_render ||
-      view->last_model.current_temp != model->current_temp) {
-    int temp_int = (int)model->current_temp;
-    int temp_dec = (int)((model->current_temp - temp_int) * 10);
+      view->last_model.ambient_temperature != model->ambient_temperature) {
+    int temp_int = (int)model->ambient_temperature;
+    int temp_dec = (int)((model->ambient_temperature - temp_int) * 10);
     snprintf(buf, sizeof(buf), "<- %d.%d°", temp_int, temp_dec);
     lv_label_set_text(view->label_current_temp, buf);
   }

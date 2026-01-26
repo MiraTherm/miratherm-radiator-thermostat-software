@@ -86,7 +86,7 @@ ChangeSchedulePresenter_Init(ChangeScheduleView_t *view,
     SetValueView_SetOptions(ChangeScheduleView_GetValueView(view), "3\n4\n5");
     SetValuePresenter_SetMaxIndex(presenter->value_presenter, 2);
     SetValuePresenter_SetSelectedIndex(presenter->value_presenter,
-                                       presenter->schedule.NumTimeSlots - 3);
+                                       presenter->schedule.num_time_slots - 3);
     SetValueView_Show(ChangeScheduleView_GetValueView(view));
   } else {
     /* Start with "Change schedule?" */
@@ -119,7 +119,7 @@ static void save_schedule(ChangeSchedulePresenter_t *presenter) {
     return;
 
   if (osMutexAcquire(presenter->config_access->mutex, osWaitForever) == osOK) {
-    presenter->config_access->data.DailySchedule = presenter->schedule;
+    presenter->config_access->data.daily_schedule = presenter->schedule;
     osMutexRelease(presenter->config_access->mutex);
   }
 }
@@ -133,34 +133,34 @@ static bool is_time_less(uint8_t h1, uint8_t m1, uint8_t h2, uint8_t m2) {
 }
 
 static bool is_schedule_valid(const DailyScheduleTypeDef *schedule) {
-  if (schedule->NumTimeSlots < 3 || schedule->NumTimeSlots > 5)
+  if (schedule->num_time_slots < 3 || schedule->num_time_slots > 5)
     return false;
 
   /* First slot must start at 00:00 */
-  if (schedule->TimeSlots[0].StartHour != 0 ||
-      schedule->TimeSlots[0].StartMinute != 0)
+  if (schedule->time_slots[0].start_hour != 0 ||
+      schedule->time_slots[0].start_minute != 0)
     return false;
 
   /* Last slot must end at 23:59 */
-  if (schedule->TimeSlots[schedule->NumTimeSlots - 1].EndHour != 23 ||
-      schedule->TimeSlots[schedule->NumTimeSlots - 1].EndMinute != 59)
+  if (schedule->time_slots[schedule->num_time_slots - 1].end_hour != 23 ||
+      schedule->time_slots[schedule->num_time_slots - 1].end_minute != 59)
     return false;
 
-  for (int i = 0; i < schedule->NumTimeSlots; i++) {
+  for (int i = 0; i < schedule->num_time_slots; i++) {
     /* Start < End */
-    if (!is_time_less(schedule->TimeSlots[i].StartHour,
-                      schedule->TimeSlots[i].StartMinute,
-                      schedule->TimeSlots[i].EndHour,
-                      schedule->TimeSlots[i].EndMinute)) {
+    if (!is_time_less(schedule->time_slots[i].start_hour,
+                      schedule->time_slots[i].start_minute,
+                      schedule->time_slots[i].end_hour,
+                      schedule->time_slots[i].end_minute)) {
       return false;
     }
 
     /* Contiguity */
     if (i > 0) {
-      if (schedule->TimeSlots[i].StartHour !=
-              schedule->TimeSlots[i - 1].EndHour ||
-          schedule->TimeSlots[i].StartMinute !=
-              schedule->TimeSlots[i - 1].EndMinute) {
+      if (schedule->time_slots[i].start_hour !=
+              schedule->time_slots[i - 1].end_hour ||
+          schedule->time_slots[i].start_minute !=
+              schedule->time_slots[i - 1].end_minute) {
         return false;
       }
     }
@@ -174,7 +174,7 @@ static void load_schedule(ChangeSchedulePresenter_t *presenter) {
     return;
 
   if (osMutexAcquire(presenter->config_access->mutex, osWaitForever) == osOK) {
-    presenter->schedule = presenter->config_access->data.DailySchedule;
+    presenter->schedule = presenter->config_access->data.daily_schedule;
     osMutexRelease(presenter->config_access->mutex);
   }
 
@@ -188,20 +188,20 @@ static void setup_slot_time_view(ChangeSchedulePresenter_t *presenter) {
   char title[32];
   snprintf(title, sizeof(title),
            "Set %d/%d time slot:", presenter->current_slot_index + 1,
-           presenter->schedule.NumTimeSlots);
+           presenter->schedule.num_time_slots);
   SetTimeSlotView_SetTitle(ChangeScheduleView_GetTimeSlotView(presenter->view),
                            title);
 
   SetTimeSlot_ViewModelData_t data = {0};
 
   data.start_hour =
-      presenter->schedule.TimeSlots[presenter->current_slot_index].StartHour;
+      presenter->schedule.time_slots[presenter->current_slot_index].start_hour;
   data.start_minute =
-      presenter->schedule.TimeSlots[presenter->current_slot_index].StartMinute;
+      presenter->schedule.time_slots[presenter->current_slot_index].start_minute;
   data.end_hour =
-      presenter->schedule.TimeSlots[presenter->current_slot_index].EndHour;
+      presenter->schedule.time_slots[presenter->current_slot_index].end_hour;
   data.end_minute =
-      presenter->schedule.TimeSlots[presenter->current_slot_index].EndMinute;
+      presenter->schedule.time_slots[presenter->current_slot_index].end_minute;
 
   /* Locks */
   if (presenter->current_slot_index == 0) {
@@ -210,7 +210,7 @@ static void setup_slot_time_view(ChangeSchedulePresenter_t *presenter) {
     data.start_minute = 0;
   }
 
-  if (presenter->current_slot_index == presenter->schedule.NumTimeSlots - 1) {
+  if (presenter->current_slot_index == presenter->schedule.num_time_slots - 1) {
     data.end_time_locked = true; /* Always 23:59 */
     data.end_hour = 23;
     data.end_minute = 59;
@@ -220,11 +220,11 @@ static void setup_slot_time_view(ChangeSchedulePresenter_t *presenter) {
   if (presenter->current_slot_index > 0) {
     data.start_time_locked = true; /* Locked to previous end */
     data.start_hour =
-        presenter->schedule.TimeSlots[presenter->current_slot_index - 1]
-            .EndHour;
+        presenter->schedule.time_slots[presenter->current_slot_index - 1]
+            .end_hour;
     data.start_minute =
-        presenter->schedule.TimeSlots[presenter->current_slot_index - 1]
-            .EndMinute;
+        presenter->schedule.time_slots[presenter->current_slot_index - 1]
+            .end_minute;
   }
 
   SetTimeSlotPresenter_SetData(presenter->time_slot_presenter, &data);
@@ -236,7 +236,7 @@ static void setup_slot_temp_view(ChangeSchedulePresenter_t *presenter) {
   char title[32];
   snprintf(title, sizeof(title),
            "Set %d/%d temp:", presenter->current_slot_index + 1,
-           presenter->schedule.NumTimeSlots);
+           presenter->schedule.num_time_slots);
   SetValueView_SetTitle(ChangeScheduleView_GetValueView(presenter->view),
                         title);
   SetValueView_SetUnit(ChangeScheduleView_GetValueView(presenter->view), "°C");
@@ -252,7 +252,7 @@ static void setup_slot_temp_view(ChangeSchedulePresenter_t *presenter) {
   SetValuePresenter_SetMaxIndex(presenter->value_presenter, 51); /* 0..51 */
 
   float current_temp =
-      presenter->schedule.TimeSlots[presenter->current_slot_index].Temperature;
+      presenter->schedule.time_slots[presenter->current_slot_index].temperature;
   SetValuePresenter_SetSelectedIndex(presenter->value_presenter,
                                      Utils_TempToIndex(current_temp));
 
@@ -290,9 +290,9 @@ void ChangeSchedulePresenter_HandleEvent(ChangeSchedulePresenter_t *presenter,
 
         /* Map current num slots to index */
         uint16_t idx = 0;
-        if (presenter->schedule.NumTimeSlots >= 3 &&
-            presenter->schedule.NumTimeSlots <= 5)
-          idx = presenter->schedule.NumTimeSlots - 3;
+        if (presenter->schedule.num_time_slots >= 3 &&
+            presenter->schedule.num_time_slots <= 5)
+          idx = presenter->schedule.num_time_slots - 3;
         SetValuePresenter_SetSelectedIndex(presenter->value_presenter, idx);
 
         SetValuePresenter_Reset(presenter->value_presenter);
@@ -320,7 +320,7 @@ void ChangeSchedulePresenter_HandleEvent(ChangeSchedulePresenter_t *presenter,
       uint8_t new_num_slots = idx + 3;
 
       /* If num slots changed, use defaults */
-      if (new_num_slots != presenter->schedule.NumTimeSlots) {
+      if (new_num_slots != presenter->schedule.num_time_slots) {
         Utils_LoadDefaultSchedule(&presenter->schedule, new_num_slots);
       }
 
@@ -357,8 +357,8 @@ void ChangeSchedulePresenter_HandleEvent(ChangeSchedulePresenter_t *presenter,
           SetValueView_SetLeftButtonHint(
               ChangeScheduleView_GetValueView(presenter->view), false);
           SetValuePresenter_SetMaxIndex(presenter->value_presenter, 2);
-          SetValuePresenter_SetSelectedIndex(
-              presenter->value_presenter, presenter->schedule.NumTimeSlots - 3);
+          SetValuePresenter_SetSelectedIndex(presenter->value_presenter,
+                                            presenter->schedule.num_time_slots - 3);
           SetValuePresenter_Reset(presenter->value_presenter);
           SetValueView_Show(ChangeScheduleView_GetValueView(presenter->view));
         } else {
@@ -393,13 +393,13 @@ void ChangeSchedulePresenter_HandleEvent(ChangeSchedulePresenter_t *presenter,
         return;
       }
 
-      presenter->schedule.TimeSlots[presenter->current_slot_index].StartHour =
+      presenter->schedule.time_slots[presenter->current_slot_index].start_hour =
           data.start_hour;
-      presenter->schedule.TimeSlots[presenter->current_slot_index].StartMinute =
+      presenter->schedule.time_slots[presenter->current_slot_index].start_minute =
           data.start_minute;
-      presenter->schedule.TimeSlots[presenter->current_slot_index].EndHour =
+      presenter->schedule.time_slots[presenter->current_slot_index].end_hour =
           data.end_hour;
-      presenter->schedule.TimeSlots[presenter->current_slot_index].EndMinute =
+      presenter->schedule.time_slots[presenter->current_slot_index].end_minute =
           data.end_minute;
 
       /* Go to Temp */
@@ -424,12 +424,12 @@ void ChangeSchedulePresenter_HandleEvent(ChangeSchedulePresenter_t *presenter,
       /* Save Temp */
       uint16_t idx =
           SetValuePresenter_GetSelectedIndex(presenter->value_presenter);
-      presenter->schedule.TimeSlots[presenter->current_slot_index].Temperature =
+      presenter->schedule.time_slots[presenter->current_slot_index].temperature =
           Utils_IndexToTemp(idx);
 
       /* Next slot or Finish */
       if (presenter->current_slot_index <
-          presenter->schedule.NumTimeSlots - 1) {
+          presenter->schedule.num_time_slots - 1) {
         presenter->current_slot_index++;
         presenter->current_step = STEP_SLOT_TIME;
         setup_slot_time_view(presenter);

@@ -14,7 +14,7 @@ typedef struct
 {
     uint8_t hour;
     uint8_t minute;
-    float current_temp;
+    float ambient_temperature;
     float target_temp;
     uint8_t slot_end_hour;
     uint8_t slot_end_minute;

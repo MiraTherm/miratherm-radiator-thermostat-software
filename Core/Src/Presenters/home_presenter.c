@@ -91,7 +91,7 @@ void HomePresenter_HandleEvent(HomePresenter_t *presenter,
     } else {
       /* MANUAL mode: adjust manual temperature directly */
       if (osMutexAcquire(presenter->config_access->mutex, 10) == osOK) {
-        float current_temp = presenter->config_access->data.ManualTargetTemp;
+        float current_temp = presenter->config_access->data.manual_target_temp;
         uint16_t current_index = Utils_TempToIndex(current_temp);
 
         /* Adjust index by delta (each encoder click = 1 step) */
@@ -102,7 +102,7 @@ void HomePresenter_HandleEvent(HomePresenter_t *presenter,
           new_index = 51;
 
         float new_temp = Utils_IndexToTemp((uint16_t)new_index);
-        presenter->config_access->data.ManualTargetTemp = new_temp;
+        presenter->config_access->data.manual_target_temp = new_temp;
 
         printf("Home: MANUAL mode - Rotary encoder delta=%d, new manual "
                "temp=%.1f°C\n",
@@ -186,8 +186,8 @@ void HomePresenter_Run(HomePresenter_t *presenter, uint32_t current_tick) {
 
   /* Get Sensor Values */
   if (osMutexAcquire(presenter->sensor_values_access->mutex, 10) == osOK) {
-    model.current_temp = presenter->sensor_values_access->data.CurrentTemp;
-    model.battery_percentage = presenter->sensor_values_access->data.SoC;
+    model.ambient_temperature = presenter->sensor_values_access->data.ambient_temperature;
+    model.battery_percentage = presenter->sensor_values_access->data.soc;
     osMutexRelease(presenter->sensor_values_access->mutex);
   }
 

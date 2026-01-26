@@ -247,7 +247,7 @@ int main(void)
   /* USER CODE BEGIN RTOS_MUTEX */
   /* Create config access structure with mutex */
   static ConfigAccessTypeDef configAccess = {
-      .mutex = NULL, .data = {.TemperatureOffsetC = 0.0f}};
+      .mutex = NULL, .data = {.temperature_offset = 0.0f}};
   const osMutexAttr_t configMutexAttr = {
       .name = "ConfigMutex",
       .attr_bits = osMutexPrioInherit,
@@ -263,12 +263,12 @@ int main(void)
   /* Create sensor values access structure with mutex */
   static SensorValuesAccessTypeDef sensorValuesAccess = {
       .mutex = NULL,
-      .data = {.CurrentTemp = 0.0f,
-               .SoC = 0,
+      .data = {.ambient_temperature = 0.0f,
+               .soc = 0,
 #if DRIVER_TEST
-               .BatteryVoltage = 0.0f,
+               .battery_voltage = 0.0f,
 #endif
-               .MotorCurrent = 0.0f}};
+               .motor_current = 0.0f}};
   const osMutexAttr_t sensorValuesMutexAttr = {
       .name = "SensorValuesMutex",
       .attr_bits = osMutexPrioInherit,

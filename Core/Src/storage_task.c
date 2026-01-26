@@ -186,8 +186,8 @@ void StartStorageTask(void *argument) {
   }
 
   /* Load configuration from Flash or initialize defaults */
-  ConfigTypeDef loaded_config = {.TemperatureOffsetC = 0.0f,
-                                 .ManualTargetTemp = 20.0f};
+  ConfigTypeDef loaded_config = {.temperature_offset = 0.0f,
+                                 .manual_target_temp = 20.0f};
   if (read_config_from_flash(&loaded_config)) {
     /* Store in shared config with mutex protection */
     if (osMutexAcquire(s_config_access->mutex, osWaitForever) == osOK) {
@@ -198,9 +198,9 @@ void StartStorageTask(void *argument) {
   } else {
     printf("StorageTask: No valid configuration in Flash, using defaults\n");
     /* Save default configuration to Flash */
-    ConfigTypeDef default_config = {.TemperatureOffsetC = 0.0f,
-                                    .ManualTargetTemp = 20.0f};
-    Utils_LoadDefaultSchedule(&default_config.DailySchedule, 3);
+    ConfigTypeDef default_config = {.temperature_offset = 0.0f,
+                                    .manual_target_temp = 20.0f};
+    Utils_LoadDefaultSchedule(&default_config.daily_schedule, 3);
     if (write_config_to_flash(&default_config)) {
       if (osMutexAcquire(s_config_access->mutex, osWaitForever) == osOK) {
         s_config_access->data = default_config;
@@ -233,9 +233,9 @@ void StartStorageTask(void *argument) {
     if (status == osOK) {
       if (sysEvt == EVT_CFG_RST_REQ) {
         printf("StorageTask: Factory Reset Requested\n");
-        ConfigTypeDef default_config = {.TemperatureOffsetC = 0.0f,
-                                        .ManualTargetTemp = 20.0f};
-        Utils_LoadDefaultSchedule(&default_config.DailySchedule, 3);
+        ConfigTypeDef default_config = {.temperature_offset = 0.0f,
+                                        .manual_target_temp = 20.0f};
+        Utils_LoadDefaultSchedule(&default_config.daily_schedule, 3);
 
         if (write_config_to_flash(&default_config)) {
           if (osMutexAcquire(s_config_access->mutex, osWaitForever) == osOK) {

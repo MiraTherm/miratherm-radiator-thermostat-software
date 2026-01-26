@@ -74,10 +74,10 @@ static void sensor_display_update(lv_obj_t *current_label,
     return;
   }
 
-  sensor_current_label_update(current_label, values->MotorCurrent);
-  sensor_battery_label_update(battery_label, values->BatteryVoltage,
-                              values->SoC);
-  sensor_temperature_label_update(temp_label, values->CurrentTemp);
+  sensor_current_label_update(current_label, values->motor_current);
+  sensor_battery_label_update(battery_label, values->battery_voltage,
+                              values->soc);
+  sensor_temperature_label_update(temp_label, values->ambient_temperature);
 }
 
 /* Update middle button label to show motor direction */
@@ -143,13 +143,13 @@ void Driver_Test(osMessageQueueId_t storage2system_event_queue,
   ConfigTypeDef config;
   if (osMutexAcquire(config_access->mutex, osWaitForever) == osOK) {
     config = config_access->data;
-    printf("Current temperature offset: %.1f°C\n", config.TemperatureOffsetC);
+    printf("Current temperature offset: %.1f°C\n", config.temperature_offset);
 
-    config.TemperatureOffsetC = 5.0f;
+    config.temperature_offset = 5.0f;
     config_access->data = config;
     osMutexRelease(config_access->mutex);
 
-    printf("Set temperature offset to %.1f°C\n", config.TemperatureOffsetC);
+    printf("Set temperature offset to %.1f°C\n", config.temperature_offset);
   } else {
     printf("Failed to acquire config mutex\n");
   }

@@ -87,7 +87,7 @@ static float calculate_temperature(uint16_t temperature_raw, uint32_t vref_mv) {
   /* Read temperature offset from config access */
   float offset = 0.0f;
   if (osMutexAcquire(s_config_access->mutex, osWaitForever) == osOK) {
-    offset = s_config_access->data.TemperatureOffsetC;
+    offset = s_config_access->data.temperature_offset;
     osMutexRelease(s_config_access->mutex);
   }
 
@@ -273,14 +273,14 @@ void StartSensorTask(void *argument) {
     /* Update sensor values via mutex */
     if (osMutexAcquire(s_sensor_values_access->mutex, osWaitForever) == osOK) {
       if (update_motor) {
-        s_sensor_values_access->data.MotorCurrent = motor_current;
+        s_sensor_values_access->data.motor_current = motor_current;
       }
 
       if (update_temp_bat) {
-        s_sensor_values_access->data.CurrentTemp = temperature;
-        s_sensor_values_access->data.SoC = battery_soc;
+        s_sensor_values_access->data.ambient_temperature = temperature;
+        s_sensor_values_access->data.soc = battery_soc;
 #if DRIVER_TEST
-        s_sensor_values_access->data.BatteryVoltage = battery_voltage;
+        s_sensor_values_access->data.battery_voltage = battery_voltage;
 #endif
       }
       osMutexRelease(s_sensor_values_access->mutex);

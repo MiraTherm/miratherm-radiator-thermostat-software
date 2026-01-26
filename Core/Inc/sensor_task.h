@@ -65,12 +65,12 @@ extern "C" {
  */
 typedef struct
 {
-  float CurrentTemp;       /**< Current temperature in °C (with offset applied) */
+  float ambient_temperature;       /**< Current temperature in °C (with offset applied) */
 #if DRIVER_TEST
-  float BatteryVoltage;    /**< Battery voltage in V (debug only) */
+  float battery_voltage;    /**< Battery voltage in V (debug only) */
 #endif
-  uint8_t SoC;             /**< Battery state-of-charge percentage (0-100%) */
-  float MotorCurrent;      /**< Motor shunt current in amperes */
+  uint8_t soc;             /**< Battery state-of-charge percentage (0-100%) */
+  float motor_current;      /**< Motor shunt current in amperes */
 } SensorValuesTypeDef;
 
 /**

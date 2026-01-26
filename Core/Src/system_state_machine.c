@@ -332,16 +332,16 @@ static SystemState_t doRunningState(void) {
 
         int current_mins = sTime.Hours * 60 + sTime.Minutes;
 
-        for (int i = 0; i < cfg->DailySchedule.NumTimeSlots; i++) {
-          TimeSlotTypeDef *slot = &cfg->DailySchedule.TimeSlots[i];
+        for (int i = 0; i < cfg->daily_schedule.num_time_slots; i++) {
+          TimeSlotTypeDef *slot = &cfg->daily_schedule.time_slots[i];
 
-          int start_mins = slot->StartHour * 60 + slot->StartMinute;
-          int end_mins = slot->EndHour * 60 + slot->EndMinute;
+          int start_mins = slot->start_hour * 60 + slot->start_minute;
+          int end_mins = slot->end_hour * 60 + slot->end_minute;
 
           if (current_mins >= start_mins && current_mins < end_mins) {
-            target_temp = slot->Temperature;
-            end_h = slot->EndHour;
-            end_m = slot->EndMinute;
+            target_temp = slot->temperature;
+            end_h = slot->end_hour;
+            end_m = slot->end_minute;
             found = true;
             break;
           }
@@ -358,7 +358,7 @@ static SystemState_t doRunningState(void) {
     } else if (current_mode == MODE_MANUAL) {
       /* MANUAL mode: use fixed manual temperature */
       if (osMutexAcquire(smArgs->config_access->mutex, 10) == osOK) {
-        target_temp = smArgs->config_access->data.ManualTargetTemp;
+        target_temp = smArgs->config_access->data.manual_target_temp;
         osMutexRelease(smArgs->config_access->mutex);
       }
       end_h = 0xFF; /* No slot tracking in manual */

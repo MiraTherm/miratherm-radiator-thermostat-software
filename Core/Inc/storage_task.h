@@ -52,11 +52,11 @@ typedef enum { EVT_CFG_RST_REQ = 0 /**< Factory reset request */ } System2Storag
  * @details Defines a time window with associated target temperature
  */
 typedef struct {
-  uint8_t StartHour;    /**< Slot start hour (0-23) */
-  uint8_t StartMinute;  /**< Slot start minute (0-59) */
-  uint8_t EndHour;      /**< Slot end hour (0-23) */
-  uint8_t EndMinute;    /**< Slot end minute (0-59) */
-  float Temperature;    /**< Target temperature in °C for this slot */
+  uint8_t start_hour;    /**< Slot start hour (0-23) */
+  uint8_t start_minute;  /**< Slot start minute (0-59) */
+  uint8_t end_hour;      /**< Slot end hour (0-23) */
+  uint8_t end_minute;    /**< Slot end minute (0-59) */
+  float temperature;    /**< Target temperature in °C for this slot */
 } TimeSlotTypeDef;
 
 /**
@@ -65,8 +65,8 @@ typedef struct {
  * @details Contains up to 5 configurable time slots per day
  */
 typedef struct {
-  uint8_t NumTimeSlots;           /**< Number of active time slots (1-5) */
-  TimeSlotTypeDef TimeSlots[5];   /**< Array of time slot configurations */
+  uint8_t num_time_slots;           /**< Number of active time slots (1-5) */
+  TimeSlotTypeDef time_slots[5];   /**< Array of time slot configurations */
 } DailyScheduleTypeDef;
 
 /**
@@ -78,9 +78,9 @@ typedef struct {
  * @see DailyScheduleTypeDef
  */
 typedef struct {
-  float TemperatureOffsetC;        /**< Temperature sensor calibration offset in °C */
-  DailyScheduleTypeDef DailySchedule; /**< Daily heating schedule */
-  float ManualTargetTemp;          /**< Manual mode target temperature in °C */
+  float temperature_offset;        /**< Temperature sensor calibration offset in °C */
+  DailyScheduleTypeDef daily_schedule; /**< Daily heating schedule */
+  float manual_target_temp;          /**< Manual mode target temperature in °C */
 } ConfigTypeDef;
 
 /**
