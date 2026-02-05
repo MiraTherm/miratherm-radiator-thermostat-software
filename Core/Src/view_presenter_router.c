@@ -1,29 +1,3 @@
-#include "view_presenter_router.h"
-#include "boost_presenter.h"
-#include "boost_view.h"
-#include "change_schedule_presenter.h"
-#include "change_schedule_view.h"
-#include "cmsis_os2.h"
-#include "factory_reset_presenter.h"
-#include "home_presenter.h"
-#include "home_view.h"
-#include "loading_presenter.h"
-#include "loading_view.h"
-#include "menu_presenter.h"
-#include "menu_view.h"
-#include "set_date_time_presenter.h"
-#include "set_date_time_view.h"
-#include "set_temp_offset_presenter.h"
-#include "set_value_view.h"
-#include "task_debug.h"
-#include "waiting_presenter.h"
-#include "waiting_view.h"
-#if VIEW_PRESENTER_TASK_DEBUG_LEDS
-#include "stm32wbxx_nucleo.h"
-#endif
-#include <stddef.h>
-#include <stdint.h>
-
 /**
  ******************************************************************************
  * @file           :  view_presenter_router.c
