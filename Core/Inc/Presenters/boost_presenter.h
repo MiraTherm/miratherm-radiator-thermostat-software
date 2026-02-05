@@ -11,7 +11,7 @@ extern "C" {
 
 typedef struct BoostPresenter BoostPresenter_t;
 
-BoostPresenter_t* BoostPresenter_Init(BoostView_t *view, SystemModel_t *system_context);
+BoostPresenter_t* BoostPresenter_Init(BoostView_t *view, SystemModel_t *system_model);
 void BoostPresenter_Deinit(BoostPresenter_t *presenter);
 void BoostPresenter_HandleEvent(BoostPresenter_t *presenter, const Input2VPEvent_t *event);
 void BoostPresenter_Run(BoostPresenter_t *presenter, uint32_t current_tick);

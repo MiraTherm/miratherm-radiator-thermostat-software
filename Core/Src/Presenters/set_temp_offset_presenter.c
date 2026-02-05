@@ -5,7 +5,7 @@
 
 struct SetTempOffsetPresenter {
   SetValuePresenter_t *generic_presenter;
-  ConfigModel_t *config_access;
+  ConfigModel_t *config_model;
   char *options_str;
   bool is_complete;
   bool is_cancelled;
@@ -13,8 +13,8 @@ struct SetTempOffsetPresenter {
 
 SetTempOffsetPresenter_t *
 SetTempOffsetPresenter_Init(SetValueView_t *view,
-                            ConfigModel_t *config_access) {
-  if (!view || !config_access)
+                            ConfigModel_t *config_model) {
+  if (!view || !config_model)
     return NULL;
 
   SetTempOffsetPresenter_t *presenter =
@@ -22,7 +22,7 @@ SetTempOffsetPresenter_Init(SetValueView_t *view,
   if (!presenter)
     return NULL;
 
-  presenter->config_access = config_access;
+  presenter->config_model = config_model;
   presenter->is_complete = false;
   presenter->is_cancelled = false;
   presenter->options_str = NULL;
@@ -69,8 +69,8 @@ SetTempOffsetPresenter_Init(SetValueView_t *view,
 
   /* Calculate initial index */
   uint16_t initial_index = 30; /* Default 0.0 */
-  if (osMutexAcquire(config_access->mutex, 10) == osOK) {
-    float current_offset = config_access->data.temperature_offset;
+  if (osMutexAcquire(config_model->mutex, 10) == osOK) {
+    float current_offset = config_model->data.temperature_offset;
     /* Calculate index: (offset + 15.0) / 0.5 */
     int idx = (int)((current_offset + 15.0f) * 2.0f);
     if (idx < 0)
@@ -78,7 +78,7 @@ SetTempOffsetPresenter_Init(SetValueView_t *view,
     if (idx > 60)
       idx = 60;
     initial_index = (uint16_t)idx;
-    osMutexRelease(config_access->mutex);
+    osMutexRelease(config_model->mutex);
   }
 
   /* Initialize Generic Presenter */
@@ -130,9 +130,9 @@ void SetTempOffsetPresenter_HandleEvent(SetTempOffsetPresenter_t *presenter,
     /* Map index to offset. Range -15.0 to +15.0 with 0.5 step. */
     float new_offset = (float)index * 0.5f - 15.0f;
 
-    if (osMutexAcquire(presenter->config_access->mutex, 10) == osOK) {
-      presenter->config_access->data.temperature_offset = new_offset;
-      osMutexRelease(presenter->config_access->mutex);
+    if (osMutexAcquire(presenter->config_model->mutex, 10) == osOK) {
+      presenter->config_model->data.temperature_offset = new_offset;
+      osMutexRelease(presenter->config_model->mutex);
     }
 
     presenter->is_complete = true;

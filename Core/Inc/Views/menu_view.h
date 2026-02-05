@@ -23,7 +23,7 @@ typedef struct MenuView MenuView_t;
 
 MenuView_t* MenuView_Init(const char *options);
 void MenuView_Deinit(MenuView_t *view);
-void MenuView_Render(MenuView_t *view, const MenuViewData_t *model);
+void MenuView_Render(MenuView_t *view, const MenuViewData_t *data);
 void MenuView_Show(MenuView_t *view);
 void MenuView_Hide(MenuView_t *view);
 

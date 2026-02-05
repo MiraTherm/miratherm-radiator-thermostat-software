@@ -33,7 +33,7 @@ WaitingView_t* WaitingView_Init(const char *message, int16_t y_ofs);
 void WaitingView_Deinit(WaitingView_t *view);
 
 /**
- * @brief Render/update the view with data from view model
+ * @brief Render/update the view with data
  */
 void WaitingView_Render(WaitingView_t *view, const WaitingViewData_t *data);
 

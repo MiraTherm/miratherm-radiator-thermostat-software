@@ -66,17 +66,17 @@ typedef enum {
  * @details Sets up initial route and registers all queue handles and data
  *          access pointers. Initializes the first screen view/presenter pair.
  * @param vp2system_queue Queue for sending user actions to system task
- * @param system_context Shared system state context (for reading state)
- * @param config_access Shared configuration data access
- * @param sensor_values_access Shared sensor measurement values
+ * @param system_model Shared system state context (for reading state)
+ * @param config_model Shared configuration data access
+ * @param sensor_model Shared sensor measurement values
  * @return void; calls Error_Handler() if queues or contexts are invalid
  * @note Must be called once during VP task startup
  * @see ViewPresenterTaskArgsTypeDef, RouteTypeDef
  */
 void Router_Init(osMessageQueueId_t vp2system_queue,
-                 SystemModel_t *system_context,
-                 ConfigModel_t *config_access,
-                 SensorModel_t *sensor_values_access);
+                 SystemModel_t *system_model,
+                 ConfigModel_t *config_model,
+                 SensorModel_t *sensor_model);
 
 /**
  * @brief Deinitialize the router

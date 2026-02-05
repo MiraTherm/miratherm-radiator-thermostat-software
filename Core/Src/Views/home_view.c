@@ -20,7 +20,7 @@ typedef struct HomeView {
   lv_obj_t *label_hint_right;
 
   /* Cache to avoid redrawing if not changed */
-  HomeViewData_t last_model;
+  HomeViewData_t last_data;
   bool first_render;
 } HomeView_t;
 
@@ -116,8 +116,8 @@ void HomeView_Deinit(HomeView_t *view) {
   }
 }
 
-void HomeView_Render(HomeView_t *view, const HomeViewData_t *model) {
-  if (!view || !model)
+void HomeView_Render(HomeView_t *view, const HomeViewData_t *data) {
+  if (!view || !data)
     return;
 
   if (!lv_port_lock())
@@ -126,32 +126,32 @@ void HomeView_Render(HomeView_t *view, const HomeViewData_t *model) {
   char buf[32];
 
   /* Time */
-  if (view->first_render || view->last_model.hour != model->hour ||
-      view->last_model.minute != model->minute) {
-    snprintf(buf, sizeof(buf), "%02d:%02d", model->hour, model->minute);
+  if (view->first_render || view->last_data.hour != data->hour ||
+      view->last_data.minute != data->minute) {
+    snprintf(buf, sizeof(buf), "%02d:%02d", data->hour, data->minute);
     lv_label_set_text(view->label_time, buf);
   }
 
   /* Battery */
   if (view->first_render ||
-      view->last_model.battery_percentage != model->battery_percentage) {
-    snprintf(buf, sizeof(buf), "Bat: %d%%", model->battery_percentage);
+      view->last_data.battery_percentage != data->battery_percentage) {
+    snprintf(buf, sizeof(buf), "Bat: %d%%", data->battery_percentage);
     lv_label_set_text(view->label_battery, buf);
   }
 
   /* Target Temp */
   if (view->first_render ||
-      view->last_model.target_temp != model->target_temp ||
-      view->last_model.is_off_mode != model->is_off_mode ||
-      view->last_model.is_on_mode != model->is_on_mode) {
-    if (model->is_off_mode) {
+      view->last_data.target_temp != data->target_temp ||
+      view->last_data.is_off_mode != data->is_off_mode ||
+      view->last_data.is_on_mode != data->is_on_mode) {
+    if (data->is_off_mode) {
       lv_label_set_text(view->label_target_temp, "OFF");
-    } else if (model->is_on_mode) {
+    } else if (data->is_on_mode) {
       lv_label_set_text(view->label_target_temp, "ON");
     } else {
       /* Assuming 1 decimal place */
-      int temp_int = (int)model->target_temp;
-      int temp_dec = (int)((model->target_temp - temp_int) * 10);
+      int temp_int = (int)data->target_temp;
+      int temp_dec = (int)((data->target_temp - temp_int) * 10);
       snprintf(buf, sizeof(buf), "%d.%d°", temp_int, temp_dec);
       lv_label_set_text(view->label_target_temp, buf);
     }
@@ -159,22 +159,22 @@ void HomeView_Render(HomeView_t *view, const HomeViewData_t *model) {
 
   /* Current Temp */
   if (view->first_render ||
-      view->last_model.ambient_temperature != model->ambient_temperature) {
-    int temp_int = (int)model->ambient_temperature;
-    int temp_dec = (int)((model->ambient_temperature - temp_int) * 10);
+      view->last_data.ambient_temperature != data->ambient_temperature) {
+    int temp_int = (int)data->ambient_temperature;
+    int temp_dec = (int)((data->ambient_temperature - temp_int) * 10);
     snprintf(buf, sizeof(buf), "<- %d.%d°", temp_int, temp_dec);
     lv_label_set_text(view->label_current_temp, buf);
   }
 
   /* Time Slot (only in AUTO mode) */
   if (view->first_render ||
-      view->last_model.slot_end_hour != model->slot_end_hour ||
-      view->last_model.slot_end_minute != model->slot_end_minute ||
-      view->last_model.mode != model->mode) {
-    if (model->mode == 0) /* MODE_AUTO */
+      view->last_data.slot_end_hour != data->slot_end_hour ||
+      view->last_data.slot_end_minute != data->slot_end_minute ||
+      view->last_data.mode != data->mode) {
+    if (data->mode == 0) /* MODE_AUTO */
     {
-      snprintf(buf, sizeof(buf), "-> %02d:%02d", model->slot_end_hour,
-               model->slot_end_minute);
+      snprintf(buf, sizeof(buf), "-> %02d:%02d", data->slot_end_hour,
+               data->slot_end_minute);
       lv_label_set_text(view->label_time_slot, buf);
     } else /* MODE_MANUAL */
     {
@@ -183,12 +183,12 @@ void HomeView_Render(HomeView_t *view, const HomeViewData_t *model) {
   }
 
   /* Mode Hint Label (Left Button) */
-  if (view->first_render || view->last_model.mode != model->mode) {
-    const char *mode_text = (model->mode == 0) ? "Auto" : "Manual";
+  if (view->first_render || view->last_data.mode != data->mode) {
+    const char *mode_text = (data->mode == 0) ? "Auto" : "Manual";
     lv_label_set_text(view->label_hint_left, mode_text);
   }
 
-  view->last_model = *model;
+  view->last_data = *data;
   view->first_render = false;
 
   lv_port_unlock();

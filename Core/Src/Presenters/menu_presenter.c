@@ -5,9 +5,9 @@
 
 struct MenuPresenter {
   MenuView_t *view;
-  SystemModel_t *system_context;
-  ConfigModel_t *config_access;
-  SensorModel_t *sensor_values_access;
+  SystemModel_t *system_model;
+  ConfigModel_t *config_model;
+  SensorModel_t *sensor_model;
 
   uint16_t selected_index;
   const char *options;
@@ -19,10 +19,10 @@ struct MenuPresenter {
 #define MENU_OPTION_FACTORY_RST 2
 
 MenuPresenter_t *
-MenuPresenter_Init(MenuView_t *view, SystemModel_t *system_context,
-                   ConfigModel_t *config_access,
-                   SensorModel_t *sensor_values_access) {
-  if (!view || !system_context || !config_access || !sensor_values_access)
+MenuPresenter_Init(MenuView_t *view, SystemModel_t *system_model,
+                   ConfigModel_t *config_model,
+                   SensorModel_t *sensor_model) {
+  if (!view || !system_model || !config_model || !sensor_model)
     return NULL;
 
   MenuPresenter_t *presenter =
@@ -31,9 +31,9 @@ MenuPresenter_Init(MenuView_t *view, SystemModel_t *system_context,
     return NULL;
 
   presenter->view = view;
-  presenter->system_context = system_context;
-  presenter->config_access = config_access;
-  presenter->sensor_values_access = sensor_values_access;
+  presenter->system_model = system_model;
+  presenter->config_model = config_model;
+  presenter->sensor_model = sensor_model;
 
   presenter->selected_index = 0;
   presenter->options = "\n"; // Empty to save flash, we hardcode buttons in view
@@ -92,9 +92,9 @@ void MenuPresenter_Run(MenuPresenter_t *presenter, uint32_t current_tick) {
   if (!presenter || !presenter->view)
     return;
 
-  MenuViewData_t model;
-  model.selected_index = presenter->selected_index;
-  model.options_str = presenter->options;
+  MenuViewData_t data;
+  data.selected_index = presenter->selected_index;
+  data.options_str = presenter->options;
 
-  MenuView_Render(presenter->view, &model);
+  MenuView_Render(presenter->view, &data);
 }

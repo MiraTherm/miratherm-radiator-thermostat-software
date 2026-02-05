@@ -38,7 +38,7 @@ LoadingView_t* LoadingView_Init(const char *message, lv_align_t alignment, int16
 void LoadingView_Deinit(LoadingView_t *view);
 
 /**
- * @brief Render/update the view with data from view model
+ * @brief Render/update the view with data
  */
 void LoadingView_Render(LoadingView_t *view, const LoadingViewData_t *data);
 

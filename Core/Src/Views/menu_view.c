@@ -110,32 +110,32 @@ void MenuView_Deinit(MenuView_t *view) {
   free(view);
 }
 
-void MenuView_Render(MenuView_t *view, const MenuViewData_t *model) {
-  if (!view || !model)
+void MenuView_Render(MenuView_t *view, const MenuViewData_t *data) {
+  if (!view || !data)
     return;
   if (!lv_port_lock())
     return;
 
   /* We ignore options_str update for now as we hardcoded buttons for list */
 
-  if (view->last_selected_index != model->selected_index) {
+  if (view->last_selected_index != data->selected_index) {
     /* Manually manage focus state to simulate selection */
     lv_obj_clear_state(view->btn_schedule, LV_STATE_FOCUS_KEY);
     lv_obj_clear_state(view->btn_offset, LV_STATE_FOCUS_KEY);
     lv_obj_clear_state(view->btn_factory_rst, LV_STATE_FOCUS_KEY);
 
-    if (model->selected_index == 0) {
+    if (data->selected_index == 0) {
       lv_obj_add_state(view->btn_schedule, LV_STATE_FOCUS_KEY);
       lv_obj_scroll_to_view(view->btn_schedule, LV_ANIM_OFF);
-    } else if (model->selected_index == 1) {
+    } else if (data->selected_index == 1) {
       lv_obj_add_state(view->btn_offset, LV_STATE_FOCUS_KEY);
       lv_obj_scroll_to_view(view->btn_offset, LV_ANIM_OFF);
-    } else if (model->selected_index == 2) {
+    } else if (data->selected_index == 2) {
       lv_obj_add_state(view->btn_factory_rst, LV_STATE_FOCUS_KEY);
       lv_obj_scroll_to_view(view->btn_factory_rst, LV_ANIM_OFF);
     }
 
-    view->last_selected_index = model->selected_index;
+    view->last_selected_index = data->selected_index;
   }
 
   lv_port_unlock();

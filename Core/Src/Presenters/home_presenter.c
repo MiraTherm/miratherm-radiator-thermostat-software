@@ -10,16 +10,16 @@ extern RTC_HandleTypeDef hrtc;
 
 struct HomePresenter {
   HomeView_t *view;
-  SystemModel_t *system_context;
-  ConfigModel_t *config_access;
-  SensorModel_t *sensor_values_access;
+  SystemModel_t *system_model;
+  ConfigModel_t *config_model;
+  SensorModel_t *sensor_model;
 };
 
 HomePresenter_t *
-HomePresenter_Init(HomeView_t *view, SystemModel_t *system_context,
-                   ConfigModel_t *config_access,
-                   SensorModel_t *sensor_values_access) {
-  if (!view || !system_context || !config_access || !sensor_values_access)
+HomePresenter_Init(HomeView_t *view, SystemModel_t *system_model,
+                   ConfigModel_t *config_model,
+                   SensorModel_t *sensor_model) {
+  if (!view || !system_model || !config_model || !sensor_model)
     return NULL;
 
   HomePresenter_t *presenter =
@@ -28,9 +28,9 @@ HomePresenter_Init(HomeView_t *view, SystemModel_t *system_context,
     return NULL;
 
   presenter->view = view;
-  presenter->system_context = system_context;
-  presenter->config_access = config_access;
-  presenter->sensor_values_access = sensor_values_access;
+  presenter->system_model = system_model;
+  presenter->config_model = config_model;
+  presenter->sensor_model = sensor_model;
 
   return presenter;
 }
@@ -48,26 +48,26 @@ void HomePresenter_HandleEvent(HomePresenter_t *presenter,
 
   /* Handle rotary encoder movement */
   if (event->type == EVT_CTRL_WHEEL_DELTA) {
-    if (!presenter->system_context || !presenter->config_access)
+    if (!presenter->system_model || !presenter->config_model)
       return;
 
     /* Check current mode */
     SystemMode_t current_mode = MODE_AUTO;
-    if (osMutexAcquire(presenter->system_context->mutex, 10) == osOK) {
-      current_mode = presenter->system_context->data.mode;
-      osMutexRelease(presenter->system_context->mutex);
+    if (osMutexAcquire(presenter->system_model->mutex, 10) == osOK) {
+      current_mode = presenter->system_model->data.mode;
+      osMutexRelease(presenter->system_model->mutex);
     }
 
     if (current_mode == MODE_AUTO) {
       /* AUTO mode: use temporary override */
-      if (osMutexAcquire(presenter->system_context->mutex, 10) == osOK) {
+      if (osMutexAcquire(presenter->system_model->mutex, 10) == osOK) {
         /* Use current temporary override if set, otherwise start from scheduled
          * target */
         float current_temp;
-        if (presenter->system_context->data.temporary_target_temp != 0) {
-          current_temp = presenter->system_context->data.temporary_target_temp;
+        if (presenter->system_model->data.temporary_target_temp != 0) {
+          current_temp = presenter->system_model->data.temporary_target_temp;
         } else {
-          current_temp = presenter->system_context->data.target_temp;
+          current_temp = presenter->system_model->data.target_temp;
         }
 
         uint16_t current_index = Utils_TempToIndex(current_temp);
@@ -80,18 +80,18 @@ void HomePresenter_HandleEvent(HomePresenter_t *presenter,
           new_index = 51;
 
         float new_temp = Utils_IndexToTemp((uint16_t)new_index);
-        presenter->system_context->data.temporary_target_temp = new_temp;
+        presenter->system_model->data.temporary_target_temp = new_temp;
 
         printf("Home: AUTO mode - Rotary encoder delta=%d, new temp "
                "override=%.1f°C\n",
                event->delta, new_temp);
 
-        osMutexRelease(presenter->system_context->mutex);
+        osMutexRelease(presenter->system_model->mutex);
       }
     } else {
       /* MANUAL mode: adjust manual temperature directly */
-      if (osMutexAcquire(presenter->config_access->mutex, 10) == osOK) {
-        float current_temp = presenter->config_access->data.manual_target_temp;
+      if (osMutexAcquire(presenter->config_model->mutex, 10) == osOK) {
+        float current_temp = presenter->config_model->data.manual_target_temp;
         uint16_t current_index = Utils_TempToIndex(current_temp);
 
         /* Adjust index by delta (each encoder click = 1 step) */
@@ -102,13 +102,13 @@ void HomePresenter_HandleEvent(HomePresenter_t *presenter,
           new_index = 51;
 
         float new_temp = Utils_IndexToTemp((uint16_t)new_index);
-        presenter->config_access->data.manual_target_temp = new_temp;
+        presenter->config_model->data.manual_target_temp = new_temp;
 
         printf("Home: MANUAL mode - Rotary encoder delta=%d, new manual "
                "temp=%.1f°C\n",
                event->delta, new_temp);
 
-        osMutexRelease(presenter->config_access->mutex);
+        osMutexRelease(presenter->config_model->mutex);
       }
     }
 
@@ -120,39 +120,39 @@ void HomePresenter_HandleEvent(HomePresenter_t *presenter,
     switch (event->type) {
     case EVT_LEFT_BTN:
       /* Toggle mode between AUTO and MANUAL */
-      if (presenter->system_context) {
-        if (osMutexAcquire(presenter->system_context->mutex, 10) == osOK) {
+      if (presenter->system_model) {
+        if (osMutexAcquire(presenter->system_model->mutex, 10) == osOK) {
           /* Toggle mode */
           SystemMode_t new_mode =
-              (presenter->system_context->data.mode == MODE_AUTO) ? MODE_MANUAL
+              (presenter->system_model->data.mode == MODE_AUTO) ? MODE_MANUAL
                                                                   : MODE_AUTO;
-          presenter->system_context->data.mode = new_mode;
+          presenter->system_model->data.mode = new_mode;
 
           /* Clear temporary override when switching modes */
-          presenter->system_context->data.temporary_target_temp = 0;
+          presenter->system_model->data.temporary_target_temp = 0;
 
           printf("Home: Mode button pressed, switching to %s mode\n",
                  (new_mode == MODE_AUTO) ? "AUTO" : "MANUAL");
 
-          osMutexRelease(presenter->system_context->mutex);
+          osMutexRelease(presenter->system_model->mutex);
         }
       }
       break;
     case EVT_MIDDLE_BTN:
       /* Activate Boost mode */
-      if (presenter->system_context) {
-        if (osMutexAcquire(presenter->system_context->mutex, 10) == osOK) {
+      if (presenter->system_model) {
+        if (osMutexAcquire(presenter->system_model->mutex, 10) == osOK) {
           /* Save current mode before boost */
-          presenter->system_context->data.mode_before_boost =
-              presenter->system_context->data.mode;
+          presenter->system_model->data.mode_before_boost =
+              presenter->system_model->data.mode;
           /* Set boost mode and record start time */
-          presenter->system_context->data.mode = MODE_BOOST;
-          presenter->system_context->data.boost_begin_time =
+          presenter->system_model->data.mode = MODE_BOOST;
+          presenter->system_model->data.boost_begin_time =
               osKernelGetTickCount();
 
           printf("Home: Boost button pressed, entering boost mode\n");
 
-          osMutexRelease(presenter->system_context->mutex);
+          osMutexRelease(presenter->system_model->mutex);
         }
         /* Switch to boost view */
         Router_GoToRoute(ROUTE_BOOST);
@@ -173,7 +173,7 @@ void HomePresenter_Run(HomePresenter_t *presenter, uint32_t current_tick) {
   if (!presenter || !presenter->view)
     return;
 
-  HomeViewData_t model = {0};
+  HomeViewData_t data = {0};
 
   /* Get Time */
   RTC_TimeTypeDef sTime = {0};
@@ -181,35 +181,35 @@ void HomePresenter_Run(HomePresenter_t *presenter, uint32_t current_tick) {
   HAL_RTC_GetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
   HAL_RTC_GetDate(&hrtc, &sDate, RTC_FORMAT_BIN);
 
-  model.hour = sTime.Hours;
-  model.minute = sTime.Minutes;
+  data.hour = sTime.Hours;
+  data.minute = sTime.Minutes;
 
   /* Get Sensor Values */
-  if (osMutexAcquire(presenter->sensor_values_access->mutex, 10) == osOK) {
-    model.ambient_temperature = presenter->sensor_values_access->data.ambient_temperature;
-    model.battery_percentage = presenter->sensor_values_access->data.soc;
-    osMutexRelease(presenter->sensor_values_access->mutex);
+  if (osMutexAcquire(presenter->sensor_model->mutex, 10) == osOK) {
+    data.ambient_temperature = presenter->sensor_model->data.ambient_temperature;
+    data.battery_percentage = presenter->sensor_model->data.soc;
+    osMutexRelease(presenter->sensor_model->mutex);
   }
 
   /* Get Target Temperature and Mode from System State */
-  if (osMutexAcquire(presenter->system_context->mutex, 10) == osOK) {
-    model.target_temp = presenter->system_context->data.target_temp;
-    model.mode = presenter->system_context->data.mode;
+  if (osMutexAcquire(presenter->system_model->mutex, 10) == osOK) {
+    data.target_temp = presenter->system_model->data.target_temp;
+    data.mode = presenter->system_model->data.mode;
 
     /* Use temporary override if set, otherwise use scheduled target */
-    if (presenter->system_context->data.temporary_target_temp != 0) {
-      model.target_temp = presenter->system_context->data.temporary_target_temp;
+    if (presenter->system_model->data.temporary_target_temp != 0) {
+      data.target_temp = presenter->system_model->data.temporary_target_temp;
     }
 
-    model.slot_end_hour = presenter->system_context->data.slot_end_hour;
-    model.slot_end_minute = presenter->system_context->data.slot_end_minute;
+    data.slot_end_hour = presenter->system_model->data.slot_end_hour;
+    data.slot_end_minute = presenter->system_model->data.slot_end_minute;
 
     /* Determine if displaying OFF or ON mode */
-    model.is_off_mode = (model.target_temp <= 4.5f);
-    model.is_on_mode = (model.target_temp >= 30.0f);
+    data.is_off_mode = (data.target_temp <= 4.5f);
+    data.is_on_mode = (data.target_temp >= 30.0f);
 
-    osMutexRelease(presenter->system_context->mutex);
+    osMutexRelease(presenter->system_model->mutex);
   }
 
-  HomeView_Render(presenter->view, &model);
+  HomeView_Render(presenter->view, &data);
 }

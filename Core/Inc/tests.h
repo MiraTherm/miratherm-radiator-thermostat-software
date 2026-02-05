@@ -58,16 +58,16 @@ extern "C" {
  *          Requires DRIVER_TEST flag to be enabled during compilation.
  * @param storage2system_event_queue Event queue from storage task (config load)
  * @param input2vp_event_queue Input event queue (button/encoder events)
- * @param config_access Shared configuration data access
- * @param sensor_values_access Shared sensor measurement values access
+ * @param config_model Shared configuration data access
+ * @param sensor_model Shared sensor measurement values access
  * @return void; infinite loop monitoring test interface
  * @note Called from main task initialization when DRIVER_TEST is enabled
  * @see DRIVER_TEST flag, StartMainTask
  */
 void Driver_Test(osMessageQueueId_t storage2system_event_queue,
                  osMessageQueueId_t input2vp_event_queue,
-                 ConfigModel_t *config_access,
-                 SensorModel_t *sensor_values_access);
+                 ConfigModel_t *config_model,
+                 SensorModel_t *sensor_model);
 #elif ADAPTATION_TEST
 /**
  * @brief Run radiator adaptation algorithm test (not implemented yet)

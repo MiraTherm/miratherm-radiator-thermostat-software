@@ -92,8 +92,8 @@ static void update_go_button_label(lv_obj_t *label, bool forward) {
 /* Driver test: interactive UI for hardware component validation */
 void Driver_Test(osMessageQueueId_t storage2system_event_queue,
                  osMessageQueueId_t input2vp_event_queue,
-                 ConfigModel_t *config_access,
-                 SensorModel_t *sensor_values_access) {
+                 ConfigModel_t *config_model,
+                 SensorModel_t *sensor_model) {
   printf("Starting driver test...\n");
 
   /* Validate queue handles */
@@ -108,8 +108,8 @@ void Driver_Test(osMessageQueueId_t storage2system_event_queue,
   }
 
   /* Validate config access handle */
-  if (config_access == NULL || config_access->mutex == NULL) {
-    printf("ERROR: config_access or mutex is NULL\n");
+  if (config_model == NULL || config_model->mutex == NULL) {
+    printf("ERROR: config_model or mutex is NULL\n");
     return;
   }
 
@@ -141,13 +141,13 @@ void Driver_Test(osMessageQueueId_t storage2system_event_queue,
 
   /* Set temperature calibration offset in config */
   ConfigData_t config;
-  if (osMutexAcquire(config_access->mutex, osWaitForever) == osOK) {
-    config = config_access->data;
+  if (osMutexAcquire(config_model->mutex, osWaitForever) == osOK) {
+    config = config_model->data;
     printf("Current temperature offset: %.1f°C\n", config.temperature_offset);
 
     config.temperature_offset = 5.0f;
-    config_access->data = config;
-    osMutexRelease(config_access->mutex);
+    config_model->data = config;
+    osMutexRelease(config_model->mutex);
 
     printf("Set temperature offset to %.1f°C\n", config.temperature_offset);
   } else {
@@ -308,11 +308,11 @@ void Driver_Test(osMessageQueueId_t storage2system_event_queue,
     /* Periodic sensor value display update */
     const TickType_t now = osKernelGetTickCount();
     if ((now - last_sensor_tick) >= sensor_display_interval) {
-      if (sensor_values_access != NULL && sensor_values_access->mutex != NULL) {
-        if (osMutexAcquire(sensor_values_access->mutex, osWaitForever) ==
+      if (sensor_model != NULL && sensor_model->mutex != NULL) {
+        if (osMutexAcquire(sensor_model->mutex, osWaitForever) ==
             osOK) {
-          SensorData_t values = sensor_values_access->data;
-          osMutexRelease(sensor_values_access->mutex);
+          SensorData_t values = sensor_model->data;
+          osMutexRelease(sensor_model->mutex);
 
           if (lv_port_lock()) {
             sensor_display_update(current_label, battery_label, temp_label,

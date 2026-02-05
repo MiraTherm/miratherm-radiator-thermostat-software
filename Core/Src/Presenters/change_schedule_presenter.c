@@ -18,7 +18,7 @@ typedef enum {
 
 typedef struct ChangeSchedulePresenter {
   ChangeScheduleView_t *view;
-  ConfigModel_t *config_access;
+  ConfigModel_t *config_model;
 
   SetBoolPresenter_t *bool_presenter;
   SetValuePresenter_t *value_presenter;
@@ -41,7 +41,7 @@ static void load_schedule(ChangeSchedulePresenter_t *presenter);
 
 ChangeSchedulePresenter_t *
 ChangeSchedulePresenter_Init(ChangeScheduleView_t *view,
-                             ConfigModel_t *config_access,
+                             ConfigModel_t *config_model,
                              bool skip_confirmation) {
   ChangeSchedulePresenter_t *presenter =
       (ChangeSchedulePresenter_t *)malloc(sizeof(ChangeSchedulePresenter_t));
@@ -49,7 +49,7 @@ ChangeSchedulePresenter_Init(ChangeScheduleView_t *view,
     return NULL;
 
   presenter->view = view;
-  presenter->config_access = config_access;
+  presenter->config_model = config_model;
   presenter->current_step =
       skip_confirmation ? STEP_NUM_SLOTS : STEP_ASK_CHANGE;
   presenter->is_complete = false;
@@ -115,12 +115,12 @@ bool ChangeSchedulePresenter_IsCancelled(ChangeSchedulePresenter_t *presenter) {
 }
 
 static void save_schedule(ChangeSchedulePresenter_t *presenter) {
-  if (!presenter || !presenter->config_access)
+  if (!presenter || !presenter->config_model)
     return;
 
-  if (osMutexAcquire(presenter->config_access->mutex, osWaitForever) == osOK) {
-    presenter->config_access->data.daily_schedule = presenter->schedule;
-    osMutexRelease(presenter->config_access->mutex);
+  if (osMutexAcquire(presenter->config_model->mutex, osWaitForever) == osOK) {
+    presenter->config_model->data.daily_schedule = presenter->schedule;
+    osMutexRelease(presenter->config_model->mutex);
   }
 }
 
@@ -170,12 +170,12 @@ static bool is_schedule_valid(const DailyScheduleTypeDef *schedule) {
 
 
 static void load_schedule(ChangeSchedulePresenter_t *presenter) {
-  if (!presenter || !presenter->config_access)
+  if (!presenter || !presenter->config_model)
     return;
 
-  if (osMutexAcquire(presenter->config_access->mutex, osWaitForever) == osOK) {
-    presenter->schedule = presenter->config_access->data.daily_schedule;
-    osMutexRelease(presenter->config_access->mutex);
+  if (osMutexAcquire(presenter->config_model->mutex, osWaitForever) == osOK) {
+    presenter->schedule = presenter->config_model->data.daily_schedule;
+    osMutexRelease(presenter->config_model->mutex);
   }
 
   /* If invalid, load default */

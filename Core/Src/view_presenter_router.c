@@ -77,9 +77,9 @@ typedef struct {
 
   /* System communication and shared data */
   osMessageQueueId_t vp2system_queue;
-  SystemModel_t *system_context;
-  ConfigModel_t *config_access;
-  SensorModel_t *sensor_values_access;
+  SystemModel_t *system_model;
+  ConfigModel_t *config_model;
+  SensorModel_t *sensor_model;
 } Router_State_t;
 
 /* Global router state instance */
@@ -102,9 +102,9 @@ static Router_State_t g_router_state = {.current_route = ROUTE_INIT,
                                         .temp_offset_view = NULL,
                                         .factory_reset_presenter = NULL,
                                         .vp2system_queue = NULL,
-                                        .system_context = NULL,
-                                        .config_access = NULL,
-                                        .sensor_values_access = NULL};
+                                        .system_model = NULL,
+                                        .config_model = NULL,
+                                        .sensor_model = NULL};
 
 /* Update debug LEDs based on button input (debug feature) */
 static void Router_UpdateDebugLeds(const Input2VPEvent_t *event) {
@@ -144,11 +144,11 @@ static void Router_UpdateDebugLeds(const Input2VPEvent_t *event) {
 /* Query current system state with mutex protection */
 static SystemState_t Router_GetSystemState(void) {
   SystemState_t state = STATE_INIT;
-  if (g_router_state.system_context && g_router_state.system_context->mutex) {
-    if (osMutexAcquire(g_router_state.system_context->mutex, osWaitForever) ==
+  if (g_router_state.system_model && g_router_state.system_model->mutex) {
+    if (osMutexAcquire(g_router_state.system_model->mutex, osWaitForever) ==
         osOK) {
-      state = g_router_state.system_context->data.state;
-      osMutexRelease(g_router_state.system_context->mutex);
+      state = g_router_state.system_model->data.state;
+      osMutexRelease(g_router_state.system_model->mutex);
     } else {
       printf("Router: Failed to acquire system context mutex\n");
     }
@@ -169,12 +169,12 @@ static void Router_SendSystemEvent(VP2SystemEventTypeDef event) {
  * @brief Initialize the router and activate initial route
  */
 void Router_Init(osMessageQueueId_t vp2system_queue,
-                 SystemModel_t *system_context, ConfigModel_t *config_access,
-                 SensorModel_t *sensor_values_access) {
+                 SystemModel_t *system_model, ConfigModel_t *config_model,
+                 SensorModel_t *sensor_model) {
   g_router_state.vp2system_queue = vp2system_queue;
-  g_router_state.system_context = system_context;
-  g_router_state.config_access = config_access;
-  g_router_state.sensor_values_access = sensor_values_access;
+  g_router_state.system_model = system_model;
+  g_router_state.config_model = config_model;
+  g_router_state.sensor_model = sensor_model;
 
   /* Start in INIT route */
   g_router_state.current_route = ROUTE_INIT;
@@ -484,7 +484,7 @@ void Router_GoToRoute(RouteTypeDef route) {
       /* If coming from Menu (Running state), skip confirmation */
       bool skip_confirmation = (Router_GetSystemState() == STATE_RUNNING);
       g_router_state.sch_presenter = ChangeSchedulePresenter_Init(
-          g_router_state.sch_view, g_router_state.config_access,
+          g_router_state.sch_view, g_router_state.config_model,
           skip_confirmation);
     }
   } else if (route == ROUTE_INIT) {
@@ -555,8 +555,8 @@ void Router_GoToRoute(RouteTypeDef route) {
     }
     if (g_router_state.home_view && !g_router_state.home_presenter) {
       g_router_state.home_presenter = HomePresenter_Init(
-          g_router_state.home_view, g_router_state.system_context,
-          g_router_state.config_access, g_router_state.sensor_values_access);
+          g_router_state.home_view, g_router_state.system_model,
+          g_router_state.config_model, g_router_state.sensor_model);
     }
   } else if (route == ROUTE_BOOST) {
     if (!g_router_state.boost_view) {
@@ -564,7 +564,7 @@ void Router_GoToRoute(RouteTypeDef route) {
     }
     if (g_router_state.boost_view && !g_router_state.boost_presenter) {
       g_router_state.boost_presenter = BoostPresenter_Init(
-          g_router_state.boost_view, g_router_state.system_context);
+          g_router_state.boost_view, g_router_state.system_model);
     }
   } else if (route == ROUTE_MENU) {
     if (!g_router_state.menu_view) {
@@ -573,8 +573,8 @@ void Router_GoToRoute(RouteTypeDef route) {
     }
     if (g_router_state.menu_view && !g_router_state.menu_presenter) {
       g_router_state.menu_presenter = MenuPresenter_Init(
-          g_router_state.menu_view, g_router_state.system_context,
-          g_router_state.config_access, g_router_state.sensor_values_access);
+          g_router_state.menu_view, g_router_state.system_model,
+          g_router_state.config_model, g_router_state.sensor_model);
     }
   } else if (route == ROUTE_EDIT_TEMP_OFFSET) {
     if (!g_router_state.temp_offset_view) {
@@ -585,7 +585,7 @@ void Router_GoToRoute(RouteTypeDef route) {
     if (g_router_state.temp_offset_view &&
         !g_router_state.temp_offset_presenter) {
       g_router_state.temp_offset_presenter = SetTempOffsetPresenter_Init(
-          g_router_state.temp_offset_view, g_router_state.config_access);
+          g_router_state.temp_offset_view, g_router_state.config_model);
     }
   } else if (route == ROUTE_FACTORY_RESET) {
     if (!g_router_state.factory_reset_presenter) {

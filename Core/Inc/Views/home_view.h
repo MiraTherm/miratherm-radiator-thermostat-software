@@ -30,7 +30,7 @@ typedef struct HomeView HomeView_t;
 
 HomeView_t* HomeView_Init(void);
 void HomeView_Deinit(HomeView_t *view);
-void HomeView_Render(HomeView_t *view, const HomeViewData_t *model);
+void HomeView_Render(HomeView_t *view, const HomeViewData_t *data);
 
 #ifdef __cplusplus
 }

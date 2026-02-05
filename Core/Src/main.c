@@ -281,7 +281,7 @@ int main(void)
   sensorTaskArgs.sensor_model = &sensorModel;
 
 #if !TESTS
-  static SystemModel_t systemContextAccess = {
+  static SystemModel_t systemModel = {
       .mutex = NULL,
       .data = {.state = STATE_INIT,
                .mode = MODE_AUTO,
@@ -294,12 +294,12 @@ int main(void)
       .name = "SysCtxMutex",
       .attr_bits = osMutexPrioInherit,
   };
-  systemContextAccess.mutex = osMutexNew(&sysCtxMutexAttr);
-  if (systemContextAccess.mutex == NULL) {
+  systemModel.mutex = osMutexNew(&sysCtxMutexAttr);
+  if (systemModel.mutex == NULL) {
     Error_Handler();
   }
-  systemTaskArgs.system_model = &systemContextAccess;
-  viewPresenterTaskArgs.system_model = &systemContextAccess;
+  systemTaskArgs.system_model = &systemModel;
+  viewPresenterTaskArgs.system_model = &systemModel;
 #endif
 
   /* USER CODE END RTOS_MUTEX */

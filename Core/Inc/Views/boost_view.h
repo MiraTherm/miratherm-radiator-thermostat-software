@@ -21,7 +21,7 @@ typedef struct BoostView BoostView_t;
 
 BoostView_t* BoostView_Init(void);
 void BoostView_Deinit(BoostView_t *view);
-void BoostView_Render(BoostView_t *view, const BoostViewData_t *model);
+void BoostView_Render(BoostView_t *view, const BoostViewData_t *data);
 
 #ifdef __cplusplus
 }
