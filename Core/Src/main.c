@@ -905,7 +905,7 @@ void StartDefaultTask(void *argument)
 #if TESTS
 #if DRIVER_TEST
   Driver_Test(args->storage2system_event_queue, args->input2vp_event_queue,
-              args->config_access, args->sensor_values_access);
+              args->config_model, args->sensor_model);
 #elif ADAPTATION_TEST
   Adaptation_Test();
 #endif
