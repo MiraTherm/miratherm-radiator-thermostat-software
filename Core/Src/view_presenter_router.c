@@ -59,12 +59,6 @@ typedef struct {
   WaitingPresenter_t *waiting_presenter;
   WaitingView_t *waiting_view;
 
-  LoadingPresenter_t *adapt_presenter;
-  LoadingView_t *adapt_view;
-
-  WaitingPresenter_t *adapt_fail_presenter;
-  WaitingView_t *adapt_fail_view;
-
   /* Operating screens */
   HomePresenter_t *home_presenter;
   HomeView_t *home_view;
@@ -89,33 +83,28 @@ typedef struct {
 } Router_State_t;
 
 /* Global router state instance */
-static Router_State_t g_router_state = {
-    .current_route = ROUTE_INIT,
-    .dt_presenter = NULL,
-    .dt_view = NULL,
-    .sch_presenter = NULL,
-    .sch_view = NULL,
-    .loading_presenter = NULL,
-    .loading_view = NULL,
-    .waiting_presenter = NULL,
-    .waiting_view = NULL,
-    .adapt_presenter = NULL,
-    .adapt_view = NULL,
-    .adapt_fail_presenter = NULL,
-    .adapt_fail_view = NULL,
-    .home_presenter = NULL,
-    .home_view = NULL,
-    .boost_presenter = NULL,
-    .boost_view = NULL,
-    .menu_presenter = NULL,
-    .menu_view = NULL,
-    .temp_offset_presenter = NULL,
-    .temp_offset_view = NULL,
-    .factory_reset_presenter = NULL,
-    .vp2system_queue = NULL,
-    .system_context = NULL,
-    .config_access = NULL,
-    .sensor_values_access = NULL};
+static Router_State_t g_router_state = {.current_route = ROUTE_INIT,
+                                        .dt_presenter = NULL,
+                                        .dt_view = NULL,
+                                        .sch_presenter = NULL,
+                                        .sch_view = NULL,
+                                        .loading_presenter = NULL,
+                                        .loading_view = NULL,
+                                        .waiting_presenter = NULL,
+                                        .waiting_view = NULL,
+                                        .home_presenter = NULL,
+                                        .home_view = NULL,
+                                        .boost_presenter = NULL,
+                                        .boost_view = NULL,
+                                        .menu_presenter = NULL,
+                                        .menu_view = NULL,
+                                        .temp_offset_presenter = NULL,
+                                        .temp_offset_view = NULL,
+                                        .factory_reset_presenter = NULL,
+                                        .vp2system_queue = NULL,
+                                        .system_context = NULL,
+                                        .config_access = NULL,
+                                        .sensor_values_access = NULL};
 
 /* Update debug LEDs based on button input (debug feature) */
 static void Router_UpdateDebugLeds(const Input2VPEvent_t *event) {
@@ -180,8 +169,7 @@ static void Router_SendSystemEvent(VP2SystemEventTypeDef event) {
  * @brief Initialize the router and activate initial route
  */
 void Router_Init(osMessageQueueId_t vp2system_queue,
-                 SystemModel_t *system_context,
-                 ConfigModel_t *config_access,
+                 SystemModel_t *system_context, ConfigModel_t *config_access,
                  SensorModel_t *sensor_values_access) {
   g_router_state.vp2system_queue = vp2system_queue;
   g_router_state.system_context = system_context;
@@ -236,26 +224,6 @@ void Router_Deinit(void) {
   if (g_router_state.waiting_presenter) {
     WaitingPresenter_Deinit(g_router_state.waiting_presenter);
     g_router_state.waiting_presenter = NULL;
-  }
-
-  if (g_router_state.adapt_view) {
-    LoadingView_Deinit(g_router_state.adapt_view);
-    g_router_state.adapt_view = NULL;
-  }
-
-  if (g_router_state.adapt_presenter) {
-    LoadingPresenter_Deinit(g_router_state.adapt_presenter);
-    g_router_state.adapt_presenter = NULL;
-  }
-
-  if (g_router_state.adapt_fail_view) {
-    WaitingView_Deinit(g_router_state.adapt_fail_view);
-    g_router_state.adapt_fail_view = NULL;
-  }
-
-  if (g_router_state.adapt_fail_presenter) {
-    WaitingPresenter_Deinit(g_router_state.adapt_fail_presenter);
-    g_router_state.adapt_fail_presenter = NULL;
   }
 
   if (g_router_state.home_view) {
@@ -351,9 +319,9 @@ void Router_HandleEvent(const Input2VPEvent_t *event) {
       }
     }
   } else if (g_router_state.current_route == ROUTE_ADAPT_FAIL) {
-    if (g_router_state.adapt_fail_presenter) {
-      WaitingPresenter_HandleEvent(g_router_state.adapt_fail_presenter, event);
-      if (WaitingPresenter_IsComplete(g_router_state.adapt_fail_presenter)) {
+    if (g_router_state.waiting_presenter) {
+      WaitingPresenter_HandleEvent(g_router_state.waiting_presenter, event);
+      if (WaitingPresenter_IsComplete(g_router_state.waiting_presenter)) {
         Router_SendSystemEvent(EVT_ADAPT_RST_REQ); /* Moves to STATE_NOT_INST */
       }
     }
@@ -460,52 +428,34 @@ void Router_OnTick(uint32_t current_tick) {
   }
 
   /* Update current view based on route */
-  if (g_router_state.current_route == ROUTE_DATE_TIME) {
-    if (g_router_state.dt_presenter) {
-      // SetDateTimePresenter_Run(g_router_state.dt_presenter);
-    }
-  } else if (g_router_state.current_route == ROUTE_CHANGE_SCHEDULE) {
-    /* No periodic run needed for now */
-  } else if (g_router_state.current_route == ROUTE_INIT) {
+  RouteTypeDef route = g_router_state.current_route;
+
+  /* Routes using Loading presenter */
+  if (route == ROUTE_INIT || route == ROUTE_ADAPT || route == ROUTE_RUNNING) {
     if (g_router_state.loading_presenter) {
       LoadingPresenter_Run(g_router_state.loading_presenter, current_tick);
     }
-  } else if (g_router_state.current_route == ROUTE_NOT_INST) {
+  }
+  /* Routes using Waiting presenter */
+  else if (route == ROUTE_NOT_INST || route == ROUTE_ADAPT_FAIL) {
     if (g_router_state.waiting_presenter) {
       WaitingPresenter_Run(g_router_state.waiting_presenter);
     }
-  } else if (g_router_state.current_route == ROUTE_ADAPT) {
-    if (g_router_state.adapt_presenter) {
-      LoadingPresenter_Run(g_router_state.adapt_presenter, current_tick);
-    }
-  } else if (g_router_state.current_route == ROUTE_ADAPT_FAIL) {
-    if (g_router_state.adapt_fail_presenter) {
-      WaitingPresenter_Run(g_router_state.adapt_fail_presenter);
-    }
-  } else if (g_router_state.current_route == ROUTE_RUNNING) {
-    if (g_router_state.loading_presenter) {
-      LoadingPresenter_Run(g_router_state.loading_presenter, current_tick);
-    }
-  } else if (g_router_state.current_route == ROUTE_HOME) {
-    if (g_router_state.home_presenter) {
-      HomePresenter_Run(g_router_state.home_presenter, current_tick);
-    }
-  } else if (g_router_state.current_route == ROUTE_BOOST) {
-    if (g_router_state.boost_presenter) {
-      BoostPresenter_Run(g_router_state.boost_presenter, current_tick);
-    }
-  } else if (g_router_state.current_route == ROUTE_MENU) {
-    if (g_router_state.menu_presenter) {
-      MenuPresenter_Run(g_router_state.menu_presenter, current_tick);
-    }
-  } else if (g_router_state.current_route == ROUTE_EDIT_TEMP_OFFSET) {
-    /* SetTempOffsetPresenter doesn't have Run, it updates on event */
-  } else if (g_router_state.current_route == ROUTE_FACTORY_RESET) {
-    if (g_router_state.factory_reset_presenter) {
-      FactoryResetPresenter_Run(g_router_state.factory_reset_presenter,
-                                current_tick);
-    }
   }
+  /* Routes with dedicated presenters */
+  else if (route == ROUTE_HOME && g_router_state.home_presenter) {
+    HomePresenter_Run(g_router_state.home_presenter, current_tick);
+  } else if (route == ROUTE_BOOST && g_router_state.boost_presenter) {
+    BoostPresenter_Run(g_router_state.boost_presenter, current_tick);
+  } else if (route == ROUTE_MENU && g_router_state.menu_presenter) {
+    MenuPresenter_Run(g_router_state.menu_presenter, current_tick);
+  } else if (route == ROUTE_FACTORY_RESET &&
+             g_router_state.factory_reset_presenter) {
+    FactoryResetPresenter_Run(g_router_state.factory_reset_presenter,
+                              current_tick);
+  }
+  /* Routes without periodic updates: DATE_TIME, CHANGE_SCHEDULE,
+   * EDIT_TEMP_OFFSET */
 }
 
 /**
@@ -563,30 +513,30 @@ void Router_GoToRoute(RouteTypeDef route) {
       WaitingPresenter_Run(g_router_state.waiting_presenter);
     }
   } else if (route == ROUTE_ADAPT) {
-    if (!g_router_state.adapt_view) {
-      g_router_state.adapt_view =
+    if (!g_router_state.loading_view) {
+      g_router_state.loading_view =
           LoadingView_Init("Adaptation", LV_ALIGN_LEFT_MID, 20);
     }
-    if (g_router_state.adapt_view && !g_router_state.adapt_presenter) {
-      g_router_state.adapt_presenter =
-          LoadingPresenter_Init(g_router_state.adapt_view);
-      LoadingPresenter_Run(g_router_state.adapt_presenter,
+    if (g_router_state.loading_view && !g_router_state.loading_presenter) {
+      g_router_state.loading_presenter =
+          LoadingPresenter_Init(g_router_state.loading_view);
+      LoadingPresenter_Run(g_router_state.loading_presenter,
                            osKernelGetTickCount());
     }
   } else if (route == ROUTE_ADAPT_FAIL) {
-    if (!g_router_state.adapt_fail_view) {
-      g_router_state.adapt_fail_view =
+    if (!g_router_state.waiting_view) {
+      g_router_state.waiting_view =
           WaitingView_Init("Adaptation\nFailed!", -5);
     }
-    if (g_router_state.adapt_fail_view &&
-        !g_router_state.adapt_fail_presenter) {
-      g_router_state.adapt_fail_presenter =
-          WaitingPresenter_Init(g_router_state.adapt_fail_view);
-      WaitingPresenter_Run(g_router_state.adapt_fail_presenter);
-    } else if (g_router_state.adapt_fail_presenter) {
+    if (g_router_state.waiting_view &&
+        !g_router_state.waiting_presenter) {
+      g_router_state.waiting_presenter =
+          WaitingPresenter_Init(g_router_state.waiting_view);
+      WaitingPresenter_Run(g_router_state.waiting_presenter);
+    } else if (g_router_state.waiting_presenter) {
       /* Reset completion flag when re-entering the route */
-      WaitingPresenter_Reset(g_router_state.adapt_fail_presenter);
-      WaitingPresenter_Run(g_router_state.adapt_fail_presenter);
+      WaitingPresenter_Reset(g_router_state.waiting_presenter);
+      WaitingPresenter_Run(g_router_state.waiting_presenter);
     }
   } else if (route == ROUTE_RUNNING) {
     if (!g_router_state.loading_view) {
@@ -668,6 +618,7 @@ void Router_GoToRoute(RouteTypeDef route) {
     break;
   case ROUTE_INIT:
   case ROUTE_RUNNING:
+  case ROUTE_ADAPT:
     if (g_router_state.loading_presenter) {
       LoadingPresenter_Deinit(g_router_state.loading_presenter);
       g_router_state.loading_presenter = NULL;
@@ -678,6 +629,7 @@ void Router_GoToRoute(RouteTypeDef route) {
     }
     break;
   case ROUTE_NOT_INST:
+  case ROUTE_ADAPT_FAIL:
     if (g_router_state.waiting_presenter) {
       WaitingPresenter_Deinit(g_router_state.waiting_presenter);
       g_router_state.waiting_presenter = NULL;
@@ -685,26 +637,6 @@ void Router_GoToRoute(RouteTypeDef route) {
     if (g_router_state.waiting_view) {
       WaitingView_Deinit(g_router_state.waiting_view);
       g_router_state.waiting_view = NULL;
-    }
-    break;
-  case ROUTE_ADAPT:
-    if (g_router_state.adapt_presenter) {
-      LoadingPresenter_Deinit(g_router_state.adapt_presenter);
-      g_router_state.adapt_presenter = NULL;
-    }
-    if (g_router_state.adapt_view) {
-      LoadingView_Deinit(g_router_state.adapt_view);
-      g_router_state.adapt_view = NULL;
-    }
-    break;
-  case ROUTE_ADAPT_FAIL:
-    if (g_router_state.adapt_fail_presenter) {
-      WaitingPresenter_Deinit(g_router_state.adapt_fail_presenter);
-      g_router_state.adapt_fail_presenter = NULL;
-    }
-    if (g_router_state.adapt_fail_view) {
-      WaitingView_Deinit(g_router_state.adapt_fail_view);
-      g_router_state.adapt_fail_view = NULL;
     }
     break;
   case ROUTE_HOME:
