@@ -121,7 +121,7 @@ SetBoolView_t *SetBoolView_Init(const char *title, const char *option_true,
   lv_obj_align(view->label_hint_center, LV_ALIGN_BOTTOM_MID, 0, 0);
   lv_obj_set_style_text_color(view->label_hint_center, lv_color_white(), 0);
 
-  SetBoolView_Render(view, &(SetBool_ViewModelData_t){.value = false});
+  SetBoolView_Render(view, &(SetBoolViewData_t){.value = false});
 
   lv_port_unlock();
 
@@ -137,7 +137,7 @@ void SetBoolView_Deinit(SetBoolView_t *view) {
 }
 
 void SetBoolView_Render(SetBoolView_t *view,
-                        const SetBool_ViewModelData_t *data) {
+                        const SetBoolViewData_t *data) {
   if (!view || !data)
     return;
 

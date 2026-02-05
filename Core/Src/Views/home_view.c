@@ -1,5 +1,4 @@
 #include "home_view.h"
-#include "home_viewmodel.h"
 #include "lvgl_port_display.h"
 #include <src/misc/lv_area.h>
 #include <src/misc/lv_txt.h>
@@ -21,7 +20,7 @@ typedef struct HomeView {
   lv_obj_t *label_hint_right;
 
   /* Cache to avoid redrawing if not changed */
-  Home_ViewModelData_t last_model;
+  HomeViewData_t last_model;
   bool first_render;
 } HomeView_t;
 
@@ -117,7 +116,7 @@ void HomeView_Deinit(HomeView_t *view) {
   }
 }
 
-void HomeView_Render(HomeView_t *view, const Home_ViewModelData_t *model) {
+void HomeView_Render(HomeView_t *view, const HomeViewData_t *model) {
   if (!view || !model)
     return;
 

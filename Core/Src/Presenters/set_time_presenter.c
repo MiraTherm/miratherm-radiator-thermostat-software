@@ -6,7 +6,7 @@
 
 typedef struct SetTimePresenter {
   SetTimeView_t *view;
-  SetTime_ViewModelData_t data;
+  SetTimeViewData_t data;
   bool is_complete;
 
   uint8_t time_hour_index;
@@ -105,7 +105,7 @@ bool SetTimePresenter_IsComplete(SetTimePresenter_t *presenter) {
   return presenter->is_complete;
 }
 
-const SetTime_ViewModelData_t *
+const SetTimeViewData_t *
 SetTimePresenter_GetData(SetTimePresenter_t *presenter) {
   if (!presenter)
     return NULL;

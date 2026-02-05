@@ -4,7 +4,7 @@
 
 typedef struct SetTimeSlotPresenter {
   SetTimeSlotView_t *view;
-  SetTimeSlot_ViewModelData_t data;
+  SetTimeSlotViewData_t data;
   bool is_complete;
 } SetTimeSlotPresenter_t;
 
@@ -196,16 +196,16 @@ bool SetTimeSlotPresenter_IsComplete(SetTimeSlotPresenter_t *presenter) {
   return presenter ? presenter->is_complete : false;
 }
 
-SetTimeSlot_ViewModelData_t
+SetTimeSlotViewData_t
 SetTimeSlotPresenter_GetData(SetTimeSlotPresenter_t *presenter) {
   if (presenter)
     return presenter->data;
-  SetTimeSlot_ViewModelData_t empty = {0};
+  SetTimeSlotViewData_t empty = {0};
   return empty;
 }
 
 void SetTimeSlotPresenter_SetData(SetTimeSlotPresenter_t *presenter,
-                                  const SetTimeSlot_ViewModelData_t *data) {
+                                  const SetTimeSlotViewData_t *data) {
   if (presenter && data) {
     presenter->data = *data;
 

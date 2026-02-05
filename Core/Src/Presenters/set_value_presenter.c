@@ -4,7 +4,7 @@
 
 typedef struct SetValuePresenter {
   SetValueView_t *view;
-  SetValue_ViewModelData_t data;
+  SetValueViewData_t data;
   uint16_t max_index;
   bool is_complete;
 } SetValuePresenter_t;

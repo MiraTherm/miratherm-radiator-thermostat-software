@@ -56,12 +56,12 @@ extern "C" {
 #define TEMP_MEAS_PER_MOTOR_MEAS_CYCLES (TEMPERATURE_AND_BAT_MEAS_PERIOD_MS / MOTOR_MEAS_PERIOD_MS)
 
 /**
- * @typedef SensorValuesTypeDef
+ * @typedef SensorData_t
  * @brief Aggregated sensor measurement values
  * @details Contains calibrated sensor readings: temperature (with offset applied),
  *          battery state-of-charge percentage, motor current (during active measurement),
  *          and battery voltage (when DRIVER_TEST enabled for debugging).
- * @see SensorValuesAccessTypeDef for thread-safe access wrapper
+ * @see SensorModel_t for thread-safe access wrapper
  */
 typedef struct
 {
@@ -71,21 +71,21 @@ typedef struct
 #endif
   uint8_t soc;             /**< Battery state-of-charge percentage (0-100%) */
   float motor_current;      /**< Motor shunt current in amperes */
-} SensorValuesTypeDef;
+} SensorData_t;
 
 /**
- * @typedef SensorValuesAccessTypeDef
+ * @typedef SensorModel_t
  * @brief Thread-safe access wrapper for sensor measurement values
  * @details Provides osMutex-protected access to sensor readings. Must be
- *          acquired before reading SensorValuesTypeDef to ensure consistency.
+ *          acquired before reading SensorData_t to ensure consistency.
  *          Task-safe for concurrent access from multiple FreeRTOS tasks.
  * @see StartSensorTask for task initialization
  */
-typedef struct SensorValuesAccessTypeDef
+typedef struct SensorModel_t
 {
-  osMutexId_t mutex;       /**< CMSIS-RTOS2 mutex for thread-safe access */
-  SensorValuesTypeDef data; /**< Sensor measurement values */
-} SensorValuesAccessTypeDef;
+  osMutexId_t mutex;     /**< CMSIS-RTOS2 mutex for thread-safe access */
+  SensorData_t data;     /**< Sensor measurement values */
+} SensorModel_t;
 
 /**
  * @brief Start the sensor measurement task
@@ -96,7 +96,7 @@ typedef struct SensorValuesAccessTypeDef
  *                 and sensor_values_access pointers. NULL argument causes
  *                 Error_Handler() to be called.
  * @return Does not return; runs as infinite FreeRTOS task
- * @see SensorTaskArgsTypeDef, SensorValuesAccessTypeDef
+ * @see SensorTaskArgsTypeDef, SensorModel_t
  */
 void StartSensorTask(void *argument);
 

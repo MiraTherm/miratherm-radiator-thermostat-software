@@ -119,7 +119,7 @@ SetDateView_t *SetDateView_Init(const char *title,
   lv_obj_set_style_text_color(view->label_hint_center, lv_color_white(), 0);
 
   SetDateView_Render(
-      view, &(SetDate_ViewModelData_t){
+      view, &(SetDateViewData_t){
                 .day = 1, .month = 1, .year = default_year, .active_field = 0});
 
   lv_port_unlock();
@@ -153,7 +153,7 @@ static void update_date_roller_borders(SetDateView_t *view,
 }
 
 void SetDateView_Render(SetDateView_t *view,
-                        const SetDate_ViewModelData_t *data) {
+                        const SetDateViewData_t *data) {
   if (!view || !data)
     return;
 

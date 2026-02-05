@@ -6,7 +6,7 @@
 
 typedef struct SetDatePresenter {
   SetDateView_t *view;
-  SetDate_ViewModelData_t data;
+  SetDateViewData_t data;
   bool is_complete;
 
   uint16_t default_year;
@@ -185,7 +185,7 @@ bool SetDatePresenter_IsComplete(SetDatePresenter_t *presenter) {
   return presenter->is_complete;
 }
 
-const SetDate_ViewModelData_t *
+const SetDateViewData_t *
 SetDatePresenter_GetData(SetDatePresenter_t *presenter) {
   if (!presenter)
     return NULL;

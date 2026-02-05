@@ -3,7 +3,7 @@
 
 typedef struct WaitingPresenter {
   WaitingView_t *view;
-  Waiting_ViewModelData_t data;
+  WaitingViewData_t data;
   bool is_complete;
 } WaitingPresenter_t;
 

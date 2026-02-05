@@ -1,5 +1,4 @@
 #include "home_presenter.h"
-#include "home_viewmodel.h"
 #include "cmsis_os2.h"
 #include "main.h"
 #include "utils.h"
@@ -11,15 +10,15 @@ extern RTC_HandleTypeDef hrtc;
 
 struct HomePresenter {
   HomeView_t *view;
-  SystemContextAccessTypeDef *system_context;
-  ConfigAccessTypeDef *config_access;
-  SensorValuesAccessTypeDef *sensor_values_access;
+  SystemModel_t *system_context;
+  ConfigModel_t *config_access;
+  SensorModel_t *sensor_values_access;
 };
 
 HomePresenter_t *
-HomePresenter_Init(HomeView_t *view, SystemContextAccessTypeDef *system_context,
-                   ConfigAccessTypeDef *config_access,
-                   SensorValuesAccessTypeDef *sensor_values_access) {
+HomePresenter_Init(HomeView_t *view, SystemModel_t *system_context,
+                   ConfigModel_t *config_access,
+                   SensorModel_t *sensor_values_access) {
   if (!view || !system_context || !config_access || !sensor_values_access)
     return NULL;
 
@@ -174,7 +173,7 @@ void HomePresenter_Run(HomePresenter_t *presenter, uint32_t current_tick) {
   if (!presenter || !presenter->view)
     return;
 
-  Home_ViewModelData_t model = {0};
+  HomeViewData_t model = {0};
 
   /* Get Time */
   RTC_TimeTypeDef sTime = {0};

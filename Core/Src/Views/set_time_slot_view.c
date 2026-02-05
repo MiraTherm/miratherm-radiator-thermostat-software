@@ -136,7 +136,7 @@ void SetTimeSlotView_Deinit(SetTimeSlotView_t *view) {
 }
 
 void SetTimeSlotView_Render(SetTimeSlotView_t *view,
-                            const SetTimeSlot_ViewModelData_t *data) {
+                            const SetTimeSlotViewData_t *data) {
   if (!view || !data)
     return;
   if (!lv_port_lock())

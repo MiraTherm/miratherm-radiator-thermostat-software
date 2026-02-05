@@ -13,7 +13,7 @@
  */
 typedef struct LoadingPresenter {
   LoadingView_t *view; /* Reference to the view */
-  Loading_ViewModelData_t data;
+  LoadingViewData_t data;
   uint32_t last_animation_time; /* Timestamp of last animation frame change */
 } LoadingPresenter_t;
 
@@ -47,7 +47,7 @@ void LoadingPresenter_Deinit(LoadingPresenter_t *presenter) {
 /**
  * @brief Get the current data
  */
-const Loading_ViewModelData_t *
+const LoadingViewData_t *
 LoadingPresenter_GetData(LoadingPresenter_t *presenter) {
   if (!presenter)
     return NULL;

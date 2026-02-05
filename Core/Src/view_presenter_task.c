@@ -46,7 +46,7 @@ void StartViewPresenterTask(void *argument) {
   }
 
   /* Optional: pointer to shared system context for UI state reading */
-  SystemContextAccessTypeDef *sys_ctx = args->system_context_access;
+  SystemModel_t *sys_ctx = args->system_model;
   (void)sys_ctx; /* Currently unused; provided for future UI read access */
 
 #if OS_TASKS_DEBUG
@@ -55,8 +55,8 @@ void StartViewPresenterTask(void *argument) {
 #endif
 
   /* Initialize MVP router with all queues and data access */
-  Router_Init(args->vp2system_event_queue, args->system_context_access,
-              args->config_access, args->sensor_values_access);
+  Router_Init(args->vp2system_event_queue, args->system_model,
+              args->config_model, args->sensor_model);
 
   Input2VPEvent_t event;
   System2VPEventTypeDef sys_event;

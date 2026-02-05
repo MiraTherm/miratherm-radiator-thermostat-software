@@ -13,7 +13,7 @@ extern "C" {
 
 typedef struct MenuPresenter MenuPresenter_t;
 
-MenuPresenter_t* MenuPresenter_Init(MenuView_t *view, SystemContextAccessTypeDef *system_context, ConfigAccessTypeDef *config_access, SensorValuesAccessTypeDef *sensor_values_access);
+MenuPresenter_t* MenuPresenter_Init(MenuView_t *view, SystemModel_t *system_context, ConfigModel_t *config_access, SensorModel_t *sensor_values_access);
 void MenuPresenter_Deinit(MenuPresenter_t *presenter);
 void MenuPresenter_HandleEvent(MenuPresenter_t *presenter, const Input2VPEvent_t *event);
 void MenuPresenter_Run(MenuPresenter_t *presenter, uint32_t current_tick);

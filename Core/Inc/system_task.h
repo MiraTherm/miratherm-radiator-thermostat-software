@@ -85,12 +85,12 @@ typedef enum {
 } AdaptResult_t;
 
 /**
- * @typedef SystemContextTypeDef
+ * @typedef SystemData_t
  * @brief Core system control state and parameters
  * @details Contains current operational state, mode, target temperature,
  *          schedule information, and adaptation results. Protected by mutex
  *          for thread-safe access from multiple tasks.
- * @see SystemContextAccessTypeDef
+ * @see SystemModel_t
  */
 typedef struct {
   SystemState_t state;              /**< Current system state */
@@ -102,20 +102,20 @@ typedef struct {
   uint8_t slot_end_hour;            /**< Current schedule slot end time (hour) */
   uint8_t slot_end_minute;          /**< Current schedule slot end time (minute) */
   float temporary_target_temp;      /**< Temporary override temperature (0=none, rotary encoder set) */
-} SystemContextTypeDef;
+} SystemData_t;
 
 /**
- * @typedef SystemContextAccessTypeDef
+ * @typedef SystemModel_t
  * @brief Thread-safe access wrapper for system context
- * @details Provides osMutex-protected access to SystemContextTypeDef. Must be
+ * @details Provides osMutex-protected access to SystemData_t. Must be
  *          acquired before reading or modifying system state to ensure
  *          consistency across concurrent FreeRTOS tasks.
  * @see StartSystemTask
  */
 typedef struct {
-  osMutexId_t mutex;         /**< CMSIS-RTOS2 mutex for thread-safe access */
-  SystemContextTypeDef data;  /**< System context data (protected by mutex) */
-} SystemContextAccessTypeDef;
+  osMutexId_t mutex;    /**< CMSIS-RTOS2 mutex for thread-safe access */
+  SystemData_t data;    /**< System context data (protected by mutex) */
+} SystemModel_t;
 
 /**
  * @typedef VP2SystemEventTypeDef
@@ -145,7 +145,7 @@ typedef enum {
 } System2VPEventTypeDef;
 
 /* Forward declaration */
-typedef struct ConfigAccessTypeDef ConfigAccessTypeDef;
+typedef struct ConfigModel_t ConfigModel_t;
 
 /**
  * @typedef SystemTaskArgsTypeDef
@@ -155,15 +155,15 @@ typedef struct ConfigAccessTypeDef ConfigAccessTypeDef;
  * @see StartSystemTask
  */
 typedef struct {
-  osMessageQueueId_t vp2system_event_queue;      /**< ViewPresenter -> System event queue */
-  osMessageQueueId_t system2vp_event_queue;      /**< System -> ViewPresenter event queue */
-  osMessageQueueId_t system2maint_event_queue;   /**< System -> Maintenance command queue */
-  osMessageQueueId_t maint2system_event_queue;   /**< Maintenance -> System result queue */
-  osMessageQueueId_t system2storage_event_queue; /**< System -> Storage command queue */
-  SystemContextAccessTypeDef
-      *system_context_access;               /**< Pointer to system state context */
-  ConfigAccessTypeDef
-      *config_access;                       /**< Pointer to configuration/schedule data */
+  osMessageQueueId_t vp2system_event_queue;       /**< ViewPresenter -> System event queue */
+  osMessageQueueId_t system2vp_event_queue;       /**< System -> ViewPresenter event queue */
+  osMessageQueueId_t system2maint_event_queue;    /**< System -> Maintenance command queue */
+  osMessageQueueId_t maint2system_event_queue;    /**< Maintenance -> System result queue */
+  osMessageQueueId_t system2storage_event_queue;  /**< System -> Storage command queue */
+  SystemModel_t
+      *system_model;                              /**< Pointer to system state context */
+  ConfigModel_t
+      *config_model;                              /**< Pointer to configuration/schedule data */
 } SystemTaskArgsTypeDef;
 
 /**
@@ -177,38 +177,9 @@ typedef struct {
  *                 Error_Handler() to be called.
  * @return Does not return; runs as infinite FreeRTOS task
  * @note Called from app_freertos.c during RTOS initialization
- * @see SystemTaskArgsTypeDef, SystemContextAccessTypeDef, SystemState_t
+ * @see SystemTaskArgsTypeDef, SystemModel_t, SystemState_t
  */
 void StartSystemTask(void *argument);
-
-/**
- * @brief Query current system state safely
- * @details Acquires mutex and reads current SystemState_t from shared context.
- *          Non-blocking query for UI display of system status.
- * @return Current system state (STATE_INIT, STATE_RUNNING, etc.)
- * @note Thread-safe via mutex protection
- * @see SystemState_t, SystemContextAccessTypeDef
- */
-SystemState_t System_GetState(void);
-
-/**
- * @brief Lock system context with optional timeout
- * @details Acquires the system context mutex for safe multi-step operations.
- *          Used by debug helpers and maintenance tasks for atomic updates.
- * @param timeout_ms Maximum milliseconds to wait for mutex (0=non-blocking, osWaitForever=infinite)
- * @return true if mutex acquired successfully, false if timeout
- * @note Must call System_UnlockContext() when done
- * @see System_UnlockContext, SystemContextAccessTypeDef
- */
-bool System_LockContext(uint32_t timeout_ms);
-
-/**
- * @brief Unlock system context
- * @details Releases the system context mutex acquired by System_LockContext().
- * @note Must be called after System_LockContext() completes
- * @see System_LockContext
- */
-void System_UnlockContext(void);
 
 /**
  * @brief Query state machine current state internally

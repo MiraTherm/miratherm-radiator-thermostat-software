@@ -6,7 +6,7 @@
 
 typedef struct SetBoolPresenter {
   SetBoolView_t *view;
-  SetBool_ViewModelData_t data;
+  SetBoolViewData_t data;
   bool is_complete;
 } SetBoolPresenter_t;
 
@@ -65,7 +65,7 @@ bool SetBoolPresenter_IsComplete(SetBoolPresenter_t *presenter) {
   return presenter->is_complete;
 }
 
-const SetBool_ViewModelData_t *
+const SetBoolViewData_t *
 SetBoolPresenter_GetData(SetBoolPresenter_t *presenter) {
   if (!presenter)
     return NULL;

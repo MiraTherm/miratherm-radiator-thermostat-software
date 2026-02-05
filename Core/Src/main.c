@@ -194,24 +194,24 @@ int main(void)
   static DefaultTaskArgsTypeDef defaultTaskArgs = {
       .storage2system_event_queue = NULL,
       .input2vp_event_queue = NULL,
-      .config_access = NULL,
-      .sensor_values_access = NULL};
+      .config_model = NULL,
+      .sensor_model = NULL};
   static StorageTaskArgsTypeDef storageTaskArgs = {
-      .storage2system_event_queue = NULL, .config_access = NULL};
-  static SensorTaskArgsTypeDef sensorTaskArgs = {.config_access = NULL,
-                                                 .sensor_values_access = NULL};
+      .storage2system_event_queue = NULL, .config_model = NULL};
+  static SensorTaskArgsTypeDef sensorTaskArgs = {.config_model = NULL,
+                                                 .sensor_model = NULL};
   static InputTaskArgsTypeDef inputTaskArgs = {.input2vp_event_queue = NULL};
 #if !TESTS
   static ViewPresenterTaskArgsTypeDef viewPresenterTaskArgs = {
       .input2vp_event_queue = NULL,
       .vp2system_event_queue = NULL,
       .system2vp_event_queue = NULL,
-      .system_context_access = NULL};
+      .system_model = NULL};
   static SystemTaskArgsTypeDef systemTaskArgs = {.vp2system_event_queue = NULL,
                                                  .system2vp_event_queue = NULL,
                                                  .system2maint_event_queue = NULL,
                                                  .maint2system_event_queue = NULL,
-                                                 .system_context_access = NULL};
+                                                 .system_model = NULL};
   static MaintenanceTaskArgsTypeDef maintenanceTaskArgs = {
       .system2maint_event_queue = NULL, .maint2system_event_queue = NULL};
 #endif
@@ -246,22 +246,22 @@ int main(void)
 
   /* USER CODE BEGIN RTOS_MUTEX */
   /* Create config access structure with mutex */
-  static ConfigAccessTypeDef configAccess = {
+  static ConfigModel_t configModel = {
       .mutex = NULL, .data = {.temperature_offset = 0.0f}};
   const osMutexAttr_t configMutexAttr = {
       .name = "ConfigMutex",
       .attr_bits = osMutexPrioInherit,
   };
-  configAccess.mutex = osMutexNew(&configMutexAttr);
-  if (configAccess.mutex == NULL) {
+  configModel.mutex = osMutexNew(&configMutexAttr);
+  if (configModel.mutex == NULL) {
     Error_Handler();
   }
-  defaultTaskArgs.config_access = &configAccess;
-  storageTaskArgs.config_access = &configAccess;
-  sensorTaskArgs.config_access = &configAccess;
+  defaultTaskArgs.config_model = &configModel;
+  storageTaskArgs.config_model = &configModel;
+  sensorTaskArgs.config_model = &configModel;
 
   /* Create sensor values access structure with mutex */
-  static SensorValuesAccessTypeDef sensorValuesAccess = {
+  static SensorModel_t sensorModel = {
       .mutex = NULL,
       .data = {.ambient_temperature = 0.0f,
                .soc = 0,
@@ -273,15 +273,15 @@ int main(void)
       .name = "SensorValuesMutex",
       .attr_bits = osMutexPrioInherit,
   };
-  sensorValuesAccess.mutex = osMutexNew(&sensorValuesMutexAttr);
-  if (sensorValuesAccess.mutex == NULL) {
+  sensorModel.mutex = osMutexNew(&sensorValuesMutexAttr);
+  if (sensorModel.mutex == NULL) {
     Error_Handler();
   }
-  defaultTaskArgs.sensor_values_access = &sensorValuesAccess;
-  sensorTaskArgs.sensor_values_access = &sensorValuesAccess;
+  defaultTaskArgs.sensor_model = &sensorModel;
+  sensorTaskArgs.sensor_model = &sensorModel;
 
 #if !TESTS
-  static SystemContextAccessTypeDef systemContextAccess = {
+  static SystemModel_t systemContextAccess = {
       .mutex = NULL,
       .data = {.state = STATE_INIT,
                .mode = MODE_AUTO,
@@ -298,8 +298,8 @@ int main(void)
   if (systemContextAccess.mutex == NULL) {
     Error_Handler();
   }
-  systemTaskArgs.system_context_access = &systemContextAccess;
-  viewPresenterTaskArgs.system_context_access = &systemContextAccess;
+  systemTaskArgs.system_model = &systemContextAccess;
+  viewPresenterTaskArgs.system_model = &systemContextAccess;
 #endif
 
   /* USER CODE END RTOS_MUTEX */
@@ -357,9 +357,9 @@ int main(void)
   }
   systemTaskArgs.system2vp_event_queue = system2VPEventQueueHandle;
   viewPresenterTaskArgs.system2vp_event_queue = system2VPEventQueueHandle;
-  viewPresenterTaskArgs.config_access = &configAccess;
-  viewPresenterTaskArgs.sensor_values_access = &sensorValuesAccess;
-  systemTaskArgs.config_access = &configAccess;
+  viewPresenterTaskArgs.config_model = &configModel;
+  viewPresenterTaskArgs.sensor_model = &sensorModel;
+  systemTaskArgs.config_model = &configModel;
 
   /* Create System <-> Maint queues */
   system2MaintEventQueueHandle =

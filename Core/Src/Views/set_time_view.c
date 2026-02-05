@@ -90,7 +90,7 @@ SetTimeView_t *SetTimeView_Init(const char *title,
   lv_obj_align(view->label_hint_center, LV_ALIGN_BOTTOM_MID, 0, 0);
   lv_obj_set_style_text_color(view->label_hint_center, lv_color_white(), 0);
 
-  SetTimeView_Render(view, &(SetTime_ViewModelData_t){
+  SetTimeView_Render(view, &(SetTimeViewData_t){
                                .hour = 12, .minute = 0, .active_field = 0});
 
   lv_port_unlock();
@@ -122,7 +122,7 @@ static void update_time_roller_borders(SetTimeView_t *view,
 }
 
 void SetTimeView_Render(SetTimeView_t *view,
-                        const SetTime_ViewModelData_t *data) {
+                        const SetTimeViewData_t *data) {
   if (!view || !data)
     return;
 

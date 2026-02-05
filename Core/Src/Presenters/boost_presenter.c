@@ -1,5 +1,4 @@
 #include "boost_presenter.h"
-#include "boost_viewmodel.h"
 #include "cmsis_os2.h"
 #include "view_presenter_router.h"
 #include <stdio.h>
@@ -7,12 +6,12 @@
 
 struct BoostPresenter {
   BoostView_t *view;
-  SystemContextAccessTypeDef *system_context;
+  SystemModel_t *system_context;
 };
 
 BoostPresenter_t *
 BoostPresenter_Init(BoostView_t *view,
-                    SystemContextAccessTypeDef *system_context) {
+                    SystemModel_t *system_context) {
   if (!view || !system_context)
     return NULL;
 
@@ -68,7 +67,7 @@ void BoostPresenter_Run(BoostPresenter_t *presenter, uint32_t current_tick) {
   if (!presenter || !presenter->view)
     return;
 
-  Boost_ViewModelData_t model = {0};
+  BoostViewData_t model = {0};
 
   /* Calculate remaining time */
   if (osMutexAcquire(presenter->system_context->mutex, 10) == osOK) {

@@ -83,9 +83,9 @@ typedef struct {
 
   /* System communication and shared data */
   osMessageQueueId_t vp2system_queue;
-  SystemContextAccessTypeDef *system_context;
-  ConfigAccessTypeDef *config_access;
-  SensorValuesAccessTypeDef *sensor_values_access;
+  SystemModel_t *system_context;
+  ConfigModel_t *config_access;
+  SensorModel_t *sensor_values_access;
 } Router_State_t;
 
 /* Global router state instance */
@@ -180,9 +180,9 @@ static void Router_SendSystemEvent(VP2SystemEventTypeDef event) {
  * @brief Initialize the router and activate initial route
  */
 void Router_Init(osMessageQueueId_t vp2system_queue,
-                 SystemContextAccessTypeDef *system_context,
-                 ConfigAccessTypeDef *config_access,
-                 SensorValuesAccessTypeDef *sensor_values_access) {
+                 SystemModel_t *system_context,
+                 ConfigModel_t *config_access,
+                 SensorModel_t *sensor_values_access) {
   g_router_state.vp2system_queue = vp2system_queue;
   g_router_state.system_context = system_context;
   g_router_state.config_access = config_access;

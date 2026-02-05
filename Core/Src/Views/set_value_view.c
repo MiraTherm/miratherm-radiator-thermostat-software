@@ -92,7 +92,7 @@ void SetValueView_Deinit(SetValueView_t *view) {
 }
 
 void SetValueView_Render(SetValueView_t *view,
-                         const SetValue_ViewModelData_t *data) {
+                         const SetValueViewData_t *data) {
   if (!view || !data)
     return;
   if (!lv_port_lock())

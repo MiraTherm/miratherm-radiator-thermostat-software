@@ -1,14 +1,13 @@
 #include "menu_presenter.h"
-#include "menu_viewmodel.h"
 #include "view_presenter_router.h"
 #include <stdio.h>
 #include <stdlib.h>
 
 struct MenuPresenter {
   MenuView_t *view;
-  SystemContextAccessTypeDef *system_context;
-  ConfigAccessTypeDef *config_access;
-  SensorValuesAccessTypeDef *sensor_values_access;
+  SystemModel_t *system_context;
+  ConfigModel_t *config_access;
+  SensorModel_t *sensor_values_access;
 
   uint16_t selected_index;
   const char *options;
@@ -20,9 +19,9 @@ struct MenuPresenter {
 #define MENU_OPTION_FACTORY_RST 2
 
 MenuPresenter_t *
-MenuPresenter_Init(MenuView_t *view, SystemContextAccessTypeDef *system_context,
-                   ConfigAccessTypeDef *config_access,
-                   SensorValuesAccessTypeDef *sensor_values_access) {
+MenuPresenter_Init(MenuView_t *view, SystemModel_t *system_context,
+                   ConfigModel_t *config_access,
+                   SensorModel_t *sensor_values_access) {
   if (!view || !system_context || !config_access || !sensor_values_access)
     return NULL;
 
@@ -93,7 +92,7 @@ void MenuPresenter_Run(MenuPresenter_t *presenter, uint32_t current_tick) {
   if (!presenter || !presenter->view)
     return;
 
-  Menu_ViewModelData_t model;
+  MenuViewData_t model;
   model.selected_index = presenter->selected_index;
   model.options_str = presenter->options;
 

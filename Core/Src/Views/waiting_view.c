@@ -60,7 +60,7 @@ void WaitingView_Deinit(WaitingView_t *view) {
 }
 
 void WaitingView_Render(WaitingView_t *view,
-                        const Waiting_ViewModelData_t *data) {
+                        const WaitingViewData_t *data) {
   (void)view;
   (void)data;
   /* Static view, no updates needed */

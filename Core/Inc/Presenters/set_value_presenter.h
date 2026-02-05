@@ -1,7 +1,7 @@
 #ifndef CORE_INC_PRESENTERS_SET_VALUE_PRESENTER_H
 #define CORE_INC_PRESENTERS_SET_VALUE_PRESENTER_H
 
-#include "set_value_viewmodel.h"
+#include "set_value_view.h"
 #include "input_task.h"
 #include <stdbool.h>
 

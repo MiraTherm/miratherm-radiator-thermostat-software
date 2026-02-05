@@ -12,7 +12,7 @@ extern "C" {
 
 typedef struct SetTempOffsetPresenter SetTempOffsetPresenter_t;
 
-SetTempOffsetPresenter_t* SetTempOffsetPresenter_Init(SetValueView_t *view, ConfigAccessTypeDef *config_access);
+SetTempOffsetPresenter_t* SetTempOffsetPresenter_Init(SetValueView_t *view, ConfigModel_t *config_access);
 void SetTempOffsetPresenter_Deinit(SetTempOffsetPresenter_t *presenter);
 void SetTempOffsetPresenter_HandleEvent(SetTempOffsetPresenter_t *presenter, const Input2VPEvent_t *event);
 bool SetTempOffsetPresenter_IsComplete(SetTempOffsetPresenter_t *presenter);

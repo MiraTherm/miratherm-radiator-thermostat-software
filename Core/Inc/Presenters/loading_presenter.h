@@ -1,7 +1,7 @@
 #ifndef CORE_INC_PRESENTERS_LOADING_PRESENTER_H
 #define CORE_INC_PRESENTERS_LOADING_PRESENTER_H
 
-#include "loading_viewmodel.h"
+#include "loading_view.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -27,7 +27,7 @@ void LoadingPresenter_Deinit(LoadingPresenter_t *presenter);
 /**
  * @brief Get the current data
  */
-const Loading_ViewModelData_t* LoadingPresenter_GetData(LoadingPresenter_t *presenter);
+const LoadingViewData_t* LoadingPresenter_GetData(LoadingPresenter_t *presenter);
 
 /**
  * @brief Periodic run/tick for presenter updates (call regularly)

@@ -74,9 +74,9 @@ typedef enum {
  * @see ViewPresenterTaskArgsTypeDef, RouteTypeDef
  */
 void Router_Init(osMessageQueueId_t vp2system_queue,
-                 SystemContextAccessTypeDef *system_context,
-                 ConfigAccessTypeDef *config_access,
-                 SensorValuesAccessTypeDef *sensor_values_access);
+                 SystemModel_t *system_context,
+                 ConfigModel_t *config_access,
+                 SensorModel_t *sensor_values_access);
 
 /**
  * @brief Deinitialize the router

@@ -84,7 +84,7 @@ void FactoryResetPresenter_HandleEvent(FactoryResetPresenter_t *presenter,
       SetBoolPresenter_HandleEvent(presenter->confirm_presenter, event);
 
       if (SetBoolPresenter_IsComplete(presenter->confirm_presenter)) {
-        const SetBool_ViewModelData_t *data =
+        const SetBoolViewData_t *data =
             SetBoolPresenter_GetData(presenter->confirm_presenter);
         if (data && data->value) {
           /* Yes selected -> Transition to Progress */

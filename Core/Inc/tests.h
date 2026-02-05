@@ -22,7 +22,7 @@
 #include "storage_task.h"
 
 /* Forward declaration to break circular dependency with sensor_task.h */
-typedef struct SensorValuesAccessTypeDef SensorValuesAccessTypeDef;
+typedef struct SensorModel_t SensorModel_t;
 
 #ifdef __cplusplus
 extern "C" {
@@ -66,8 +66,8 @@ extern "C" {
  */
 void Driver_Test(osMessageQueueId_t storage2system_event_queue,
                  osMessageQueueId_t input2vp_event_queue,
-                 ConfigAccessTypeDef *config_access,
-                 SensorValuesAccessTypeDef *sensor_values_access);
+                 ConfigModel_t *config_access,
+                 SensorModel_t *sensor_values_access);
 #elif ADAPTATION_TEST
 /**
  * @brief Run radiator adaptation algorithm test (not implemented yet)

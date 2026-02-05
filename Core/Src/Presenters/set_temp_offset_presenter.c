@@ -5,7 +5,7 @@
 
 struct SetTempOffsetPresenter {
   SetValuePresenter_t *generic_presenter;
-  ConfigAccessTypeDef *config_access;
+  ConfigModel_t *config_access;
   char *options_str;
   bool is_complete;
   bool is_cancelled;
@@ -13,7 +13,7 @@ struct SetTempOffsetPresenter {
 
 SetTempOffsetPresenter_t *
 SetTempOffsetPresenter_Init(SetValueView_t *view,
-                            ConfigAccessTypeDef *config_access) {
+                            ConfigModel_t *config_access) {
   if (!view || !config_access)
     return NULL;
 

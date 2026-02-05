@@ -25,7 +25,7 @@
 #include <stdio.h>
 
 /* Global pointer to system context for API helpers (System_GetState, etc.) */
-static SystemContextAccessTypeDef *g_sys_ctx = NULL;
+static SystemModel_t *g_sys_ctx = NULL;
 
 /* Main system task: initializes state machine and runs control loop */
 void StartSystemTask(void *argument) {
@@ -36,7 +36,7 @@ void StartSystemTask(void *argument) {
   }
 
   /* Store global pointer for API helpers */
-  g_sys_ctx = args->system_context_access;
+  g_sys_ctx = args->system_model;
 
   if (g_sys_ctx == NULL || g_sys_ctx->mutex == NULL) {
     printf("ERROR: systemContextAccess not initialized or mutex NULL\n");

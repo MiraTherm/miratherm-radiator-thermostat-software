@@ -112,23 +112,23 @@ void SystemSM_Run(void) {
       break;
     case STATE_ADAPT_FAIL:
       printf("SystemSM: Entering ADAPT_FAIL state...\n");
-      if (smArgs->system_context_access != NULL &&
-          smArgs->system_context_access->mutex != NULL) {
-        if (osMutexAcquire(smArgs->system_context_access->mutex,
+      if (smArgs->system_model != NULL &&
+          smArgs->system_model->mutex != NULL) {
+        if (osMutexAcquire(smArgs->system_model->mutex,
                            osWaitForever) == osOK) {
-          smArgs->system_context_access->data.adapt_result = ADAPT_RESULT_FAIL;
-          osMutexRelease(smArgs->system_context_access->mutex);
+          smArgs->system_model->data.adapt_result = ADAPT_RESULT_FAIL;
+          osMutexRelease(smArgs->system_model->mutex);
         }
       }
       break;
     case STATE_RUNNING:
       printf("SystemSM: Entering RUNNING state...\n");
-      if (smArgs->system_context_access != NULL &&
-          smArgs->system_context_access->mutex != NULL) {
-        if (osMutexAcquire(smArgs->system_context_access->mutex,
+      if (smArgs->system_model != NULL &&
+          smArgs->system_model->mutex != NULL) {
+        if (osMutexAcquire(smArgs->system_model->mutex,
                            osWaitForever) == osOK) {
-          smArgs->system_context_access->data.adapt_result = ADAPT_RESULT_OK;
-          osMutexRelease(smArgs->system_context_access->mutex);
+          smArgs->system_model->data.adapt_result = ADAPT_RESULT_OK;
+          osMutexRelease(smArgs->system_model->mutex);
         }
       }
       break;
@@ -284,29 +284,29 @@ static SystemState_t doRunningState(void) {
   static uint8_t last_slot_end_minute = 0xFF;
 
   /* Check for boost mode timeout (300 seconds) */
-  if (smArgs && smArgs->system_context_access) {
-    if (osMutexAcquire(smArgs->system_context_access->mutex, 10) == osOK) {
-      if (smArgs->system_context_access->data.mode == MODE_BOOST) {
+  if (smArgs && smArgs->system_model) {
+    if (osMutexAcquire(smArgs->system_model->mutex, 10) == osOK) {
+      if (smArgs->system_model->data.mode == MODE_BOOST) {
         uint32_t elapsed_ticks =
             osKernelGetTickCount() -
-            smArgs->system_context_access->data.boost_begin_time;
+            smArgs->system_model->data.boost_begin_time;
         if (elapsed_ticks >= pdMS_TO_TICKS(300000)) /* 300 seconds */
         {
           /* Restore mode before boost */
           SystemMode_t previous_mode =
-              smArgs->system_context_access->data.mode_before_boost;
-          smArgs->system_context_access->data.mode = previous_mode;
+              smArgs->system_model->data.mode_before_boost;
+          smArgs->system_model->data.mode = previous_mode;
           printf(
               "SystemSM: Boost mode timeout - restoring previous mode (%d)\n",
               previous_mode);
         }
       }
-      osMutexRelease(smArgs->system_context_access->mutex);
+      osMutexRelease(smArgs->system_model->mutex);
     }
   }
 
   /* Calculate target temperature and schedule slot end time */
-  if (smArgs && smArgs->config_access && smArgs->system_context_access) {
+  if (smArgs && smArgs->config_model && smArgs->system_model) {
     extern RTC_HandleTypeDef hrtc;
     RTC_TimeTypeDef sTime = {0};
     RTC_DateTypeDef sDate = {0};
@@ -318,16 +318,16 @@ static SystemState_t doRunningState(void) {
     SystemMode_t current_mode = MODE_AUTO;
 
     /* Read current mode */
-    if (osMutexAcquire(smArgs->system_context_access->mutex, 10) == osOK) {
-      current_mode = smArgs->system_context_access->data.mode;
-      osMutexRelease(smArgs->system_context_access->mutex);
+    if (osMutexAcquire(smArgs->system_model->mutex, 10) == osOK) {
+      current_mode = smArgs->system_model->data.mode;
+      osMutexRelease(smArgs->system_model->mutex);
     }
 
     /* Set target temperature based on current operating mode */
     if (current_mode == MODE_AUTO) {
       /* AUTO mode: calculate from active schedule slot */
-      if (osMutexAcquire(smArgs->config_access->mutex, 10) == osOK) {
-        ConfigTypeDef *cfg = &smArgs->config_access->data;
+      if (osMutexAcquire(smArgs->config_model->mutex, 10) == osOK) {
+        ConfigData_t *cfg = &smArgs->config_model->data;
         bool found = false;
 
         int current_mins = sTime.Hours * 60 + sTime.Minutes;
@@ -353,13 +353,13 @@ static SystemState_t doRunningState(void) {
           end_m = 0;
         }
 
-        osMutexRelease(smArgs->config_access->mutex);
+        osMutexRelease(smArgs->config_model->mutex);
       }
     } else if (current_mode == MODE_MANUAL) {
       /* MANUAL mode: use fixed manual temperature */
-      if (osMutexAcquire(smArgs->config_access->mutex, 10) == osOK) {
-        target_temp = smArgs->config_access->data.manual_target_temp;
-        osMutexRelease(smArgs->config_access->mutex);
+      if (osMutexAcquire(smArgs->config_model->mutex, 10) == osOK) {
+        target_temp = smArgs->config_model->data.manual_target_temp;
+        osMutexRelease(smArgs->config_model->mutex);
       }
       end_h = 0xFF; /* No slot tracking in manual */
       end_m = 0xFF;
@@ -371,28 +371,28 @@ static SystemState_t doRunningState(void) {
     }
 
     /* Update shared context with calculated values */
-    if (osMutexAcquire(smArgs->system_context_access->mutex, 10) == osOK) {
+    if (osMutexAcquire(smArgs->system_model->mutex, 10) == osOK) {
       /* Only clear temporary override in AUTO mode on slot change */
       if (current_mode == MODE_AUTO) {
         bool slot_changed =
             (end_h != last_slot_end_hour) || (end_m != last_slot_end_minute);
         if (slot_changed &&
-            smArgs->system_context_access->data.temporary_target_temp != 0) {
-          smArgs->system_context_access->data.temporary_target_temp = 0;
+            smArgs->system_model->data.temporary_target_temp != 0) {
+          smArgs->system_model->data.temporary_target_temp = 0;
           printf("SystemSM: Cleared temporary target temperature (slot changed "
                  "from %02u:%02u to %02u:%02u)\n",
                  last_slot_end_hour, last_slot_end_minute, end_h, end_m);
         }
 
-        smArgs->system_context_access->data.target_temp = target_temp;
-        smArgs->system_context_access->data.slot_end_hour = end_h;
-        smArgs->system_context_access->data.slot_end_minute = end_m;
+        smArgs->system_model->data.target_temp = target_temp;
+        smArgs->system_model->data.slot_end_hour = end_h;
+        smArgs->system_model->data.slot_end_minute = end_m;
       } else if (current_mode == MODE_MANUAL || current_mode == MODE_BOOST) {
         /* MANUAL/BOOST: only update target, don't modify slot info */
-        smArgs->system_context_access->data.target_temp = target_temp;
+        smArgs->system_model->data.target_temp = target_temp;
       }
 
-      osMutexRelease(smArgs->system_context_access->mutex);
+      osMutexRelease(smArgs->system_model->mutex);
 
       /* Update slot tracking (AUTO mode only) */
       if (current_mode == MODE_AUTO) {
@@ -440,11 +440,11 @@ static SystemState_t doFactoryRstState(void) {
 
 /* Update shared system context with new state */
 static void updateSharedState(SystemState_t newState) {
-  if (smArgs != NULL && smArgs->system_context_access != NULL &&
-      smArgs->system_context_access->mutex != NULL) {
-    if (osMutexAcquire(smArgs->system_context_access->mutex, 0) == osOK) {
-      smArgs->system_context_access->data.state = newState;
-      osMutexRelease(smArgs->system_context_access->mutex);
+  if (smArgs != NULL && smArgs->system_model != NULL &&
+      smArgs->system_model->mutex != NULL) {
+    if (osMutexAcquire(smArgs->system_model->mutex, 0) == osOK) {
+      smArgs->system_model->data.state = newState;
+      osMutexRelease(smArgs->system_model->mutex);
     }
   }
 }

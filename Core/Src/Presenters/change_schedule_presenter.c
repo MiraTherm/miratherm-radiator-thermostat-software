@@ -18,7 +18,7 @@ typedef enum {
 
 typedef struct ChangeSchedulePresenter {
   ChangeScheduleView_t *view;
-  ConfigAccessTypeDef *config_access;
+  ConfigModel_t *config_access;
 
   SetBoolPresenter_t *bool_presenter;
   SetValuePresenter_t *value_presenter;
@@ -41,7 +41,7 @@ static void load_schedule(ChangeSchedulePresenter_t *presenter);
 
 ChangeSchedulePresenter_t *
 ChangeSchedulePresenter_Init(ChangeScheduleView_t *view,
-                             ConfigAccessTypeDef *config_access,
+                             ConfigModel_t *config_access,
                              bool skip_confirmation) {
   ChangeSchedulePresenter_t *presenter =
       (ChangeSchedulePresenter_t *)malloc(sizeof(ChangeSchedulePresenter_t));
@@ -192,7 +192,7 @@ static void setup_slot_time_view(ChangeSchedulePresenter_t *presenter) {
   SetTimeSlotView_SetTitle(ChangeScheduleView_GetTimeSlotView(presenter->view),
                            title);
 
-  SetTimeSlot_ViewModelData_t data = {0};
+  SetTimeSlotViewData_t data = {0};
 
   data.start_hour =
       presenter->schedule.time_slots[presenter->current_slot_index].start_hour;
@@ -269,7 +269,7 @@ void ChangeSchedulePresenter_HandleEvent(ChangeSchedulePresenter_t *presenter,
   case STEP_ASK_CHANGE:
     SetBoolPresenter_HandleEvent(presenter->bool_presenter, event);
     if (SetBoolPresenter_IsComplete(presenter->bool_presenter)) {
-      const SetBool_ViewModelData_t *data =
+      const SetBoolViewData_t *data =
           SetBoolPresenter_GetData(presenter->bool_presenter);
       if (data->value) /* Yes */
       {
@@ -336,7 +336,7 @@ void ChangeSchedulePresenter_HandleEvent(ChangeSchedulePresenter_t *presenter,
     if (event->type == EVT_LEFT_BTN &&
         event->button_action == BUTTON_ACTION_PRESSED) {
       /* If we are at first field of time slot, go back to previous step */
-      SetTimeSlot_ViewModelData_t data =
+      SetTimeSlotViewData_t data =
           SetTimeSlotPresenter_GetData(presenter->time_slot_presenter);
 
       /* If start time is locked, active field starts at 2. If not, 0. */
@@ -374,7 +374,7 @@ void ChangeSchedulePresenter_HandleEvent(ChangeSchedulePresenter_t *presenter,
     SetTimeSlotPresenter_HandleEvent(presenter->time_slot_presenter, event);
     if (SetTimeSlotPresenter_IsComplete(presenter->time_slot_presenter)) {
       /* Save time slot data */
-      SetTimeSlot_ViewModelData_t data =
+      SetTimeSlotViewData_t data =
           SetTimeSlotPresenter_GetData(presenter->time_slot_presenter);
 
       /* Validate: end time must be greater than start time */

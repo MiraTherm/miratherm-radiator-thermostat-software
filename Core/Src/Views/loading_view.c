@@ -105,7 +105,7 @@ void LoadingView_Deinit(LoadingView_t *view) {
  * @brief Render/update the view with animated dots
  */
 void LoadingView_Render(LoadingView_t *view,
-                        const Loading_ViewModelData_t *data) {
+                        const LoadingViewData_t *data) {
   if (!view || !data)
     return;
 

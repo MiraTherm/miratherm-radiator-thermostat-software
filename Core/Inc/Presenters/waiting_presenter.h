@@ -2,7 +2,6 @@
 #define CORE_INC_PRESENTERS_WAITING_PRESENTER_H
 
 #include "waiting_view.h"
-#include "waiting_viewmodel.h"
 #include "input_task.h"
 #include <stdint.h>
 #include <stdbool.h>

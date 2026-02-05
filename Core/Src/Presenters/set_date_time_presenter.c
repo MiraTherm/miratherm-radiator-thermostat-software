@@ -24,11 +24,11 @@ static void set_rtc(SetDateTimePresenter_t *presenter) {
   if (hrtc.Instance == NULL)
     return;
 
-  const SetDate_ViewModelData_t *date_data =
+  const SetDateViewData_t *date_data =
       SetDatePresenter_GetData(presenter->date_presenter);
-  const SetTime_ViewModelData_t *time_data =
+  const SetTimeViewData_t *time_data =
       SetTimePresenter_GetData(presenter->time_presenter);
-  const SetBool_ViewModelData_t *dst_data =
+  const SetBoolViewData_t *dst_data =
       SetBoolPresenter_GetData(presenter->dst_presenter);
 
   if (!date_data || !time_data || !dst_data)
@@ -113,7 +113,7 @@ void SetDateTimePresenter_HandleEvent(SetDateTimePresenter_t *presenter,
   } else if (presenter->current_step == 1) {
     if (event->type == EVT_LEFT_BTN &&
         event->button_action == BUTTON_ACTION_PRESSED) {
-      const SetTime_ViewModelData_t *data =
+      const SetTimeViewData_t *data =
           SetTimePresenter_GetData(presenter->time_presenter);
       if (data->active_field == 0) {
         presenter->current_step = 0;

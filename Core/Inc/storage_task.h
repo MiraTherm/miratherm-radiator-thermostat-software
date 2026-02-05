@@ -70,7 +70,7 @@ typedef struct {
 } DailyScheduleTypeDef;
 
 /**
- * @typedef ConfigTypeDef
+ * @typedef ConfigData_t
  * @brief Device configuration parameters stored in Flash
  * @details All user-configurable settings persisted across power cycles.
  *          Temperature offset allows sensor calibration compensation.
@@ -81,20 +81,20 @@ typedef struct {
   float temperature_offset;        /**< Temperature sensor calibration offset in °C */
   DailyScheduleTypeDef daily_schedule; /**< Daily heating schedule */
   float manual_target_temp;          /**< Manual mode target temperature in °C */
-} ConfigTypeDef;
+} ConfigData_t;
 
 /**
- * @typedef ConfigAccessTypeDef
+ * @typedef ConfigModel_t
  * @brief Thread-safe access wrapper for device configuration
- * @details Provides osMutex-protected access to ConfigTypeDef. Must be
+ * @details Provides osMutex-protected access to ConfigData_t. Must be
  *          acquired before reading or writing configuration to ensure
  *          consistency across concurrent FreeRTOS tasks.
  * @see StartStorageTask
  */
-typedef struct ConfigAccessTypeDef {
+typedef struct ConfigModel_t {
   osMutexId_t mutex;    /**< CMSIS-RTOS2 mutex for thread-safe access */
-  ConfigTypeDef data;   /**< Configuration data (protected by mutex) */
-} ConfigAccessTypeDef;
+  ConfigData_t data;    /**< Configuration data (protected by mutex) */
+} ConfigModel_t;
 
 /**
  * @brief Start the Flash storage management task
@@ -106,7 +106,7 @@ typedef struct ConfigAccessTypeDef {
  *                 and config access pointer. NULL argument causes
  *                 Error_Handler() to be called.
  * @return Does not return; runs as infinite FreeRTOS task
- * @see StorageTaskArgsTypeDef, ConfigAccessTypeDef, Storage2SystemEventTypeDef
+ * @see StorageTaskArgsTypeDef, ConfigModel_t, Storage2SystemEventTypeDef
  */
 void StartStorageTask(void *argument);
 

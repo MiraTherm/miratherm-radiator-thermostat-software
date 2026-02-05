@@ -1,7 +1,6 @@
 #ifndef CORE_INC_VIEWS_LOADING_VIEW_H
 #define CORE_INC_VIEWS_LOADING_VIEW_H
 
-#include "loading_viewmodel.h"
 #include "lvgl.h"
 
 #ifdef __cplusplus
@@ -11,6 +10,16 @@ extern "C" {
 /**
  * @brief Loading View - displays animated text with configurable parameters
  */
+
+/**
+ * @typedef LoadingViewData_t
+ * @brief View data for loading screen
+ */
+typedef struct
+{
+    uint32_t progress; /* 0-100 or indefinite state */
+    uint32_t animation_frame; /* Animation frame counter */
+} LoadingViewData_t;
 
 typedef struct LoadingView LoadingView_t;
 
@@ -31,7 +40,7 @@ void LoadingView_Deinit(LoadingView_t *view);
 /**
  * @brief Render/update the view with data from view model
  */
-void LoadingView_Render(LoadingView_t *view, const Loading_ViewModelData_t *data);
+void LoadingView_Render(LoadingView_t *view, const LoadingViewData_t *data);
 
 /**
  * @brief Update the message displayed

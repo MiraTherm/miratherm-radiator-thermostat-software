@@ -15,7 +15,7 @@ extern "C" {
 
 typedef struct HomePresenter HomePresenter_t;
 
-HomePresenter_t* HomePresenter_Init(HomeView_t *view, SystemContextAccessTypeDef *system_context, ConfigAccessTypeDef *config_access, SensorValuesAccessTypeDef *sensor_values_access);
+HomePresenter_t* HomePresenter_Init(HomeView_t *view, SystemModel_t *system_context, ConfigModel_t *config_access, SensorModel_t *sensor_values_access);
 void HomePresenter_Deinit(HomePresenter_t *presenter);
 void HomePresenter_HandleEvent(HomePresenter_t *presenter, const Input2VPEvent_t *event);
 void HomePresenter_Run(HomePresenter_t *presenter, uint32_t current_tick);

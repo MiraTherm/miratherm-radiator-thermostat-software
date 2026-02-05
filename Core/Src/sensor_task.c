@@ -47,8 +47,8 @@
 static uint16_t s_adc_dma_buffer[SENSOR_TASK_ADC_CHANNEL_COUNT];
 
 /* Thread-safe access to sensor values and configuration */
-static SensorValuesAccessTypeDef *s_sensor_values_access = NULL;
-static ConfigAccessTypeDef *s_config_access = NULL;
+static SensorModel_t *s_sensor_model = NULL;
+static ConfigModel_t *s_config_model = NULL;
 
 /* Motor measurement enable flag (used to switch measurement periods) */
 #if TESTS & DRIVER_TEST
@@ -84,11 +84,11 @@ static float calculate_temperature(uint16_t temperature_raw, uint32_t vref_mv) {
   const int32_t temperature = __LL_ADC_CALC_TEMPERATURE(
       vref_mv, temperature_raw, LL_ADC_RESOLUTION_12B);
 
-  /* Read temperature offset from config access */
+  /* Read temperature offset from config model */
   float offset = 0.0f;
-  if (osMutexAcquire(s_config_access->mutex, osWaitForever) == osOK) {
-    offset = s_config_access->data.temperature_offset;
-    osMutexRelease(s_config_access->mutex);
+  if (osMutexAcquire(s_config_model->mutex, osWaitForever) == osOK) {
+    offset = s_config_model->data.temperature_offset;
+    osMutexRelease(s_config_model->mutex);
   }
 
   return (float)temperature + offset;
@@ -164,11 +164,11 @@ void StartSensorTask(void *argument) {
 
   /* Receive config access and sensor values access handles from main */
   if (args != NULL) {
-    if (args->config_access != NULL) {
-      s_config_access = args->config_access;
+    if (args->config_model != NULL) {
+      s_config_model = args->config_model;
     }
-    if (args->sensor_values_access != NULL) {
-      s_sensor_values_access = args->sensor_values_access;
+    if (args->sensor_model != NULL) {
+      s_sensor_model = args->sensor_model;
     }
   }
 
@@ -177,7 +177,7 @@ void StartSensorTask(void *argument) {
          (unsigned long)xPortGetFreeHeapSize());
 #endif
 
-  if (s_sensor_values_access == NULL || s_sensor_values_access->mutex == NULL) {
+  if (s_sensor_model == NULL || s_sensor_model->mutex == NULL) {
     Error_Handler();
   }
 
@@ -271,19 +271,19 @@ void StartSensorTask(void *argument) {
     }
 
     /* Update sensor values via mutex */
-    if (osMutexAcquire(s_sensor_values_access->mutex, osWaitForever) == osOK) {
+    if (osMutexAcquire(s_sensor_model->mutex, osWaitForever) == osOK) {
       if (update_motor) {
-        s_sensor_values_access->data.motor_current = motor_current;
+        s_sensor_model->data.motor_current = motor_current;
       }
 
       if (update_temp_bat) {
-        s_sensor_values_access->data.ambient_temperature = temperature;
-        s_sensor_values_access->data.soc = battery_soc;
+        s_sensor_model->data.ambient_temperature = temperature;
+        s_sensor_model->data.soc = battery_soc;
 #if DRIVER_TEST
-        s_sensor_values_access->data.battery_voltage = battery_voltage;
+        s_sensor_model->data.battery_voltage = battery_voltage;
 #endif
       }
-      osMutexRelease(s_sensor_values_access->mutex);
+      osMutexRelease(s_sensor_model->mutex);
     }
 
     /* Determine delay interval based on motor measurement state */

@@ -50,11 +50,11 @@ typedef struct {
   osMessageQueueId_t input2vp_event_queue;    /**< Input events from user (buttons, encoder) */
   osMessageQueueId_t vp2system_event_queue;   /**< UI sends events to system (user actions) */
   osMessageQueueId_t system2vp_event_queue;   /**< System sends events to UI (state changes) */
-  SystemContextAccessTypeDef
-      *system_context_access;                 /**< Pointer to system context for UI display */
-  ConfigAccessTypeDef *config_access;         /**< Pointer to configuration data access */
-  SensorValuesAccessTypeDef
-      *sensor_values_access;                  /**< Pointer to sensor values for display */
+  SystemModel_t
+      *system_model;                 /**< Pointer to system context for UI display */
+  ConfigModel_t *config_model;         /**< Pointer to configuration data access */
+  SensorModel_t
+      *sensor_model;                  /**< Pointer to sensor values for display */
 } ViewPresenterTaskArgsTypeDef;
 
 /**
