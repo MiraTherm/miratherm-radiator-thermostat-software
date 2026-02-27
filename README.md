@@ -26,6 +26,14 @@ git sparse-checkout set --no-cone 'st7735/' 'README.md' 'LICENSE'
 
 **Note:** Some generated files contain STMicroelectronics code under AS-IS license. See [LEGAL_NOTICES](LEGAL_NOTICES) for details.
 
+## Related Repositories
+
+| Repository | Description |
+|---|---|
+| [miratherm-radiator-thermostat-documentation](https://github.com/MiraTherm/miratherm-radiator-thermostat-documentation) | Project documentation including specifications for electronics and software. |
+| [miratherm-radiator-thermostat-mechanics](https://github.com/MiraTherm/miratherm-radiator-thermostat-mechanics) | Development of the thermostat's power transmission mechanism for proper function with commonly used radiator valves, followed by the design of an enclosure. |
+| [miratherm-radiator-thermostat-electronics](https://github.com/MiraTherm/miratherm-radiator-thermostat-electronics) | Development of the thermostat's PCB and its integration with mechanical components. |
+
 ## License
 
 This project is licensed under **GPL-3.0** for MiraTherm original code. Generated files from STM32CubeMX are covered under STMicroelectronics' AS-IS license.
